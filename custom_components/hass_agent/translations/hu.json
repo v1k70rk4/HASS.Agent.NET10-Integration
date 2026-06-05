@@ -1,0 +1,64 @@
+{
+    "config": {
+        "flow_title": "{name}",
+        "abort": {
+            "single_instance_allowed": "Csak egy példány engedélyezett.",
+            "no_devices_found": "Nem található eszköz a hálózaton.",
+            "already_configured": "Ez az eszköz már be van állítva."
+        },
+        "error": {
+            "cannot_connect": "Nem sikerült csatlakozni a HASS.Agenthez"
+        },
+        "step": {
+            "confirm": {
+                "title": "Megerősítés",
+                "description": "El szeretné indítani a beállítást?"
+            },
+            "local_api": {
+                "title": "HASS.Agent helyi API",
+                "description": "Ez az eszközt a helyi API használatával adja hozzá a Home Assistanthoz. Jelenleg CSAK az értesítések működnek. Ha media_player támogatást szeretne, adja hozzá az eszközt automatikus felderítéssel.",
+                "data": {
+                    "host": "Hoszt",
+                    "port": "Port",
+                    "ssl": "SSL használata"
+                }
+            }
+        }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "data": {
+                    "default_notification_title": "Alapértelmezett értesítési cím. Szóközzel kikapcsolható."
+                },
+                "title": "HASS.Agent beállítása"
+            }
+        }
+    },
+    "device_automation": {
+        "trigger_type": {
+            "notifications_mqtt": "Amikor egy adott műveletet tartalmazó értesítésre rányomtak (MQTT)",
+            "notifications_event": "Amikor egy adott műveletet tartalmazó értesítésre rányomtak (Esemény)"
+        }
+    },
+    "entity": {
+        "event": {
+            "notification_action": {
+                "name": "Értesítési műveletek"
+            }
+        }
+    },
+    "issues": {
+        "restart_required": {
+            "title": "Az eszköz át lett nevezve - újraindítás szükséges",
+            "fix_flow": {
+                "step": {
+                    "confirm_restart": {
+                        "title": "Újraindítás szükséges",
+                        "description": "Az eszköz neve megváltozott, ezért a Home Assistant újraindítása szükséges, hogy a(z) {name} értesítési szolgáltatása megfelelően újratöltődjön. Kattintson a mehet gombra az azonnali újraindításhoz."
+                    }
+                }
+            }
+        }
+    }
+}

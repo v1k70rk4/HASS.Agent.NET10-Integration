@@ -2,6 +2,7 @@
     "config": {
         "flow_title": "{name}",
         "abort": {
+            "single_instance_allowed": "Only a single instance is allowed.",
             "no_devices_found": "No devices found on the network.",
             "already_configured": "This device is already configured."
         },
@@ -10,6 +11,7 @@
         },
         "step": {
             "confirm": {
+                "title": "Confirm",
                 "description": "Do you want to start set up?"
             },
             "local_api": {
