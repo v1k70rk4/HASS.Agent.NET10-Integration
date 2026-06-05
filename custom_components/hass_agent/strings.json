@@ -10,19 +10,19 @@
                 "title": "HASS.Agent Local API",
                 "description": "This adds the device to HA using the local API. Currently ONLY notifications will work. Add the device using auto discovery if you want media player support.",
                 "data": {
-                    "host": "[%key:common::config_flow::data::host%]",
-                    "port": "[%key:common::config_flow::data::port%]",
-                    "ssl": "[%key:common::config_flow::data::ssl%]"
+                    "host": "Host",
+                    "port": "Port",
+                    "ssl": "Use SSL"
                 }
             }
         },
         "error": {
-            "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]"
+            "cannot_connect": "Failed to connect"
         },
         "abort": {
-            "single_instance_allowed": "[%key:common::config_flow::abort::single_instance_allowed%]",
-            "no_devices_found": "[%key:common::config_flow::abort::no_devices_found%]",
-            "already_configured": "[%key:common::config_flow::abort::already_configured_device%]"
+            "single_instance_allowed": "Already configured. Only a single configuration possible.",
+            "no_devices_found": "No devices found on the network.",
+            "already_configured": "Device is already configured."
         }
     },
     "options": {
