@@ -1,56 +1,63 @@
-# HASS.Agent 2 Integration - Media Player & Notifications
+# HASS.Agent Integration
 
-### Notice
+Custom Home Assistant integration for HASS.Agent devices.
 
-This integration is intended to work with <a href="https://github.com/v1k70rk4/HASS.Agent-Integration" target="_blank">forked version of HASS.Agent</a>.
-
-While it's **very likely** that it'll also work with the original version, it cannot be guaranteed.
-
-----
-
-## Description
-
-This <a href="https://www.home-assistant.io" target="_blank">Home Assistant</a> integration is the second-half of <a href="https://github.com/v1k70rk4/HASS.Agent-Integration" target="_blank">HASS.Agent</a>, a Windows-based Home Assistant client.
-
-This integration allows HASS.Agent to act as a media player and notification receiver (like Home Assistant Companion Applications). 
-
-All communication is done through MQTT. It supports auto discovery, so you'll see your HASS.Agent devices show up automatically in the integrations page:
-
-![image](https://user-images.githubusercontent.com/81011038/198246059-caa7f1cd-89f7-41f9-989e-724a1a67c2fe.png)
+This integration exposes a Windows HASS.Agent device as a Home Assistant media player and notification target. Devices can be discovered through MQTT, and notification actions are exposed both as device automation triggers and as a modern Home Assistant event entity.
 
 ## Features
-Windows device acting as a media player (for music and TTS messages):
 
-![image](https://user-images.githubusercontent.com/81011038/198246217-cce288be-bbb7-4c5f-baff-510cc99c30b1.png)
+- MQTT auto-discovery for HASS.Agent devices
+- Media player entity for playback control, volume control, media browsing, TTS, and album art
+- Notify entity for sending notifications to the Windows client
+- Notification action triggers for automations
+- Notification action event entity for newer Home Assistant automation workflows
+- Local API setup for notification-only use cases
+- Hungarian and English translations
 
-Sending actionable notifications:
+## Requirements
 
-![image](https://user-images.githubusercontent.com/81011038/190643738-724dac45-4d03-4a19-a0e6-3a59b5de0aad.png)
+- Home Assistant 2026.6.0 or newer
+- MQTT integration configured in Home Assistant
+- HACS, when installing through the custom repository flow
+- A compatible HASS.Agent client
 
-Notification actions are also exposed as a Home Assistant event entity, so automations can react to the latest action from the device entity directly.
+MQTT discovery is recommended when you want media player support. The Local API setup currently supports notifications only.
 
 ## Installation
 
-The supported way to install HASS.Agent integration is through HACS. This version of is ***not yet available in HACS by default and needs to be added as a custom repository***.
+1. Open HACS in Home Assistant.
+2. Add this repository as a custom integration repository:
 
-If you have the **original version of HASS.Agent integration** installed (either version), **please remove it** before proceeding further and restart Home Assistant.
+   ```text
+   https://github.com/v1k70rk4/HASS.Agent-Integration
+   ```
 
-1. Add "HASS.Agent 2 Integration" repository - https://github.com/v1k70rk4/HASS.Agent-Integration - as a custom HACS integration repository.
- ![i0mENM](https://github.com/v1k70rk4/HASS.Agent-Integration/assets/68441479/37fcbfd1-ab5f-4f32-b389-715b06391cab) <img src="https://github.com/v1k70rk4/HASS.Agent-Integration/assets/68441479/d4c9ced0-712d-4051-ac9d-e539ec308337" width="300" />
+3. Install **HASS.Agent Integration** from HACS.
+4. Restart Home Assistant.
+5. Configure discovered HASS.Agent devices from **Settings > Devices & services**.
 
+If another HASS.Agent integration is already installed, remove it before installing this one, then restart Home Assistant.
 
+## Version 3.0.0
 
-3. Install "HASS.Agent 2 Integration - Media Player & Notifications" from HACS (including restart), as you would with any other integration. Home Assistant 2026.6.0 or newer is required.
-4. Configure HASS.Agent devices when they are discovered.
+This release modernizes the integration for Home Assistant 2026.6 and newer.
 
-In case of issues please get in touch <a href="https://discord.gg/JfZj98xqJr" target="_blank">on Discord</a>.
+- Replaced the custom unauthenticated thumbnail endpoint with Home Assistant's built-in media player image proxy
+- Added a notification action event entity
+- Improved config entry setup retry behavior
+- Improved platform unload handling
+- Hardened MQTT and config flow payload parsing
+- Updated MQTT publish calls with explicit `qos` and `retain`
+- Updated media source typing for Home Assistant 2026.6
+- Added Ruff linting workflow
+- Enabled hassfest and HACS validation on push and pull request
+- Added Hungarian translations
 
-----
+## Credits
 
-[GETTING STARTED GUIDE](https://www.hass-agent.io/latest/getting-started/)
+This project builds on the work done by:
 
-For more help and examples, check [the documentation](https://www.hass-agent.io/latest/), <a href="https://discord.gg/JfZj98xqJr" target="_blank">join on Discord</a> or visit the <a href="https://community.home-assistant.io/t/hass-agent-a-new-windows-based-client-to-receive-notifications-perform-quick-actions-and-much-more/369094" target="_blank">dedicated HA forum thread (for original version)</a>.
+- [hass-agent/HASS.Agent-Integration](https://github.com/hass-agent/HASS.Agent-Integration)
+- [LAB02-Research/HASS.Agent-Integration](https://github.com/LAB02-Research/HASS.Agent-Integration)
 
-----
-
-Thanks [@fillefilip8](https://github.com/fillefilip8) for developing the original version!
+Thanks to the original maintainers and contributors for creating the foundation this integration is based on.
