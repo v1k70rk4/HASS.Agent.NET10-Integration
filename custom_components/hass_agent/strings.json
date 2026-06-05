@@ -41,6 +41,13 @@
             "notifications_event": "[%key:component::hass_agent::device_automation::trigger_type::notifications_event%]"
         }
     },
+    "entity": {
+        "event": {
+            "notification_action": {
+                "name": "[%key:component::hass_agent::entity::event::notification_action::name%]"
+            }
+        }
+    },
     "issues": {
         "restart_required": {
             "title": "[%key:component::hass_agent::issues::restart_required::title%]",

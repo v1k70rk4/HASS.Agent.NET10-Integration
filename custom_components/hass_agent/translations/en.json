@@ -39,6 +39,13 @@
             "notifications_event": "When a notification with a specific action has been pressed (Event)"
         }
     },
+    "entity": {
+        "event": {
+            "notification_action": {
+                "name": "Notification actions"
+            }
+        }
+    },
     "issues": {
         "restart_required": {
             "title": "Device renamed - restart required",

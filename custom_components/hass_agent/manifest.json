@@ -6,16 +6,13 @@
   ],
   "config_flow": true,
   "dependencies": [
-    "mqtt",
-    "http"
+    "mqtt"
   ],
   "documentation": "https://github.com/v1k70rk4/HASS.Agent-Integration",
-  "homekit": {},
+  "integration_type": "device",
   "iot_class": "local_push",
   "issue_tracker": "https://github.com/v1k70rk4/HASS.Agent-Integration/issues",
   "loggers": ["custom_components.hass_agent"],
   "mqtt": ["hass.agent/devices/#"],
-  "ssdp": [],
-  "version": "2.1.2",
-  "zeroconf": []
+  "version": "2.2.0"
 }

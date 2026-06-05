@@ -27,6 +27,8 @@ Sending actionable notifications:
 
 ![image](https://user-images.githubusercontent.com/81011038/190643738-724dac45-4d03-4a19-a0e6-3a59b5de0aad.png)
 
+Notification actions are also exposed as a Home Assistant event entity, so automations can react to the latest action from the device entity directly.
+
 ## Installation
 
 The supported way to install HASS.Agent integration is through HACS. This version of is ***not yet available in HACS by default and needs to be added as a custom repository***.
@@ -38,7 +40,7 @@ If you have the **original version of HASS.Agent integration** installed (either
 
 
 
-3. Install "HASS.Agent 2 Integration - Media Player & Notifications" from HACS (including restart), as you would with any other integration.
+3. Install "HASS.Agent 2 Integration - Media Player & Notifications" from HACS (including restart), as you would with any other integration. Home Assistant 2026.6.0 or newer is required.
 4. Configure HASS.Agent devices when they are discovered.
 
 In case of issues please get in touch <a href="https://discord.gg/JfZj98xqJr" target="_blank">on Discord</a>.

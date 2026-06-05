@@ -53,7 +53,7 @@ class FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
     def __init__(self) -> None:
         """Initialize flow."""
         self._device_name = ""
-        self._data = {}
+        self._data: dict[str, Any] = {}
 
     @staticmethod
     @callback
@@ -72,14 +72,34 @@ class FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             )
             return self.async_abort(reason="not_supported")
 
-        payload = json.loads(discovery_info.payload)
+        try:
+            payload = json.loads(discovery_info.payload)
+            device = payload["device"]
+            device_name = device["name"]
+            serial_number = payload["serial_number"]
+            apis = payload["apis"]
+        except (ValueError, KeyError, TypeError):
+            _logger.warning(
+                "received invalid discovery payload on '%s'",
+                discovery_info.topic,
+            )
+            return self.async_abort(reason="not_supported")
 
-        device_name = payload["device"]["name"]
-        serial_number = payload["serial_number"]
+        if (
+            not isinstance(device, dict)
+            or not isinstance(device_name, str)
+            or not isinstance(serial_number, str)
+            or not isinstance(apis, dict)
+        ):
+            _logger.warning(
+                "received malformed discovery payload on '%s'",
+                discovery_info.topic,
+            )
+            return self.async_abort(reason="not_supported")
 
         _logger.debug("found device. Name: %s, Serial Number: %s", device_name, serial_number)
 
-        self._data = {"device": payload["device"], "apis": payload["apis"]}
+        self._data = {"device": device, "apis": apis}
 
         entry = await self.async_set_unique_id(serial_number)
         if not entry or (CONF_ORIGINAL_DEVICE_NAME not in entry.data):
@@ -141,17 +161,29 @@ class FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             except (ClientError, TimeoutError):
                 errors["base"] = "cannot_connect"
             else:
-                entry = await self.async_set_unique_id(response_json["serial_number"])
-                if not entry or (CONF_ORIGINAL_DEVICE_NAME not in entry.data):
-                    self._data[CONF_ORIGINAL_DEVICE_NAME] = response_json["device"]["name"]
-                
-                self._abort_if_unique_id_configured()
+                try:
+                    serial_number = response_json["serial_number"]
+                    device_name = response_json["device"]["name"]
+                except (KeyError, TypeError):
+                    errors["base"] = "cannot_connect"
+                else:
+                    if not isinstance(serial_number, str) or not isinstance(device_name, str):
+                        errors["base"] = "cannot_connect"
+                    else:
+                        entry = await self.async_set_unique_id(serial_number)
+                        if not entry or (CONF_ORIGINAL_DEVICE_NAME not in entry.data):
+                            self._data[CONF_ORIGINAL_DEVICE_NAME] = device_name
 
-                return self.async_create_entry(
-                    title=response_json["device"]["name"],
-                    data={CONF_URL: url},
-                    options={CONF_DEFAULT_NOTIFICATION_TITLE: ATTR_TITLE_DEFAULT},
-                )
+                        self._abort_if_unique_id_configured()
+
+                        return self.async_create_entry(
+                            title=device_name,
+                            data={
+                                CONF_URL: url,
+                                CONF_ORIGINAL_DEVICE_NAME: device_name,
+                            },
+                            options={CONF_DEFAULT_NOTIFICATION_TITLE: ATTR_TITLE_DEFAULT},
+                        )
 
         return self.async_show_form(
             step_id="local_api",

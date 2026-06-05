@@ -1,16 +1,22 @@
 from __future__ import annotations
-import json
 
+import hashlib
+import json
 import logging
 import time
-from typing import Any
 from datetime import UTC, datetime
+from typing import Any
 
+from homeassistant.components import media_source, mqtt
+from homeassistant.components.media_source import BrowseMediaSource, RootBrowseMediaSource
 from homeassistant.components.mqtt.models import ReceiveMessage
+from homeassistant.components.media_player.browse_media import (
+    BrowseMedia,
+    async_process_play_media_url,
+)
 from homeassistant.helpers import device_registry as dr
 
 from .const import DOMAIN, CONF_ORIGINAL_DEVICE_NAME
-
 
 from homeassistant.components.mqtt.subscription import (
     async_prepare_subscribe_topics,
@@ -25,25 +31,15 @@ from homeassistant.components.media_player import (
     MediaPlayerEntityFeature,
 )
 
-from homeassistant.components.media_player.const import MediaType
-
-from homeassistant.components.media_player.browse_media import (
-    BrowseMedia,
-    async_process_play_media_url,
-)
-
-from homeassistant.const import (
-    STATE_IDLE,
-    STATE_OFF,
-    STATE_PAUSED,
-    STATE_PLAYING,
-)
-
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.components.media_player.const import MediaPlayerState, MediaType
+from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
+from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.components import media_source, mqtt
+from homeassistant.helpers.event import async_call_later
 
 _logger = logging.getLogger(__name__)
+
+MEDIA_PLAYER_AVAILABLE_TIMEOUT = 5
 
 SUPPORT_HAMP = (
     MediaPlayerEntityFeature.VOLUME_MUTE
@@ -78,43 +74,75 @@ class HassAgentMediaPlayerDevice(MediaPlayerEntity):
     """HASS.Agent MediaPlayer Device"""
 
     @callback
-    def update_thumbnail(self, message: ReceiveMessage):
-        self.hass.data[DOMAIN][self._entry_id]["thumbnail"] = message.payload
+    def update_thumbnail(self, message: ReceiveMessage) -> None:
+        """Update the cached media thumbnail."""
+        if not message.payload:
+            self.hass.data[DOMAIN][self._entry_id]["thumbnail"] = None
+            self._attr_media_image_hash = None
+            self.async_write_ha_state()
+            return
 
-        self._attr_media_image_url = f"/api/hass_agent/{self.entity_id}/thumbnail.png?time={time.time()}"
+        thumbnail = message.payload
+        if isinstance(thumbnail, str):
+            thumbnail = thumbnail.encode()
 
-    @property
-    def media_image_local(self) -> str | None:
-        return self._attr_media_image_url
+        thumbnail_hash = hashlib.sha256(thumbnail).hexdigest()
+        if thumbnail_hash == self._attr_media_image_hash:
+            return
+
+        self.hass.data[DOMAIN][self._entry_id]["thumbnail"] = thumbnail
+        self._attr_media_image_hash = thumbnail_hash
+        self.async_write_ha_state()
+
+    async def async_get_media_image(self) -> tuple[bytes | None, str | None]:
+        """Return bytes for the Home Assistant media player image proxy."""
+        thumbnail = self.hass.data[DOMAIN][self._entry_id].get("thumbnail")
+        if thumbnail is None:
+            return None, None
+
+        return thumbnail, "image/png"
 
     @callback
-    def updated(self, message: ReceiveMessage):
+    def updated(self, message: ReceiveMessage) -> None:
         """Updates the media player with new data from MQTT"""
         if not message.payload:
             _logger.debug("received empty update message on '%s', ignoring", message.topic)
             return
 
-        payload = json.loads(message.payload)
+        try:
+            payload = json.loads(message.payload)
+        except ValueError:
+            _logger.warning("received invalid media player JSON on '%s'", message.topic)
+            return
 
-        self._state = payload["state"].lower()
-        self._volume_level = payload["volume"]
-        self._muted = payload["muted"]
+        if not isinstance(payload, dict):
+            _logger.warning("received non-object media player update on '%s'", message.topic)
+            return
+
+        state = payload.get("state")
+        self._state = state.lower() if isinstance(state, str) else ""
+        volume_level = payload.get("volume", 0)
+        self._volume_level = volume_level if isinstance(volume_level, int | float) else 0
+        self._muted = bool(payload.get("muted", False))
         self._available = True
 
         if self._state != "off":
-            self._attr_media_album_artist = payload["albumartist"]
-            self._attr_media_album_name = payload["albumtitle"]
-            self._attr_media_artist = payload["artist"]
-            self._attr_media_title = payload["title"]
+            self._attr_media_album_artist = payload.get("albumartist")
+            self._attr_media_album_name = payload.get("albumtitle")
+            self._attr_media_artist = payload.get("artist")
+            self._attr_media_title = payload.get("title")
 
-            self._attr_media_duration = payload["duration"]
-            self._attr_media_position = payload["currentposition"]
+            media_duration = payload.get("duration")
+            media_position = payload.get("currentposition")
+            self._attr_media_duration = media_duration if isinstance(media_duration, int | float) else None
+            self._attr_media_position = media_position if isinstance(media_position, int | float) else None
 
             self._attr_media_position_updated_at = datetime.now(UTC)
+        else:
+            self._clear_media_state()
 
-        self._last_updated = time.time()
-
-        # self.media_image_url
+        self._last_updated = time.monotonic()
+        self._schedule_availability_update()
 
         self.async_write_ha_state()
 
@@ -143,19 +171,25 @@ class HassAgentMediaPlayerDevice(MediaPlayerEntity):
         if self._listeners is not None:
             async_unsubscribe_topics(self.hass, self._listeners)
 
+        if self._availability_unsub is not None:
+            self._availability_unsub()
+            self._availability_unsub = None
+
     def __init__(self, unique_id, entry_id, device: dr.DeviceEntry, original_device_name):
         """Initialize"""
         self._entry_id = entry_id
         self._name = device.name
-        self._attr_device_info = {
-            "identifiers": device.identifiers,
-            "name": device.name,
-            "manufacturer": device.manufacturer,
-            "model": device.model,
-            "sw_version": device.sw_version,
-        }
+        self._attr_device_info = DeviceInfo(
+            identifiers=device.identifiers,
+            name=device.name,
+            manufacturer=device.manufacturer,
+            model=device.model,
+            sw_version=device.sw_version,
+        )
         self._command_topic = f"hass.agent/media_player/{device.name}/cmd"
         self._attr_unique_id = f"media_player_{unique_id}"
+        self._attr_should_poll = False
+        self._attr_media_image_hash = None
         self._available = False
         self._muted = False
         self._volume_level = 0
@@ -164,15 +198,49 @@ class HassAgentMediaPlayerDevice(MediaPlayerEntity):
 
         self._listeners = {}
         self._last_updated = 0
+        self._availability_unsub: CALLBACK_TYPE | None = None
         self._original_device_name = original_device_name
 
-    async def _send_command(self, command, data=None):
+    async def _send_command(self, command: str, data: Any = None) -> None:
         """Send a command"""
         _logger.debug("Sending command: %s", command)
 
         payload = {"command": command, "data": data}
 
-        await mqtt.async_publish(self.hass, self._command_topic, json.dumps(payload))
+        await mqtt.async_publish(
+            self.hass,
+            self._command_topic,
+            json.dumps(payload),
+            qos=0,
+            retain=False,
+        )
+
+    def _clear_media_state(self) -> None:
+        """Clear stale metadata when playback stops."""
+        self._attr_media_album_artist = None
+        self._attr_media_album_name = None
+        self._attr_media_artist = None
+        self._attr_media_title = None
+        self._attr_media_duration = None
+        self._attr_media_position = None
+        self._attr_media_position_updated_at = None
+
+    def _schedule_availability_update(self) -> None:
+        """Schedule a state update when the media player availability times out."""
+        if self._availability_unsub is not None:
+            self._availability_unsub()
+
+        self._availability_unsub = async_call_later(
+            self.hass,
+            MEDIA_PLAYER_AVAILABLE_TIMEOUT + 1,
+            self._handle_availability_update,
+        )
+
+    @callback
+    def _handle_availability_update(self, _now: datetime) -> None:
+        """Write state after the availability timeout window has passed."""
+        self._availability_unsub = None
+        self.async_write_ha_state()
 
     @property
     def name(self):
@@ -183,22 +251,22 @@ class HassAgentMediaPlayerDevice(MediaPlayerEntity):
     def state(self):
         """Return the state of the device"""
         if self._state is None:
-            return STATE_OFF
+            return MediaPlayerState.OFF
         if self._state == "idle":
-            return STATE_IDLE
+            return MediaPlayerState.IDLE
         if self._state == "playing":
-            return STATE_PLAYING
+            return MediaPlayerState.PLAYING
         if self._state == "paused":
-            return STATE_PAUSED
+            return MediaPlayerState.PAUSED
 
-        return STATE_IDLE
+        return MediaPlayerState.IDLE
 
     @property
     def available(self):
         """Return if we're available"""
 
-        diff = round(time.time() - self._last_updated)
-        return diff < 5
+        diff = round(time.monotonic() - self._last_updated)
+        return diff < MEDIA_PLAYER_AVAILABLE_TIMEOUT
 
     # @property
     # def media_title(self):
@@ -254,17 +322,17 @@ class HassAgentMediaPlayerDevice(MediaPlayerEntity):
 
     async def async_media_play(self):
         """Send play command"""
-        self._state = STATE_PLAYING
+        self._state = MediaPlayerState.PLAYING.value
         await self._send_command("play")
 
     async def async_media_pause(self):
         """Send pause command"""
-        self._state = STATE_PAUSED
+        self._state = MediaPlayerState.PAUSED.value
         await self._send_command("pause")
 
     async def async_media_stop(self):
         """Send stop command"""
-        self._state = STATE_PAUSED
+        self._state = MediaPlayerState.PAUSED.value
         await self._send_command("stop")
 
     async def async_media_next_track(self):
@@ -275,7 +343,11 @@ class HassAgentMediaPlayerDevice(MediaPlayerEntity):
         """Send previous track command"""
         await self._send_command("previous")
 
-    async def async_browse_media(self, media_content_type: str | None = None, media_content_id: str | None = None) -> BrowseMedia:
+    async def async_browse_media(
+        self,
+        media_content_type: str | None = None,
+        media_content_id: str | None = None,
+    ) -> BrowseMedia | BrowseMediaSource | RootBrowseMediaSource:
         """Implement the websocket media browsing helper."""
         # If your media player has no own media sources to browse, route all browse commands
         # to the media source integration.
@@ -283,10 +355,18 @@ class HassAgentMediaPlayerDevice(MediaPlayerEntity):
             self.hass,
             media_content_id,
             # This allows filtering content. In this case it will only show audio sources.
-            content_filter=lambda item: item.media_content_type.startswith("audio/"),
+            content_filter=lambda item: item.media_content_type is not None
+            and item.media_content_type.startswith("audio/"),
         )
 
-    async def async_play_media(self, media_type: str, media_id: str, **kwargs: Any):
+    async def async_play_media(
+        self,
+        media_type: str,
+        media_id: str,
+        enqueue: Any | None = None,
+        announce: bool | None = None,
+        **kwargs: Any,
+    ) -> None:
         """Play media source"""
         if not media_type.startswith("music") and not media_type.startswith("audio/") and not media_type.startswith("provider"):
             _logger.error(
@@ -305,5 +385,5 @@ class HassAgentMediaPlayerDevice(MediaPlayerEntity):
 
         _logger.debug("Received media request from HA: %s", media_id)
 
-        self._state = STATE_PLAYING
+        self._state = MediaPlayerState.PLAYING.value
         await self._send_command("playmedia", media_id)

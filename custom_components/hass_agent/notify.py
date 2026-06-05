@@ -4,11 +4,10 @@ from __future__ import annotations
 
 import json
 import logging
-from contextlib import suppress
 from typing import Any
 
 from aiohttp import ClientError, ClientTimeout
-from homeassistant.components import media_source, mqtt
+from homeassistant.components import mqtt
 from homeassistant.components.notify import NotifyEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_URL
@@ -16,20 +15,14 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.network import NoURLAvailableError, get_url
-
-import re
 
 from .const import (
     DOMAIN,
     CONF_DEFAULT_NOTIFICATION_TITLE,
-    CONF_DEVICE_NAME,
     CONF_ORIGINAL_DEVICE_NAME,
 )
 
 _logger = logging.getLogger(__name__)
-
-CAMERA_PROXY_REGEX = re.compile(r"\/api\/camera_proxy\/camera\.(.*)")
 
 
 async def async_setup_entry(
@@ -69,7 +62,12 @@ class HassAgentNotifyEntity(NotifyEntity):
             identifiers={(DOMAIN, entry.unique_id)},
         )
 
-    async def async_send_message(self, message: str, title: str | None = None) -> None:
+    async def async_send_message(
+        self,
+        message: str,
+        title: str | None = None,
+        **kwargs: Any,
+    ) -> None:
         """Send a notification message."""
         _logger.debug("Preparing notification for %s", self._device_name)
 
@@ -78,7 +76,8 @@ class HassAgentNotifyEntity(NotifyEntity):
                 CONF_DEFAULT_NOTIFICATION_TITLE, "Home Assistant"
             )
 
-        payload = {"message": message, "title": title, "data": {}}
+        data = kwargs.get("data") or {}
+        payload = {"message": message, "title": title, "data": data}
 
         _logger.debug("Sending notification")
 
@@ -89,6 +88,8 @@ class HassAgentNotifyEntity(NotifyEntity):
                 self.hass,
                 f"hass.agent/notifications/{self._device_name}",
                 json.dumps(payload),
+                qos=0,
+                retain=False,
             )
         else:
             session = async_get_clientsession(self.hass)

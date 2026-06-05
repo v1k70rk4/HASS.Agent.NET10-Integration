@@ -1,6 +1,6 @@
 {
   "name": "HASS.Agent 2 Integration - Media Player & Notifications",
-  "homeassistant": "2024.1",
+  "homeassistant": "2026.6.0",
   "render_readme": true,
-  "version": "20260601.1"
+  "version": "20260605.1"
 }

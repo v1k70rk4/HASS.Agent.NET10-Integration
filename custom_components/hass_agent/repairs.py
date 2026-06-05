@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-from typing import Any
 
 from homeassistant.components.repairs import RepairsFlow
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
 import voluptuous as vol
 
-from .const import DOMAIN, CONF_DEVICE_NAME
+from .const import CONF_DEVICE_NAME
 
 
 class RestartRequiredFixFlow(RepairsFlow):
