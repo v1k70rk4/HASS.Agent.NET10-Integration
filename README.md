@@ -1,5 +1,6 @@
-# HASS.Agent Integration
-
+<p align="center">
+  <img src="https://raw.githubusercontent.com/v1k70rk4/HASS.Agent-Integration/refs/heads/main/custom_components/hass_agent/brand/logo%402x.png" alt="HASS.Agent Logo">
+</p>
 Custom Home Assistant integration for HASS.Agent devices.
 
 This integration exposes a Windows HASS.Agent device as a Home Assistant media player and notification target. Devices can be discovered through MQTT, and notification actions are exposed both as device automation triggers and as a modern Home Assistant event entity.
