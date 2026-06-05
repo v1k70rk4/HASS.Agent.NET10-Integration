@@ -14,7 +14,7 @@ from homeassistant.core import callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from homeassistant import config_entries
-from homeassistant.config_entries import ConfigFlowResult, OptionsFlowResult
+from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PORT, CONF_SSL, CONF_URL
 from homeassistant.helpers.service_info.mqtt import MqttServiceInfo
 from homeassistant.helpers.issue_registry import IssueSeverity, async_create_issue
@@ -25,7 +25,7 @@ _logger = logging.getLogger(__name__)
 
 
 class OptionsFlowHandler(config_entries.OptionsFlow):
-    async def async_step_init(self, user_input: dict[str, Any] | None = None) -> OptionsFlowResult:
+    async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Manage the options."""
         if user_input is not None:
             user_input[CONF_DEFAULT_NOTIFICATION_TITLE] = user_input[CONF_DEFAULT_NOTIFICATION_TITLE].strip()
