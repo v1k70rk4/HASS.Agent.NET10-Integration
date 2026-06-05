@@ -2,40 +2,29 @@
 
 from __future__ import annotations
 
-import asyncio
-from collections.abc import Coroutine
-from contextlib import suppress
 import json
 import logging
-from pathlib import Path
-import requests
-from typing import Any, cast
+
+from aiohttp import ClientError, ClientTimeout
+
 from .views import MediaPlayerThumbnailView
 
-from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntry
-from homeassistant.components import mqtt
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.components.mqtt.models import ReceiveMessage
 from homeassistant.components.mqtt.subscription import (
     async_prepare_subscribe_topics,
     async_subscribe_topics,
     async_unsubscribe_topics,
 )
-from homeassistant.const import (
-    CONF_ID,
-    CONF_NAME,
-    CONF_URL,
-    Platform,
-    SERVICE_RELOAD,
-)
-from homeassistant.core import HomeAssistant, callback, ServiceCall, async_get_hass
+from homeassistant.const import CONF_URL, Platform
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import device_registry as dr
-from homeassistant.helpers import discovery
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.typing import ConfigType
-from homeassistant.util import slugify
 
-from .const import DOMAIN, CONF_ORIGINAL_DEVICE_NAME, CONF_DEVICE_NAME
+from .const import DOMAIN
 
-PLATFORMS: list[Platform] = [Platform.MEDIA_PLAYER]
+PLATFORMS: list[Platform] = [Platform.MEDIA_PLAYER, Platform.NOTIFY]
 
 _logger = logging.getLogger(__name__)
 
@@ -66,19 +55,18 @@ async def handle_apis_changed(hass: HomeAssistant, entry: ConfigEntry, apis):
 
         if media_player and is_media_player_loaded is False:
             _logger.debug("loading media player for device: %s [%s]", device.name, entry.unique_id)
-            await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+            await hass.config_entries.async_forward_entry_setups(entry, [Platform.MEDIA_PLAYER])
 
             hass.data[DOMAIN][entry.entry_id]["loaded"]["media_player"] = True
-        else:
-            if is_media_player_loaded:
-                _logger.debug(
-                    "unloading media player for device: %s [%s]",
-                    device.name,
-                    entry.unique_id,
-                )
-                await hass.config_entries.async_forward_entry_unload(entry, Platform.MEDIA_PLAYER)
+        elif not media_player and is_media_player_loaded:
+            _logger.debug(
+                "unloading media player for device: %s [%s]",
+                device.name,
+                entry.unique_id,
+            )
+            await hass.config_entries.async_forward_entry_unload(entry, Platform.MEDIA_PLAYER)
 
-                hass.data[DOMAIN][entry.entry_id]["loaded"]["media_player"] = False
+            hass.data[DOMAIN][entry.entry_id]["loaded"]["media_player"] = False
 
         if notifications and is_notifications_loaded is False:
             _logger.debug(
@@ -87,29 +75,18 @@ async def handle_apis_changed(hass: HomeAssistant, entry: ConfigEntry, apis):
                 entry.unique_id,
             )
 
-            original_device_name = entry.data.get(CONF_ORIGINAL_DEVICE_NAME, device.name)
+            await hass.config_entries.async_forward_entry_setups(entry, [Platform.NOTIFY])
 
-            hass.async_create_task(
-                discovery.async_load_platform(
-                    hass,
-                    Platform.NOTIFY,
-                    DOMAIN,
-                    {
-                        CONF_ID: entry.entry_id,
-                        CONF_NAME: original_device_name, # Note(Amadeo): CONF_NAME decides of "nofity.<device>" name, needs to be set to the original one
-                        CONF_DEVICE_NAME: device.name, # Note(Amadeo): since CONF_NAME is used for the old name, we need to pass on the changed name for MQTT notify call
-                    },
-                    {},
-                )
-            )
             hass.data[DOMAIN][entry.entry_id]["loaded"]["notifications"] = True
-        else:
-            if is_notifications_loaded:
-                # _logger.debug("unloading notifications for device: %s [%s]", device.name, entry.unique_id)
-                # await hass.config_entries.async_unload_platforms(entry, [Platform.NOTIFY])
-                # NOTE(Amadeo): disabled due to "ValueError: Config entry was never loaded!" error
+        elif not notifications and is_notifications_loaded:
+            _logger.debug(
+                "unloading notifications for device: %s [%s]",
+                device.name,
+                entry.unique_id,
+            )
+            await hass.config_entries.async_forward_entry_unload(entry, Platform.NOTIFY)
 
-                hass.data[DOMAIN][entry.entry_id]["loaded"]["notifications"] = False
+            hass.data[DOMAIN][entry.entry_id]["loaded"]["notifications"] = False
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -132,13 +109,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     url = entry.data.get(CONF_URL, None)
 
     if url is not None:
-
-        def get_device_info():
-            return requests.get(f"{url}/info", timeout=60)
-
-        response = await hass.async_add_executor_job(get_device_info)
-
-        response_json = response.json()
+        session = async_get_clientsession(hass)
+        try:
+            async with session.get(
+                f"{url}/info", timeout=ClientTimeout(total=60)
+            ) as response:
+                response.raise_for_status()
+                response_json = await response.json()
+        except (ClientError, TimeoutError) as ex:
+            _logger.error("Failed to connect to HASS.Agent at %s: %s", url, ex)
+            return False
 
         await update_device_info(hass, entry, response_json)
 
@@ -195,24 +175,23 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     _logger.debug("unloading device: %s [%s]", entry.title, entry.unique_id)
 
-    # known issue: notify does not always unload
-    # NOTE(Amadeo): unloading NOTIFY platform always fails, same happens for example for https://github.com/home-assistant/core/blob/dd7f7be6adee76f2add98dcca8d3ff87bceabf70/homeassistant/components/nfandroidtv/__init__.py
     loaded = hass.data[DOMAIN][entry.entry_id].get("loaded", None)
 
     if loaded is not None:
-        notifications = loaded.get("notifications", False)
-        media_player = loaded.get("media_player", False)
+        platforms_to_unload = []
 
-        # if notifications:
-        #     if unload_ok := await hass.config_entries.async_unload_platforms(entry, [Platform.NOTIFY]):
-        #         _logger.debug("unloaded notifications for: %s [%s]", entry.title, entry.unique_id)
-        # NOTE(Amadeo): disabled due to "ValueError: Config entry was never loaded!" error
+        if loaded.get("media_player", False):
+            platforms_to_unload.append(Platform.MEDIA_PLAYER)
 
-        if media_player:
-            if unload_ok := await hass.config_entries.async_unload_platforms(entry, [Platform.MEDIA_PLAYER]):
-                _logger.debug("unloaded media player for: %s [%s]", entry.title, entry.unique_id)
+        if loaded.get("notifications", False):
+            platforms_to_unload.append(Platform.NOTIFY)
+
+        if platforms_to_unload:
+            unload_ok = await hass.config_entries.async_unload_platforms(entry, platforms_to_unload)
+            if unload_ok:
+                _logger.debug("unloaded platforms %s for: %s [%s]", platforms_to_unload, entry.title, entry.unique_id)
     else:
-        _logger.warning("config entry (%s) with has no apis loaded?", entry.unique_id)
+        _logger.warning("config entry (%s) has no apis loaded?", entry.unique_id)
 
     url = entry.data.get(CONF_URL, None)
     if url is None:

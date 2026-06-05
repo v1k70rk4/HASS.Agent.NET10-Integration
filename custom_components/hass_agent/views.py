@@ -14,6 +14,9 @@ class MediaPlayerThumbnailView(HomeAssistantView):
 
     name = "api:hass_agent:media_player_thumbnails"
 
+    # NOTE: Authentication disabled to allow media player thumbnails to load
+    # in contexts where auth headers aren't sent (e.g., <img> tags).
+    # Consider enabling auth if security is a concern.
     requires_auth = False
 
     def __init__(self, hass: HomeAssistant) -> None:
@@ -31,10 +34,17 @@ class MediaPlayerThumbnailView(HomeAssistantView):
 
         entity = entity_registry.async_get(media_player)
 
-        thumbnail = self.hass.data[DOMAIN][entity.config_entry_id]["thumbnail"]
+        if entity is None:
+            return web.Response(status=404)
+
+        entry_data = self.hass.data.get(DOMAIN, {}).get(entity.config_entry_id)
+        if entry_data is None:
+            return web.Response(status=404)
+
+        thumbnail = entry_data.get("thumbnail")
 
         if thumbnail is None:
-            return web.Response(status=500)
+            return web.Response(status=404)
 
         return web.Response(
             body=thumbnail,

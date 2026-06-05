@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from homeassistant import data_entry_flow
 from homeassistant.components.repairs import RepairsFlow
 from homeassistant.core import HomeAssistant
+from homeassistant.data_entry_flow import FlowResult
 import voluptuous as vol
 
 from .const import DOMAIN, CONF_DEVICE_NAME
@@ -19,12 +19,12 @@ class RestartRequiredFixFlow(RepairsFlow):
         self.issue_id = issue_id
         self._device_name = device_name
 
-    async def async_step_init(self, user_input: dict[str, str] | None = None) -> data_entry_flow.FlowResult:
+    async def async_step_init(self, user_input: dict[str, str] | None = None) -> FlowResult:
         """Handle the first step of a fix flow."""
 
         return await self.async_step_confirm_restart()
 
-    async def async_step_confirm_restart(self, user_input: dict[str, str] | None = None) -> data_entry_flow.FlowResult:
+    async def async_step_confirm_restart(self, user_input: dict[str, str] | None = None) -> FlowResult:
         """Handle the confirm step of a fix flow."""
         if user_input is not None:
             await self.hass.services.async_call("homeassistant", "restart")

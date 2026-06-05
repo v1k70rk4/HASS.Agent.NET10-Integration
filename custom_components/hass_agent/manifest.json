@@ -2,19 +2,17 @@
   "domain": "hass_agent",
   "name": "HASS.Agent",
   "codeowners": [
-    "@fillefilip8",
-    "@DrR0X-glitch",
-    "@amadeo-alex"
+    "@v1k70rk4"
   ],
   "config_flow": true,
   "dependencies": [
     "mqtt",
     "http"
   ],
-  "documentation": "https://github.com/hass-agent/HASS.Agent-Integration",
+  "documentation": "https://github.com/v1k70rk4/HASS.Agent-Integration",
   "homekit": {},
   "iot_class": "local_push",
-  "issue_tracker": "https://github.com/hass-agent/HASS.Agent-Integration/issues",
+  "issue_tracker": "https://github.com/v1k70rk4/HASS.Agent-Integration/issues",
   "loggers": ["custom_components.hass_agent"],
   "mqtt": ["hass.agent/devices/#"],
   "ssdp": [],

@@ -4,7 +4,7 @@ import json
 import logging
 import time
 from typing import Any
-from homeassistant import util
+from datetime import UTC, datetime
 
 from homeassistant.components.mqtt.models import ReceiveMessage
 from homeassistant.helpers import device_registry as dr
@@ -110,7 +110,7 @@ class HassAgentMediaPlayerDevice(MediaPlayerEntity):
             self._attr_media_duration = payload["duration"]
             self._attr_media_position = payload["currentposition"]
 
-            self._attr_media_position_updated_at = util.dt.utcnow()
+            self._attr_media_position_updated_at = datetime.now(UTC)
 
         self._last_updated = time.time()
 
@@ -237,7 +237,7 @@ class HassAgentMediaPlayerDevice(MediaPlayerEntity):
 
     async def async_media_seek(self, position: float) -> None:
         self._attr_media_position = position
-        self._attr_media_position_updated_at = util.dt.utcnow()
+        self._attr_media_position_updated_at = datetime.now(UTC)
         await self._send_command("seek", position)
 
     async def async_volume_up(self):

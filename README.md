@@ -2,7 +2,7 @@
 
 ### Notice
 
-This integration is intended to work with <a href="https://github.com/hass-agent/HASS.Agent" target="_blank">forked version of HASS.Agent</a>.
+This integration is intended to work with <a href="https://github.com/v1k70rk4/HASS.Agent-Integration" target="_blank">forked version of HASS.Agent</a>.
 
 While it's **very likely** that it'll also work with the original version, it cannot be guaranteed.
 
@@ -10,7 +10,7 @@ While it's **very likely** that it'll also work with the original version, it ca
 
 ## Description
 
-This <a href="https://www.home-assistant.io" target="_blank">Home Assistant</a> integration is the second-half of <a href="https://github.com/hass-agent/HASS.Agent" target="_blank">HASS.Agent</a>, a Windows-based Home Assistant client.
+This <a href="https://www.home-assistant.io" target="_blank">Home Assistant</a> integration is the second-half of <a href="https://github.com/v1k70rk4/HASS.Agent-Integration" target="_blank">HASS.Agent</a>, a Windows-based Home Assistant client.
 
 This integration allows HASS.Agent to act as a media player and notification receiver (like Home Assistant Companion Applications). 
 
@@ -33,8 +33,8 @@ The supported way to install HASS.Agent integration is through HACS. This versio
 
 If you have the **original version of HASS.Agent integration** installed (either version), **please remove it** before proceeding further and restart Home Assistant.
 
-1. Add "HASS.Agent 2 Integration" repository - https://github.com/hass-agent/HASS.Agent-Integration - as a custom HACS integration repository.
- ![i0mENM](https://github.com/hass-agent/HASS.Agent-Integration/assets/68441479/37fcbfd1-ab5f-4f32-b389-715b06391cab) <img src="https://github.com/hass-agent/HASS.Agent-Integration/assets/68441479/d4c9ced0-712d-4051-ac9d-e539ec308337" width="300" />
+1. Add "HASS.Agent 2 Integration" repository - https://github.com/v1k70rk4/HASS.Agent-Integration - as a custom HACS integration repository.
+ ![i0mENM](https://github.com/v1k70rk4/HASS.Agent-Integration/assets/68441479/37fcbfd1-ab5f-4f32-b389-715b06391cab) <img src="https://github.com/v1k70rk4/HASS.Agent-Integration/assets/68441479/d4c9ced0-712d-4051-ac9d-e539ec308337" width="300" />
 
 
 
