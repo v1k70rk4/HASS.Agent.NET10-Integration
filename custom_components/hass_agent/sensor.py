@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+from dataclasses import replace
 from datetime import datetime
 from typing import Any
 
@@ -254,11 +255,13 @@ async def async_setup_entry(
     if device is None:
         return False
 
+    standard_sensors = _standard_sensor_descriptors(hass, entry)
+
     async_add_entities(
         [
-            HassAgentSystemSensor(entry.unique_id, device, description)
+            HassAgentSystemSensor(entry.unique_id, device, description, standard_sensors.get(description.key))
             for description in SENSOR_DESCRIPTIONS
-            if description.key in _standard_sensor_keys(hass, entry)
+            if description.key in standard_sensors
         ] + [
             HassAgentCustomSensor(entry.entry_id, entry.unique_id, device, sensor)
             for sensor in _custom_sensor_descriptors(hass, entry)
@@ -268,10 +271,22 @@ async def async_setup_entry(
     return True
 
 
-def _standard_sensor_keys(hass: HomeAssistant, entry: ConfigEntry) -> set[str]:
-    """Return configured standard sensors for this entry."""
+def _standard_sensor_descriptors(hass: HomeAssistant, entry: ConfigEntry) -> dict[str, str]:
+    """Return configured standard sensor names keyed by sensor id."""
     signature = hass.data.get(DOMAIN, {}).get(entry.entry_id, {}).get("standard_sensors", ())
-    return set(signature) if isinstance(signature, (tuple, list)) else set()
+    sensors: dict[str, str] = {}
+    if not isinstance(signature, (tuple, list)):
+        return sensors
+
+    for item in signature:
+        if not isinstance(item, (tuple, list)) or len(item) != 2:
+            continue
+
+        key, name = item
+        if isinstance(key, str) and key and isinstance(name, str) and name:
+            sensors[key] = name
+
+    return sensors
 
 
 def _custom_sensor_descriptors(hass: HomeAssistant, entry: ConfigEntry) -> list[dict[str, Any]]:
@@ -310,9 +325,11 @@ class HassAgentSystemSensor(SensorEntity):
         unique_id: str,
         device: dr.DeviceEntry,
         description: SensorEntityDescription,
+        display_name: str,
     ) -> None:
         """Initialize the sensor."""
-        self.entity_description = description
+        self.entity_description = replace(description, translation_key=None)
+        self._attr_name = display_name
         self._device_name = device.name
         self._attr_unique_id = f"sensor_{unique_id}_{description.key}"
         self._attr_device_info = DeviceInfo(

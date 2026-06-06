@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 
 from homeassistant.components import mqtt
 from homeassistant.components.button import ButtonEntity, ButtonEntityDescription
@@ -12,7 +13,6 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
-from homeassistant.helpers.translation import async_get_translations
 
 from .const import DOMAIN, SIGNAL_BUTTONS_UPDATED
 
@@ -81,24 +81,52 @@ async def async_setup_entry(
     if device is None:
         return False
 
-    translations = await async_get_translations(
-        hass,
-        hass.config.language,
-        "entity",
-        {DOMAIN},
-    )
     command_signature = hass.data.get(DOMAIN, {}).get(entry.entry_id, {}).get("button_commands", ())
-    command_set = set(command_signature) if isinstance(command_signature, (tuple, list)) else set()
+    commands = _command_descriptors(command_signature)
 
     async_add_entities(
         [
-            HassAgentCommandButton(entry.entry_id, entry.unique_id, device, description, translations)
+            HassAgentCommandButton(entry.entry_id, entry.unique_id, device, description, commands[description.key])
             for description in BUTTON_DESCRIPTIONS
-            if description.key in command_set
+            if description.key in commands
         ]
     )
 
     return True
+
+
+def _command_descriptors(command_signature: object) -> dict[str, tuple[str, str | None]]:
+    """Return configured command display names keyed by command id."""
+    commands: dict[str, tuple[str, str | None]] = {}
+    if not isinstance(command_signature, (tuple, list)):
+        return commands
+
+    for item in command_signature:
+        if not isinstance(item, (tuple, list)) or len(item) not in {2, 3}:
+            continue
+
+        command = item[0]
+        display_name = item[1]
+        comment = item[2] if len(item) == 3 else None
+        if isinstance(command, str) and command and isinstance(display_name, str) and display_name:
+            commands[command] = (
+                display_name,
+                comment if isinstance(comment, str) and comment else None,
+            )
+
+    return commands
+
+
+def _command_list_contains(commands: object, command: str) -> bool:
+    """Return whether a raw command payload contains a command id."""
+    if not isinstance(commands, list):
+        return False
+
+    for item in commands:
+        if isinstance(item, dict) and item.get("name") == command:
+            return True
+
+    return False
 
 
 class HassAgentCommandButton(ButtonEntity):
@@ -112,12 +140,14 @@ class HassAgentCommandButton(ButtonEntity):
         unique_id: str,
         device: dr.DeviceEntry,
         description: ButtonEntityDescription,
-        translations: dict[str, str],
+        command_info: tuple[str, str | None],
     ) -> None:
         """Initialize the button."""
         self._entry_id = entry_id
-        self.entity_description = description
-        self._translations = translations
+        self.entity_description = replace(description, translation_key=None)
+        display_name, comment = command_info
+        self._attr_name = display_name
+        self._comment = comment
         self._command_topic = f"hass.agent/buttons/{device.name}/cmd"
         self._service_command_topic = f"hass.agent/system/{device.name}/cmd"
         self._attr_unique_id = f"button_{unique_id}_{description.key}"
@@ -177,19 +207,10 @@ class HassAgentCommandButton(ButtonEntity):
                 "command": command,
                 "force": False,
                 "time": SHUTDOWN_BUTTON_DELAY_SECONDS,
-                "comment": self._shutdown_comment(command),
+                "comment": self._comment or "Stopped from Home Assistant",
             }
 
         return {"command": command}
-
-    def _shutdown_comment(self, command: str) -> str:
-        translation_key = (
-            "component.hass_agent.entity.button.shutdown_comment.name"
-            if command == "shutdown"
-            else "component.hass_agent.entity.button.restart_comment.name"
-        )
-
-        return self._translations.get(translation_key, "Stopped from Home Assistant")
 
     def _can_use_service(self, command: str) -> bool:
         if command not in SYSTEM_SERVICE_COMMANDS:
@@ -200,7 +221,7 @@ class HassAgentCommandButton(ButtonEntity):
             return False
 
         commands = service_status.get("commands")
-        return isinstance(commands, list) and command in commands
+        return _command_list_contains(commands, command)
 
     def _can_use_tray_app(self, command: str) -> bool:
         apis = self.hass.data.get(DOMAIN, {}).get(self._entry_id, {}).get("apis", {})
@@ -208,4 +229,4 @@ class HassAgentCommandButton(ButtonEntity):
             return False
 
         commands = apis.get("commands")
-        return isinstance(commands, list) and command in commands
+        return _command_list_contains(commands, command)

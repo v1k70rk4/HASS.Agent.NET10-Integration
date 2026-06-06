@@ -125,29 +125,65 @@ async def _async_update_platform(
         unload_ok = await hass.config_entries.async_forward_entry_unload(entry, platform)
         if unload_ok:
             loaded[loaded_key] = False
+            _async_remove_platform_entities(hass, entry, platform)
         else:
             _logger.warning("failed to unload %s for device: %s [%s]", platform, device_name, entry.unique_id)
+    elif not should_load:
+        _async_remove_platform_entities(hass, entry, platform)
 
 
-def _normalize_commands(commands: Any) -> tuple[str, ...]:
-    """Return a stable command tuple from a HASS.Agent command list."""
+def _async_remove_platform_entities(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    platform: Platform,
+) -> None:
+    """Remove all entities for a disabled simple platform from the entity registry."""
+    entity_registry = er.async_get(hass)
+    for entity in list(er.async_entries_for_config_entry(entity_registry, entry.entry_id)):
+        if entity.domain == platform.value:
+            entity_registry.async_remove(entity.entity_id)
+
+
+def _normalize_commands(commands: Any) -> tuple[tuple[str, str, str | None], ...]:
+    """Return a stable command descriptor tuple from a HASS.Agent command list."""
     if not isinstance(commands, list):
         return ()
 
-    return tuple(sorted({command for command in commands if isinstance(command, str)}))
+    normalized: dict[str, tuple[str, str | None]] = {}
+    for command in commands:
+        if not isinstance(command, dict) or not isinstance(command.get("name"), str):
+            continue
+
+        display_name = command.get("display_name")
+        if not isinstance(display_name, str) or not display_name.strip():
+            continue
+
+        comment = command.get("comment")
+        normalized[command["name"]] = (
+            display_name.strip(),
+            comment.strip() if isinstance(comment, str) and comment.strip() else None,
+        )
+
+    return tuple(
+        (name, display_name, comment)
+        for name, (display_name, comment) in sorted(normalized.items(), key=lambda item: item[0])
+    )
 
 
-def _available_button_commands(apis: dict[str, Any], service_status: dict[str, Any]) -> tuple[str, ...]:
+def _available_button_commands(apis: dict[str, Any], service_status: dict[str, Any]) -> tuple[tuple[str, str, str | None], ...]:
     """Return commands currently handled by either the tray app or the system service."""
-    commands: set[str] = set()
+    commands: dict[str, tuple[str, str | None]] = {}
 
     if apis.get("buttons") is True:
-        commands.update(_normalize_commands(apis.get("commands")))
+        commands.update({command[0]: (command[1], command[2]) for command in _normalize_commands(apis.get("commands"))})
 
     if service_status.get("online") is True:
-        commands.update(_normalize_commands(service_status.get("commands")))
+        commands.update({command[0]: (command[1], command[2]) for command in _normalize_commands(service_status.get("commands"))})
 
-    return tuple(sorted(commands))
+    return tuple(
+        (name, display_name, comment)
+        for name, (display_name, comment) in sorted(commands.items(), key=lambda item: item[0])
+    )
 
 
 def _normalize_custom_sensors(sensors: Any) -> tuple[tuple[str, str, str, str, str | None, str | None, str | None, str | None], ...]:
@@ -183,37 +219,48 @@ def _normalize_custom_sensors(sensors: Any) -> tuple[tuple[str, str, str, str, s
     return tuple(sorted(normalized, key=lambda item: item[0]))
 
 
-def _normalize_standard_sensors(sensors: Any) -> tuple[str, ...]:
-    """Return a stable tuple of standard sensor keys."""
+def _normalize_standard_sensors(sensors: Any) -> tuple[tuple[str, str], ...]:
+    """Return a stable tuple of standard sensor descriptors."""
     if not isinstance(sensors, list):
         return ()
 
-    keys = set()
+    normalized: dict[str, str] = {}
     for sensor in sensors:
-        if isinstance(sensor, dict) and isinstance(sensor.get("key"), str):
-            keys.add(sensor["key"])
+        if not isinstance(sensor, dict) or not isinstance(sensor.get("key"), str):
+            continue
 
-    return tuple(sorted(keys))
+        name = sensor.get("name")
+        if not isinstance(name, str) or not name.strip():
+            continue
+
+        normalized[sensor["key"]] = name.strip()
+
+    return tuple(sorted(normalized.items(), key=lambda item: item[0]))
 
 
-def _available_standard_sensors(apis: dict[str, Any], service_status: dict[str, Any]) -> tuple[str, ...]:
+def _available_standard_sensors(apis: dict[str, Any], service_status: dict[str, Any]) -> tuple[tuple[str, str], ...]:
     """Return standard sensors currently handled by either app or service."""
-    sensors = set(_normalize_standard_sensors(apis.get("standard_sensors")))
+    sensors = (
+        dict(_normalize_standard_sensors(apis.get("standard_sensors")))
+        if apis.get("system_sensors") is True
+        else {}
+    )
 
-    if service_status.get("online") is True:
-        sensors.update(_normalize_standard_sensors(service_status.get("standard_sensors")))
+    if service_status.get("online") is True and service_status.get("system_sensors") is True:
+        sensors.update(dict(_normalize_standard_sensors(service_status.get("standard_sensors"))))
 
-    return tuple(sorted(sensors))
+    return tuple(sorted(sensors.items(), key=lambda item: item[0]))
 
 
 def _available_custom_sensors(apis: dict[str, Any], service_status: dict[str, Any]) -> tuple[tuple[str, str, str, str, str | None, str | None, str | None, str | None], ...]:
     """Return custom sensors currently handled by either app or service."""
     sensors: dict[str, tuple[str, str, str, str, str | None, str | None, str | None, str | None]] = {}
 
-    for sensor in _normalize_custom_sensors(apis.get("custom_sensors")):
-        sensors[sensor[0]] = sensor
+    if apis.get("system_sensors") is True:
+        for sensor in _normalize_custom_sensors(apis.get("custom_sensors")):
+            sensors[sensor[0]] = sensor
 
-    if service_status.get("online") is True:
+    if service_status.get("online") is True and service_status.get("system_sensors") is True:
         for sensor in _normalize_custom_sensors(service_status.get("custom_sensors")):
             sensors[sensor[0]] = sensor
 
@@ -301,14 +348,14 @@ async def _async_update_button_platform(
     entry: ConfigEntry,
     should_load: bool,
     device_name: str,
-    command_signature: tuple[str, ...],
+    command_signature: tuple[tuple[str, str, str | None], ...],
 ) -> None:
     """Load, unload, or reload button entities when the command list changes."""
     entry_data = hass.data[DOMAIN][entry.entry_id]
     loaded = entry_data["loaded"]
     is_loaded = loaded.get("button", False)
     previous_signature = tuple(entry_data.get(BUTTON_COMMANDS_STORAGE_KEY, ()))
-    active_commands = set(command_signature)
+    active_commands = {command[0] for command in command_signature}
 
     if should_load and is_loaded and previous_signature == command_signature:
         _async_remove_inactive_button_entities(hass, entry, active_commands)
@@ -344,7 +391,7 @@ async def _async_update_sensor_platform(
     should_load: bool,
     device_name: str,
     custom_sensors: tuple[tuple[str, str, str, str, str | None, str | None, str | None, str | None], ...],
-    standard_sensors: tuple[str, ...],
+    standard_sensors: tuple[tuple[str, str], ...],
 ) -> None:
     """Load, unload, or reload sensor entities when custom sensors change."""
     entry_data = hass.data[DOMAIN][entry.entry_id]
@@ -353,7 +400,7 @@ async def _async_update_sensor_platform(
     previous_custom_signature = tuple(entry_data.get(CUSTOM_SENSORS_STORAGE_KEY, ()))
     previous_standard_signature = tuple(entry_data.get(STANDARD_SENSORS_STORAGE_KEY, ()))
     active_sensor_ids = {sensor[0] for sensor in custom_sensors}
-    active_standard_keys = set(standard_sensors)
+    active_standard_keys = {sensor[0] for sensor in standard_sensors}
 
     if should_load and is_loaded and previous_custom_signature == custom_sensors and previous_standard_signature == standard_sensors:
         _async_remove_inactive_custom_sensor_entities(hass, entry, active_sensor_ids)
@@ -539,9 +586,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
             update_device_info(hass, entry, payload)
 
+            hass.data[DOMAIN][entry.entry_id]["apis"] = apis
             if cached != apis:
-                hass.data[DOMAIN][entry.entry_id]["apis"] = apis
                 hass.async_create_background_task(handle_apis_changed(hass, entry, apis), "hass.agent-mqtt")
+            else:
+                hass.async_create_background_task(handle_apis_changed(hass, entry, apis), "hass.agent-mqtt-refresh")
 
         @callback
         def service_updated(message: ReceiveMessage) -> None:
@@ -676,7 +725,10 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
             return False
 
         commands = service_status.get("commands")
-        return isinstance(commands, list) and command_name in commands
+        return any(
+            isinstance(command, dict) and command.get("name") == command_name
+            for command in commands
+        ) if isinstance(commands, list) else False
 
     async def async_execute_command(call) -> None:
         device_name = call.data[CONF_DEVICE_NAME]
