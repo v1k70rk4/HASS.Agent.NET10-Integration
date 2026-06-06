@@ -31,7 +31,7 @@ from homeassistant.core import CALLBACK_TYPE, HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.typing import ConfigType
 
-from .const import DOMAIN, CONF_ACTION, CONF_DEVICE_NAME
+from .const import DOMAIN, CONF_ACTION, CONF_DEVICE_NAME, EVENT_NOTIFICATION_ACTIONS
 
 
 TRIGGER_TYPES = {"notifications_mqtt", "notifications_event"}
@@ -98,7 +98,7 @@ async def async_attach_trigger(
     event_config = event_trigger.TRIGGER_SCHEMA(
         {
             event_trigger.CONF_PLATFORM: CONF_EVENT,
-            event_trigger.CONF_EVENT_TYPE: "hass_agent_notifications",
+            event_trigger.CONF_EVENT_TYPE: EVENT_NOTIFICATION_ACTIONS,
             event_trigger.CONF_EVENT_DATA: {
                 CONF_DEVICE_NAME: device_name,
                 CONF_ACTION: config[CONF_ACTION],

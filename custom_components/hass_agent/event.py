@@ -18,7 +18,13 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import CONF_ACTION, CONF_ORIGINAL_DEVICE_NAME, DOMAIN
+from .const import (
+    CONF_ACTION,
+    CONF_DEVICE_NAME,
+    CONF_ORIGINAL_DEVICE_NAME,
+    DOMAIN,
+    EVENT_NOTIFICATION_ACTIONS,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -93,7 +99,9 @@ class HassAgentNotificationActionEventEntity(EventEntity):
 
         event_data = dict(payload)
         event_data[CONF_ACTION] = action
+        event_data.setdefault(CONF_DEVICE_NAME, self._device_name)
 
+        self.hass.bus.async_fire(EVENT_NOTIFICATION_ACTIONS, event_data)
         self._trigger_event(EVENT_TYPE_ACTION, event_data)
         self.async_write_ha_state()
 

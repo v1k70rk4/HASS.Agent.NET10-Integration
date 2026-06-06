@@ -1,0 +1,53 @@
+send_notification:
+  target:
+    entity:
+      domain: notify
+  fields:
+    message:
+      required: true
+      selector:
+        text:
+    title:
+      selector:
+        text:
+    data:
+      selector:
+        object:
+
+execute_command:
+  fields:
+    device_name:
+      required: true
+      selector:
+        text:
+    command:
+      selector:
+        select:
+          options:
+            - lock
+            - sleep
+            - monitor_off
+            - volume_up
+            - volume_down
+            - toggle_mute
+            - shutdown
+            - restart
+    comment:
+      selector:
+        text:
+    force:
+      default: false
+      selector:
+        boolean:
+    time:
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 315360000
+          mode: box
+          unit_of_measurement: s
+    restart_cancel:
+      default: false
+      selector:
+        boolean:

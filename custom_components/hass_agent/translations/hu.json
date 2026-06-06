@@ -42,6 +42,151 @@
         }
     },
     "entity": {
+        "button": {
+            "lock": {
+                "name": "Gép zárolása"
+            },
+            "sleep": {
+                "name": "Alvás"
+            },
+            "monitor_off": {
+                "name": "Monitor kikapcsolása"
+            },
+            "volume_up": {
+                "name": "Hangerő fel"
+            },
+            "volume_down": {
+                "name": "Hangerő le"
+            },
+            "toggle_mute": {
+                "name": "Némítás váltása"
+            },
+            "shutdown": {
+                "name": "Leállítás"
+            },
+            "restart": {
+                "name": "Újraindítás"
+            },
+            "restart_cancel": {
+                "name": "Leállítás/újraindítás megszakítása"
+            },
+            "shutdown_comment": {
+                "name": "Home Assistantból leállítva"
+            },
+            "restart_comment": {
+                "name": "Home Assistantból újraindítva"
+            }
+        },
+        "sensor": {
+            "cpu_usage": {
+                "name": "CPU terhelés"
+            },
+            "memory_usage": {
+                "name": "Memória használat"
+            },
+            "memory_available": {
+                "name": "Szabad memória"
+            },
+            "system_drive_free": {
+                "name": "Rendszermeghajtó szabad"
+            },
+            "system_drive_free_space": {
+                "name": "Rendszermeghajtó szabad hely"
+            },
+            "uptime": {
+                "name": "Uptime"
+            },
+            "active_window": {
+                "name": "Aktív ablak"
+            },
+            "active_process": {
+                "name": "Aktív processz"
+            },
+            "foreground_app_title": {
+                "name": "Aktív alkalmazás"
+            },
+            "volume": {
+                "name": "Hangerő"
+            },
+            "muted": {
+                "name": "Némítva"
+            },
+            "battery_level": {
+                "name": "Akkumulátor"
+            },
+            "power_status": {
+                "name": "Tápellátás"
+            },
+            "monitor_power_state": {
+                "name": "Monitor állapot"
+            },
+            "active_display": {
+                "name": "Aktív kijelzők"
+            },
+            "network_address": {
+                "name": "LAN IP"
+            },
+            "idle_time": {
+                "name": "Inaktív idő"
+            },
+            "session_locked": {
+                "name": "Munkamenet zárolva"
+            },
+            "user_present": {
+                "name": "Felhasználó jelen van"
+            },
+            "clipboard_text_available": {
+                "name": "Vágólapon szöveg"
+            },
+            "session_state": {
+                "name": "Munkamenet állapot"
+            },
+            "logged_in_user": {
+                "name": "Bejelentkezett felhasználó"
+            },
+            "pending_reboot": {
+                "name": "Újraindítás szükséges"
+            },
+            "windows_update_pending": {
+                "name": "Windows Update függőben"
+            },
+            "bluetooth_enabled": {
+                "name": "Bluetooth engedélyezve"
+            },
+            "event_log_errors_recent": {
+                "name": "Friss eseménynapló hibák"
+            },
+            "last_shutdown_reason": {
+                "name": "Utolsó leállítás oka"
+            },
+            "boot_time": {
+                "name": "Boot idő"
+            },
+            "battery_time_remaining": {
+                "name": "Akkumulátor hátralévő idő"
+            },
+            "vpn_connected": {
+                "name": "VPN csatlakozva"
+            },
+            "wifi_ssid": {
+                "name": "Wi-Fi SSID"
+            },
+            "wifi_signal": {
+                "name": "Wi-Fi jelerősség"
+            },
+            "logged_in_users": {
+                "name": "Bejelentkezett felhasználók"
+            },
+            "rdp_sessions": {
+                "name": "RDP munkamenetek"
+            },
+            "audio_output_device": {
+                "name": "Audio kimenet"
+            },
+            "microphone_muted": {
+                "name": "Mikrofon némítva"
+            }
+        },
         "event": {
             "notification_action": {
                 "name": "Értesítési műveletek"

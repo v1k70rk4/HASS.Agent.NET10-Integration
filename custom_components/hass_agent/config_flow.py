@@ -106,17 +106,22 @@ class FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             self._data[CONF_ORIGINAL_DEVICE_NAME] = device_name
 
         if entry:
-            reload_required = device_name != entry.title
+            name_changed = device_name != entry.title
+            switching_from_local_api = CONF_URL in entry.data
+            entry_data = {**entry.data, **self._data}
+            entry_data.pop(CONF_URL, None)
 
             self.hass.config_entries.async_update_entry(
                 entry,
                 title=payload["device"]["name"],
-                data={**entry.data, **self._data},
+                data=entry_data,
             )
 
+            reload_required = name_changed or switching_from_local_api
             if reload_required:
                 self.hass.config_entries.async_schedule_reload(entry.entry_id)
 
+            if name_changed:
                 async_create_issue(
                     hass=self.hass,
                     domain=DOMAIN,

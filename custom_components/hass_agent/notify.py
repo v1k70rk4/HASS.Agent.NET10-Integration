@@ -69,14 +69,29 @@ class HassAgentNotifyEntity(NotifyEntity):
         **kwargs: Any,
     ) -> None:
         """Send a notification message."""
-        _logger.debug("Preparing notification for %s", self._device_name)
-
         if title is None:
             title = self._entry.options.get(
                 CONF_DEFAULT_NOTIFICATION_TITLE, "Home Assistant"
             )
 
         data = kwargs.get("data") or {}
+        await self.async_send_hass_agent_notification(message, title, data)
+
+    async def async_send_hass_agent_notification(
+        self,
+        message: str,
+        title: str | None = None,
+        data: dict[str, Any] | None = None,
+    ) -> None:
+        """Send a HASS.Agent notification with integration-specific data."""
+        _logger.debug("Preparing HASS.Agent notification for %s", self._device_name)
+
+        if title is None:
+            title = self._entry.options.get(
+                CONF_DEFAULT_NOTIFICATION_TITLE, "Home Assistant"
+            )
+
+        data = data or {}
         payload = {"message": message, "title": title, "data": data}
 
         _logger.debug("Sending notification")

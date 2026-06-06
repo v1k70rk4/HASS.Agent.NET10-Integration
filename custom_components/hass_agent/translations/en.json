@@ -42,6 +42,151 @@
         }
     },
     "entity": {
+        "button": {
+            "lock": {
+                "name": "Lock"
+            },
+            "sleep": {
+                "name": "Sleep"
+            },
+            "monitor_off": {
+                "name": "Turn monitor off"
+            },
+            "volume_up": {
+                "name": "Volume up"
+            },
+            "volume_down": {
+                "name": "Volume down"
+            },
+            "toggle_mute": {
+                "name": "Toggle mute"
+            },
+            "shutdown": {
+                "name": "Shutdown"
+            },
+            "restart": {
+                "name": "Restart"
+            },
+            "restart_cancel": {
+                "name": "Cancel shutdown/restart"
+            },
+            "shutdown_comment": {
+                "name": "Shut down from Home Assistant"
+            },
+            "restart_comment": {
+                "name": "Restarted from Home Assistant"
+            }
+        },
+        "sensor": {
+            "cpu_usage": {
+                "name": "CPU usage"
+            },
+            "memory_usage": {
+                "name": "Memory usage"
+            },
+            "memory_available": {
+                "name": "Available memory"
+            },
+            "system_drive_free": {
+                "name": "System drive free"
+            },
+            "system_drive_free_space": {
+                "name": "System drive free space"
+            },
+            "uptime": {
+                "name": "Uptime"
+            },
+            "active_window": {
+                "name": "Active window"
+            },
+            "active_process": {
+                "name": "Active process"
+            },
+            "foreground_app_title": {
+                "name": "Active application"
+            },
+            "volume": {
+                "name": "Volume"
+            },
+            "muted": {
+                "name": "Muted"
+            },
+            "battery_level": {
+                "name": "Battery"
+            },
+            "power_status": {
+                "name": "Power status"
+            },
+            "monitor_power_state": {
+                "name": "Monitor power state"
+            },
+            "active_display": {
+                "name": "Active displays"
+            },
+            "network_address": {
+                "name": "LAN IP"
+            },
+            "idle_time": {
+                "name": "Idle time"
+            },
+            "session_locked": {
+                "name": "Session locked"
+            },
+            "user_present": {
+                "name": "User present"
+            },
+            "clipboard_text_available": {
+                "name": "Clipboard has text"
+            },
+            "session_state": {
+                "name": "Session state"
+            },
+            "logged_in_user": {
+                "name": "Logged-in user"
+            },
+            "pending_reboot": {
+                "name": "Pending reboot"
+            },
+            "windows_update_pending": {
+                "name": "Windows Update pending"
+            },
+            "bluetooth_enabled": {
+                "name": "Bluetooth enabled"
+            },
+            "event_log_errors_recent": {
+                "name": "Recent event log errors"
+            },
+            "last_shutdown_reason": {
+                "name": "Last shutdown reason"
+            },
+            "boot_time": {
+                "name": "Boot time"
+            },
+            "battery_time_remaining": {
+                "name": "Battery time remaining"
+            },
+            "vpn_connected": {
+                "name": "VPN connected"
+            },
+            "wifi_ssid": {
+                "name": "Wi-Fi SSID"
+            },
+            "wifi_signal": {
+                "name": "Wi-Fi signal"
+            },
+            "logged_in_users": {
+                "name": "Logged-in users"
+            },
+            "rdp_sessions": {
+                "name": "RDP sessions"
+            },
+            "audio_output_device": {
+                "name": "Audio output device"
+            },
+            "microphone_muted": {
+                "name": "Microphone muted"
+            }
+        },
         "event": {
             "notification_action": {
                 "name": "Notification actions"
