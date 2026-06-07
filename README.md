@@ -182,9 +182,11 @@ hass.agent/system/{deviceName}/cmd               # service-routed commands
 
 ## Legacy Branch
 
-> **Using the old pre-.NET10 HASS.Agent?** Switch to the **[`legacy` branch](https://github.com/v1k70rk4/HASS.Agent-Integration/tree/legacy)**.
+> **Using the old pre-.NET10 HASS.Agent?** Install **[v3.0.2](https://github.com/v1k70rk4/HASS.Agent-Integration/releases/tag/v3.0.2)** from HACS (available in the releases).
 >
-> The legacy branch is compatible with **Home Assistant 2026.6+** and the original pre-.NET10 HASS.Agent client. It will continue to receive compatibility fixes but no new features.
+> v3.0.2 is compatible with **Home Assistant 2026.6+** and the original pre-.NET10 HASS.Agent client. It will continue to receive compatibility fixes but no new features.
+>
+> Documentation and usage instructions for v3.0.2 are available on the **[`legacy` branch](https://github.com/v1k70rk4/HASS.Agent-Integration/tree/legacy)**.
 >
 > The `main` branch (v10.0.0+) is designed exclusively for **HASS.Agent .NET10** and is not backwards compatible with the old client.
 
