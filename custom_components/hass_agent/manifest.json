@@ -1,6 +1,6 @@
 {
   "domain": "hass_agent",
-  "name": "HASS.Agent",
+  "name": "HASS.Agent .NET10 Integration",
   "codeowners": [
     "@v1k70rk4"
   ],
