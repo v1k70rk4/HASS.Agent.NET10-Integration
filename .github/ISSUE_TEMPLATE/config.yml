@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: HASS.Agent .NET10 (tray app) issues
+    url: https://github.com/v1k70rk4/HASS.Agent/issues
+    about: For issues with the Windows tray application, open a ticket in the HASS.Agent .NET10 repo.
+  - name: HASS.Agent .NET10 README
+    url: https://github.com/v1k70rk4/HASS.Agent#readme
+    about: Getting started guide and documentation.
