@@ -39,7 +39,7 @@ from homeassistant.helpers.event import async_call_later
 
 _logger = logging.getLogger(__name__)
 
-MEDIA_PLAYER_AVAILABLE_TIMEOUT = 5
+MEDIA_PLAYER_AVAILABLE_TIMEOUT = 8
 
 SUPPORT_HAMP = (
     MediaPlayerEntityFeature.VOLUME_MUTE
