@@ -19,7 +19,7 @@ from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PORT, CONF_SSL, CONF_
 from homeassistant.helpers.service_info.mqtt import MqttServiceInfo
 from homeassistant.helpers.issue_registry import IssueSeverity, async_create_issue
 
-from .const import DOMAIN, CONF_DEFAULT_NOTIFICATION_TITLE, CONF_ORIGINAL_DEVICE_NAME, CONF_DEVICE_NAME
+from .const import DOMAIN, CONF_API_KEY, CONF_DEFAULT_NOTIFICATION_TITLE, CONF_ORIGINAL_DEVICE_NAME, CONF_DEVICE_NAME
 
 _logger = logging.getLogger(__name__)
 
@@ -151,6 +151,7 @@ class FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             host = user_input[CONF_HOST]
             port = user_input[CONF_PORT]
             use_ssl = user_input[CONF_SSL]
+            api_key = user_input.get(CONF_API_KEY, "").strip()
 
             protocol = "https" if use_ssl else "http"
 
@@ -181,12 +182,16 @@ class FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
                         self._abort_if_unique_id_configured()
 
+                        entry_data = {
+                            CONF_URL: url,
+                            CONF_ORIGINAL_DEVICE_NAME: device_name,
+                        }
+                        if api_key:
+                            entry_data[CONF_API_KEY] = api_key
+
                         return self.async_create_entry(
                             title=device_name,
-                            data={
-                                CONF_URL: url,
-                                CONF_ORIGINAL_DEVICE_NAME: device_name,
-                            },
+                            data=entry_data,
                             options={CONF_DEFAULT_NOTIFICATION_TITLE: ATTR_TITLE_DEFAULT},
                         )
 
@@ -198,6 +203,7 @@ class FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Required(CONF_HOST): str,
                     vol.Required(CONF_PORT, default=5115): int,
                     vol.Required(CONF_SSL): bool,
+                    vol.Optional(CONF_API_KEY): str,
                 }
             ),
             errors=errors,

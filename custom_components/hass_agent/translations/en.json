@@ -12,7 +12,8 @@
         "data": {
           "host": "Host",
           "port": "Port",
-          "ssl": "Use SSL"
+          "ssl": "Use SSL",
+          "api_key": "API key (from agent General settings)"
         }
       }
     },

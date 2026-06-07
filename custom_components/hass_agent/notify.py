@@ -18,6 +18,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import (
     DOMAIN,
+    CONF_API_KEY,
     CONF_DEFAULT_NOTIFICATION_TITLE,
     CONF_ORIGINAL_DEVICE_NAME,
 )
@@ -108,10 +109,15 @@ class HassAgentNotifyEntity(NotifyEntity):
             )
         else:
             session = async_get_clientsession(self.hass)
+            headers = {}
+            api_key = self._entry.data.get(CONF_API_KEY)
+            if api_key:
+                headers["Authorization"] = f"Bearer {api_key}"
             try:
                 async with session.post(
                     f"{url}/notify",
                     json=payload,
+                    headers=headers,
                     timeout=ClientTimeout(total=10),
                 ) as response:
                     if response.ok:

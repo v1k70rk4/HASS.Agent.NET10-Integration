@@ -20,7 +20,8 @@
         "data": {
           "host": "Hoszt",
           "port": "Port",
-          "ssl": "SSL használata"
+          "ssl": "SSL használata",
+          "api_key": "API kulcs (az agent Általános beállításaiból)"
         }
       }
     }
