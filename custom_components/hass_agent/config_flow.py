@@ -17,7 +17,7 @@ from homeassistant import config_entries
 from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PORT, CONF_SSL, CONF_URL
 from homeassistant.helpers.service_info.mqtt import MqttServiceInfo
-from homeassistant.helpers.issue_registry import IssueSeverity, async_create_issue
+from homeassistant.helpers.issue_registry import IssueSeverity, async_create_issue, async_delete_issue
 
 from .const import DOMAIN, CONF_API_KEY, CONF_DEFAULT_NOTIFICATION_TITLE, CONF_ORIGINAL_DEVICE_NAME, CONF_DEVICE_NAME
 
@@ -107,6 +107,7 @@ class FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
         if entry:
             name_changed = device_name != entry.title
+            old_title = entry.title
             switching_from_local_api = CONF_URL in entry.data
             entry_data = {**entry.data, **self._data}
             entry_data.pop(CONF_URL, None)
@@ -122,6 +123,9 @@ class FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 self.hass.config_entries.async_schedule_reload(entry.entry_id)
 
             if name_changed:
+                # Delete any stale issue from a previous rename before creating the new one
+                async_delete_issue(self.hass, DOMAIN, f"restart_required_{old_title}")
+
                 async_create_issue(
                     hass=self.hass,
                     domain=DOMAIN,

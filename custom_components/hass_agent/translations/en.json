@@ -7,7 +7,7 @@
         "description": "Do you want to start set up?"
       },
       "local_api": {
-        "title": "HASS.Agent Local API",
+        "title": "HASS.Agent .NET10 Local API",
         "description": "This adds the device to HA using the local API. Currently ONLY notifications will work. Add the device using auto discovery if you want media player support.",
         "data": {
           "host": "Host",
@@ -32,7 +32,7 @@
         "data": {
           "default_notification_title": "Default notification title. Space to disable."
         },
-        "title": "Configure HASS.Agent"
+        "title": "Configure HASS.Agent .NET10"
       }
     }
   },

@@ -32,6 +32,7 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import service
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.dispatcher import async_dispatcher_send
+from homeassistant.helpers.issue_registry import async_delete_issue
 from homeassistant.helpers.typing import ConfigType
 
 from .const import (
@@ -655,6 +656,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         await async_subscribe_topics(hass, sub_state)
 
         hass.data[DOMAIN][entry.entry_id]["internal_mqtt"] = sub_state
+
+    # Clean up stale restart_required repair issues for this device.
+    # These are created on device rename and resolved by any HA restart,
+    # but the repair flow may not persist the resolution before shutdown.
+    async_delete_issue(hass, DOMAIN, f"restart_required_{entry.title}")
 
     return True
 

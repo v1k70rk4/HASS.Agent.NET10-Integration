@@ -7,7 +7,7 @@
       "already_configured": "Ez az eszköz már be van állítva."
     },
     "error": {
-      "cannot_connect": "Nem sikerült csatlakozni a HASS.Agenthez"
+      "cannot_connect": "Nem sikerült csatlakozni a HASS.Agent .NET10-hez"
     },
     "step": {
       "confirm": {
@@ -15,7 +15,7 @@
         "description": "El szeretné indítani a beállítást?"
       },
       "local_api": {
-        "title": "HASS.Agent helyi API",
+        "title": "HASS.Agent .NET10 helyi API",
         "description": "Ez az eszközt a helyi API használatával adja hozzá a Home Assistanthoz. Jelenleg CSAK az értesítések működnek. Ha media_player támogatást szeretne, adja hozzá az eszközt automatikus felderítéssel.",
         "data": {
           "host": "Hoszt",
@@ -32,7 +32,7 @@
         "data": {
           "default_notification_title": "Alapértelmezett értesítési cím. Szóközzel kikapcsolható."
         },
-        "title": "HASS.Agent beállítása"
+        "title": "HASS.Agent .NET10 beállítása"
       }
     }
   },
