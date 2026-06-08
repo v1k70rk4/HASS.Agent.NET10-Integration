@@ -34,6 +34,7 @@ from homeassistant.components.media_player import (
 from homeassistant.components.media_player.const import MediaPlayerState, MediaType
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
 from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.event import async_call_later
 
@@ -146,18 +147,74 @@ class HassAgentMediaPlayerDevice(MediaPlayerEntity):
 
         self.async_write_ha_state()
 
+    @callback
+    def _handle_ws_media_state(self, payload: Any) -> None:
+        """Handle media state received via WebSocket failover transport."""
+        if not isinstance(payload, dict):
+            return
+
+        state = payload.get("state")
+        self._state = state.lower() if isinstance(state, str) else ""
+        volume_level = payload.get("volume", 0)
+        self._volume_level = volume_level if isinstance(volume_level, int | float) else 0
+        self._muted = bool(payload.get("muted", False))
+        self._available = True
+
+        if self._state != "off":
+            self._attr_media_album_artist = payload.get("albumartist")
+            self._attr_media_album_name = payload.get("albumtitle")
+            self._attr_media_artist = payload.get("artist")
+            self._attr_media_title = payload.get("title")
+
+            media_duration = payload.get("duration")
+            media_position = payload.get("currentposition")
+            self._attr_media_duration = media_duration if isinstance(media_duration, int | float) else None
+            self._attr_media_position = media_position if isinstance(media_position, int | float) else None
+
+            self._attr_media_position_updated_at = datetime.now(UTC)
+        else:
+            self._clear_media_state()
+
+        self._last_updated = time.monotonic()
+        self._schedule_availability_update()
+        self.async_write_ha_state()
+
+    @callback
+    def _handle_ws_thumbnail(self, thumbnail_b64: Any) -> None:
+        """Handle media thumbnail received via WebSocket failover transport."""
+        import base64
+
+        if not thumbnail_b64:
+            self.hass.data[DOMAIN][self._entry_id]["thumbnail"] = None
+            self._attr_media_image_hash = None
+            self.async_write_ha_state()
+            return
+
+        try:
+            thumbnail = base64.b64decode(thumbnail_b64) if isinstance(thumbnail_b64, str) else thumbnail_b64
+        except Exception:
+            return
+
+        thumbnail_hash = hashlib.sha256(thumbnail).hexdigest()
+        if thumbnail_hash == self._attr_media_image_hash:
+            return
+
+        self.hass.data[DOMAIN][self._entry_id]["thumbnail"] = thumbnail
+        self._attr_media_image_hash = thumbnail_hash
+        self.async_write_ha_state()
+
     async def async_added_to_hass(self) -> None:
         self._listeners = async_prepare_subscribe_topics(
             self.hass,
             self._listeners,
             {
                 f"{self._attr_unique_id}-state": {
-                    "topic": f"hass.agent/media_player/{self._attr_device_info['name']}/state",
+                    "topic": f"hass.agent/media_player/{self._topic_id}/state",
                     "msg_callback": self.updated,
                     "qos": 0,
                 },
                 f"{self._attr_unique_id}-thumbnail": {
-                    "topic": f"hass.agent/media_player/{self._attr_device_info['name']}/thumbnail",
+                    "topic": f"hass.agent/media_player/{self._topic_id}/thumbnail",
                     "msg_callback": self.update_thumbnail,
                     "qos": 0,
                     "encoding": None,
@@ -166,6 +223,22 @@ class HassAgentMediaPlayerDevice(MediaPlayerEntity):
         )
 
         await async_subscribe_topics(self.hass, self._listeners)
+
+        # Also listen for media data coming via WebSocket failover.
+        self.async_on_remove(
+            async_dispatcher_connect(
+                self.hass,
+                f"hass_agent_media_state_{self._entry_id}",
+                self._handle_ws_media_state,
+            )
+        )
+        self.async_on_remove(
+            async_dispatcher_connect(
+                self.hass,
+                f"hass_agent_media_thumbnail_{self._entry_id}",
+                self._handle_ws_thumbnail,
+            )
+        )
 
     async def async_will_remove_from_hass(self) -> None:
         if self._listeners is not None:
@@ -178,6 +251,8 @@ class HassAgentMediaPlayerDevice(MediaPlayerEntity):
     def __init__(self, unique_id, entry_id, device: dr.DeviceEntry, original_device_name):
         """Initialize"""
         self._entry_id = entry_id
+        self._serial_number = unique_id
+        self._topic_id = unique_id
         self._name = device.name
         self._attr_device_info = DeviceInfo(
             identifiers=device.identifiers,
@@ -186,7 +261,7 @@ class HassAgentMediaPlayerDevice(MediaPlayerEntity):
             model=device.model,
             sw_version=device.sw_version,
         )
-        self._command_topic = f"hass.agent/media_player/{device.name}/cmd"
+        self._command_topic = f"hass.agent/media_player/{unique_id}/cmd"
         self._attr_unique_id = f"media_player_{unique_id}"
         self._attr_should_poll = False
         self._attr_media_image_hash = None
@@ -214,6 +289,12 @@ class HassAgentMediaPlayerDevice(MediaPlayerEntity):
             qos=0,
             retain=False,
         )
+        # Also fire on the event bus for WebSocket failover transport.
+        self.hass.bus.async_fire("hass_agent_command", {
+            "serial_number": self._serial_number,
+            "command_type": "media_command",
+            "payload": payload,
+        })
 
     def _clear_media_state(self) -> None:
         """Clear stale metadata when playback stops."""

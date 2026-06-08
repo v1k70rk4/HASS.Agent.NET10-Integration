@@ -259,7 +259,7 @@ async def async_setup_entry(
 
     async_add_entities(
         [
-            HassAgentSystemSensor(entry.unique_id, device, description, standard_sensors.get(description.key))
+            HassAgentSystemSensor(entry.entry_id, entry.unique_id, device, description, standard_sensors.get(description.key))
             for description in SENSOR_DESCRIPTIONS
             if description.key in standard_sensors
         ] + [
@@ -322,15 +322,18 @@ class HassAgentSystemSensor(SensorEntity):
 
     def __init__(
         self,
+        entry_id: str,
         unique_id: str,
         device: dr.DeviceEntry,
         description: SensorEntityDescription,
         display_name: str,
     ) -> None:
         """Initialize the sensor."""
+        self._entry_id = entry_id
         self.entity_description = replace(description, translation_key=None)
         self._attr_name = display_name
         self._device_name = device.name
+        self._topic_id = unique_id
         self._attr_unique_id = f"sensor_{unique_id}_{description.key}"
         self._attr_device_info = DeviceInfo(
             identifiers=device.identifiers,
@@ -386,6 +389,34 @@ class HassAgentSystemSensor(SensorEntity):
         self._attr_native_value = value
         self.async_write_ha_state()
 
+    @callback
+    def _handle_ws_sensor_data(self, payload: Any) -> None:
+        """Handle sensor data received via WebSocket failover transport."""
+        if not isinstance(payload, dict):
+            return
+
+        if self.entity_description.key not in payload:
+            return
+
+        value = payload.get(self.entity_description.key)
+        if self.entity_description.device_class == SensorDeviceClass.TIMESTAMP and isinstance(value, str):
+            try:
+                value = datetime.fromisoformat(value)
+            except ValueError:
+                return
+        elif isinstance(value, bool):
+            value = "on" if value else "off"
+        elif isinstance(value, str):
+            value = value[:255]
+        elif value is not None and not isinstance(value, int | float):
+            return
+
+        attributes = payload.get("attributes")
+        sensor_attributes = attributes.get(self.entity_description.key) if isinstance(attributes, dict) else None
+        self._attr_extra_state_attributes = sensor_attributes if isinstance(sensor_attributes, dict) else {}
+        self._attr_native_value = value
+        self.async_write_ha_state()
+
     async def async_added_to_hass(self) -> None:
         """Subscribe to the shared system metrics topic."""
         self._listeners = async_prepare_subscribe_topics(
@@ -393,7 +424,7 @@ class HassAgentSystemSensor(SensorEntity):
             self._listeners,
             {
                 f"{self._attr_unique_id}-state": {
-                    "topic": f"hass.agent/sensors/{self._device_name}/state",
+                    "topic": f"hass.agent/sensors/{self._topic_id}/state",
                     "msg_callback": self.updated,
                     "qos": 0,
                 }
@@ -401,6 +432,15 @@ class HassAgentSystemSensor(SensorEntity):
         )
 
         await async_subscribe_topics(self.hass, self._listeners)
+
+        # Also listen for sensor data coming via WebSocket failover.
+        self.async_on_remove(
+            async_dispatcher_connect(
+                self.hass,
+                f"hass_agent_sensor_data_{self._entry_id}",
+                self._handle_ws_sensor_data,
+            )
+        )
 
     async def async_will_remove_from_hass(self) -> None:
         """Unsubscribe from system metrics updates."""
@@ -426,6 +466,7 @@ class HassAgentCustomSensor(SensorEntity):
         self._entry_id = entry_id
         self._sensor_id = descriptor["id"]
         self._device_name = device.name
+        self._topic_id = unique_id
         self._attr_name = descriptor["name"]
         self._attr_unique_id = f"sensor_{unique_id}_custom_{self._sensor_id}"
         self._attr_native_unit_of_measurement = descriptor.get("unit")
@@ -481,6 +522,34 @@ class HassAgentCustomSensor(SensorEntity):
             self.async_write_ha_state()
             return
 
+    @callback
+    def _handle_ws_sensor_data(self, payload: Any) -> None:
+        """Handle sensor data received via WebSocket failover transport."""
+        if not isinstance(payload, dict):
+            return
+
+        custom_sensors = payload.get("custom_sensors")
+        if not isinstance(custom_sensors, list):
+            return
+
+        for sensor in custom_sensors:
+            if not isinstance(sensor, dict) or sensor.get("id") != self._sensor_id:
+                continue
+
+            value = sensor.get("value")
+            if isinstance(value, bool):
+                value = "on" if value else "off"
+            elif isinstance(value, str):
+                value = value[:255]
+            elif value is not None and not isinstance(value, int | float):
+                return
+
+            attributes = sensor.get("attributes")
+            self._attr_extra_state_attributes = attributes if isinstance(attributes, dict) else {}
+            self._attr_native_value = value
+            self.async_write_ha_state()
+            return
+
     async def async_added_to_hass(self) -> None:
         """Subscribe to the shared system metrics topic."""
         self.async_on_remove(
@@ -495,7 +564,7 @@ class HassAgentCustomSensor(SensorEntity):
             self._listeners,
             {
                 f"{self._attr_unique_id}-state": {
-                    "topic": f"hass.agent/sensors/{self._device_name}/state",
+                    "topic": f"hass.agent/sensors/{self._topic_id}/state",
                     "msg_callback": self.updated,
                     "qos": 0,
                 }
@@ -503,6 +572,15 @@ class HassAgentCustomSensor(SensorEntity):
         )
 
         await async_subscribe_topics(self.hass, self._listeners)
+
+        # Also listen for sensor data coming via WebSocket failover.
+        self.async_on_remove(
+            async_dispatcher_connect(
+                self.hass,
+                f"hass_agent_sensor_data_{self._entry_id}",
+                self._handle_ws_sensor_data,
+            )
+        )
 
     async def async_will_remove_from_hass(self) -> None:
         """Unsubscribe from system metrics updates."""

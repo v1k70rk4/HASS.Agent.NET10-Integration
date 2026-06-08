@@ -144,12 +144,13 @@ class HassAgentCommandButton(ButtonEntity):
     ) -> None:
         """Initialize the button."""
         self._entry_id = entry_id
+        self._serial_number = unique_id
         self.entity_description = replace(description, translation_key=None)
         display_name, comment = command_info
         self._attr_name = display_name
         self._comment = comment
-        self._command_topic = f"hass.agent/buttons/{device.name}/cmd"
-        self._service_command_topic = f"hass.agent/system/{device.name}/cmd"
+        self._command_topic = f"hass.agent/buttons/{unique_id}/cmd"
+        self._service_command_topic = f"hass.agent/system/{unique_id}/cmd"
         self._attr_unique_id = f"button_{unique_id}_{description.key}"
         self._attr_device_info = DeviceInfo(
             identifiers=device.identifiers,
@@ -195,6 +196,12 @@ class HassAgentCommandButton(ButtonEntity):
             qos=0,
             retain=False,
         )
+        # Also fire on the event bus for WebSocket failover transport.
+        self.hass.bus.async_fire("hass_agent_command", {
+            "serial_number": self._serial_number,
+            "command_type": "button_command",
+            "payload": payload,
+        })
 
     def _build_payload(self) -> dict[str, object]:
         command = self.entity_description.key

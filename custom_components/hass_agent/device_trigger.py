@@ -75,11 +75,15 @@ async def async_attach_trigger(
         return None
 
     device_name = device.name
+    topic_id = next(
+        (identifier for domain, identifier in device.identifiers if domain == DOMAIN),
+        device_name,
+    )
 
     if config[CONF_TYPE] == "notifications_mqtt":
         mqtt_config = {
             CONF_PLATFORM: "mqtt",
-            CONF_TOPIC: f"hass.agent/notifications/{device_name}/actions",
+            CONF_TOPIC: f"hass.agent/notifications/{topic_id}/actions",
             CONF_ENCODING: DEFAULT_ENCODING,
             CONF_QOS: 0,
             CONF_PAYLOAD: config[CONF_ACTION],

@@ -102,11 +102,17 @@ class HassAgentNotifyEntity(NotifyEntity):
         if url is None:
             await mqtt.async_publish(
                 self.hass,
-                f"hass.agent/notifications/{self._device_name}",
+                f"hass.agent/notifications/{self._entry.unique_id}",
                 json.dumps(payload),
                 qos=0,
                 retain=False,
             )
+            # Also fire on the event bus for WebSocket failover transport.
+            self.hass.bus.async_fire("hass_agent_command", {
+                "serial_number": self._entry.unique_id,
+                "command_type": "notification",
+                "payload": payload,
+            })
         else:
             session = async_get_clientsession(self.hass)
             headers = {}

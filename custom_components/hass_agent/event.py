@@ -68,6 +68,7 @@ class HassAgentNotificationActionEventEntity(EventEntity):
         """Initialize the notification action event entity."""
         self._entry = entry
         self._device_name = device_name
+        self._topic_id = entry.unique_id
         self._original_device_name = original_device_name
         self._attr_unique_id = f"event_{entry.unique_id}_notification_action"
         self._attr_device_info = DeviceInfo(
@@ -112,7 +113,7 @@ class HassAgentNotificationActionEventEntity(EventEntity):
             self._listeners,
             {
                 f"{self._attr_unique_id}-actions": {
-                    "topic": f"hass.agent/notifications/{self._device_name}/actions",
+                    "topic": f"hass.agent/notifications/{self._topic_id}/actions",
                     "msg_callback": self._handle_action_message,
                     "qos": 0,
                 }

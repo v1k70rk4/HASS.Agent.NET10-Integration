@@ -12,6 +12,8 @@ It is the matching Home Assistant side for the modern **HASS.Agent .NET10** Wind
 
 > **Important**: This integration (v10.0.0+) requires **[HASS.Agent .NET10](https://github.com/v1k70rk4/HASS.Agent)** as the Windows client. The older pre-.NET10 HASS.Agent client is **not compatible** with this version.
 >
+> The HA API WebSocket transport requires HASS.Agent .NET10 v10.1.0 or newer.
+>
 > If you want to keep using the old HASS.Agent client, switch to the **[`legacy` branch](https://github.com/v1k70rk4/HASS.Agent-Integration/tree/legacy)** of this integration. The legacy branch is compatible with Home Assistant 2026.6+ and the original pre-.NET10 HASS.Agent.
 
 ---
@@ -29,6 +31,8 @@ It is the matching Home Assistant side for the modern **HASS.Agent .NET10** Wind
 - Dynamic sensor handling based on what the Windows client advertises
 - Automatic removal of disabled command and sensor entities
 - Service-aware command routing for system commands handled by the Windows service
+- HA API WebSocket failover transport for device, sensor, media, and notification action events
+- Serial-number based MQTT topic and HA API command routing
 - `hass_agent.execute_command` service for scripts and automations
 - Local API setup for notification-only use cases (with API key authentication)
 - Hungarian and English translations
@@ -38,7 +42,7 @@ It is the matching Home Assistant side for the modern **HASS.Agent .NET10** Wind
 | Component | Minimum version |
 |-----------|----------------|
 | Home Assistant | 2026.6.0 |
-| HASS.Agent .NET10 (Windows client) | 10.0.0 |
+| HASS.Agent .NET10 (Windows client) | 10.1.0 |
 | MQTT broker | Mosquitto or any MQTT 3.1.1+ broker |
 
 HACS is required when installing through the custom repository flow.
@@ -83,6 +87,24 @@ For environments where MQTT is not available. Add the device manually:
 - **API key**: copy from the agent's General settings page (Network section)
 
 Only notifications are supported in Local API mode. The `POST /notify` endpoint is protected with the API key (`Authorization: Bearer <key>`).
+
+### HA API WebSocket
+
+HASS.Agent .NET10 v10.1.0 can send device state through Home Assistant's WebSocket API. This is useful as an MQTT failover path, or when remote access to Home Assistant is available but the MQTT broker is not reachable from the Windows client.
+
+The client sends these Home Assistant events:
+
+```text
+hass_agent_device_update
+hass_agent_sensor_update
+hass_agent_media_update
+hass_agent_media_thumbnail
+hass_agent_notification_action
+```
+
+Commands and MQTT topics target the Windows client by `serial_number`, so renaming a device in Home Assistant does not break command delivery.
+
+MQTT is still the recommended full-featured transport. The WebSocket path does not provide retained MQTT discovery, last-will status, or broker-side buffering.
 
 ## Entities
 
@@ -163,21 +185,47 @@ When the Windows service is online and capable of handling the command, the inte
 Published by the Windows client, consumed by this integration:
 
 ```text
-hass.agent/devices/{deviceName}                  # discovery + capabilities
-hass.agent/system/{deviceName}/state             # Windows service status
-hass.agent/sensors/{deviceName}/state            # sensor values
-hass.agent/update/{deviceName}/state             # app update state
-hass.agent/media_player/{deviceName}/state       # media player state
-hass.agent/notifications/{deviceName}/actions    # notification action events
+hass.agent/devices/{serialNumber}                # discovery + capabilities
+hass.agent/system/{serialNumber}/state           # Windows service status
+hass.agent/sensors/{serialNumber}/state          # sensor values
+hass.agent/update/{serialNumber}/state           # app update state
+hass.agent/media_player/{serialNumber}/state     # media player state
+hass.agent/notifications/{serialNumber}/actions  # notification action events
 ```
 
 Published by this integration (commands):
 
 ```text
-hass.agent/notifications/{deviceName}            # outgoing notifications
-hass.agent/media_player/{deviceName}/cmd         # media player commands
-hass.agent/buttons/{deviceName}/cmd              # system command buttons
-hass.agent/system/{deviceName}/cmd               # service-routed commands
+hass.agent/notifications/{serialNumber}          # outgoing notifications
+hass.agent/media_player/{serialNumber}/cmd       # media player commands
+hass.agent/buttons/{serialNumber}/cmd            # system command buttons
+hass.agent/system/{serialNumber}/cmd             # service-routed commands
+```
+
+## Home Assistant Events
+
+When the HA API WebSocket transport is enabled in the Windows client, it fires these events into Home Assistant:
+
+| Event | Purpose |
+|-------|---------|
+| `hass_agent_device_update` | Device metadata and capabilities |
+| `hass_agent_sensor_update` | Sensor values and attributes |
+| `hass_agent_media_update` | Media player state |
+| `hass_agent_media_thumbnail` | Media player album art |
+| `hass_agent_notification_action` | Notification action button clicks |
+
+The integration sends commands back to the client through the `hass_agent_command` event:
+
+```json
+{
+  "serial_number": "device-serial-number",
+  "command_type": "button_command",
+  "payload": {
+    "command": "restart",
+    "force": true,
+    "time": 30
+  }
+}
 ```
 
 ## Legacy Branch
@@ -191,6 +239,14 @@ hass.agent/system/{deviceName}/cmd               # service-routed commands
 > The `main` branch (v10.0.0+) is designed exclusively for **HASS.Agent .NET10** and is not backwards compatible with the old client.
 
 ## Changelog
+
+### 10.1.0
+
+- Added HA API WebSocket transport handling for device, sensor, media, thumbnail, and notification action events
+- Added serial-number based MQTT topic and WebSocket command routing so Home Assistant device renames do not break commands
+- Updated button, media player, notification, and service command fallbacks to route commands with `serial_number`
+- Documented the HA API WebSocket mode and its event payloads
+- Bumped the integration version to 10.1.0
 
 ### 10.0.0
 
