@@ -4,7 +4,7 @@
 
 Custom Home Assistant integration for HASS.Agent devices.
 
-This integration exposes a Windows HASS.Agent device as Home Assistant entities. Devices can be discovered through MQTT, and notification actions are exposed both as device automation triggers and as a modern Home Assistant event entity.
+This integration exposes a Windows HASS.Agent device as Home Assistant entities. Devices can connect through MQTT or Home Assistant's WebSocket API (HA API). Notification actions are exposed both as device automation triggers and as a modern Home Assistant event entity.
 
 It is the matching Home Assistant side for the modern **HASS.Agent .NET10** Windows client.
 
@@ -34,7 +34,7 @@ It is the matching Home Assistant side for the modern **HASS.Agent .NET10** Wind
 - HA API WebSocket failover transport for device, sensor, media, and notification action events
 - Serial-number based MQTT topic and HA API command routing
 - `hass_agent.execute_command` service for scripts and automations
-- Local API setup for notification-only use cases (with API key authentication)
+- Local HTTP API setup for notification-only use cases (with API key authentication)
 - Hungarian and English translations
 
 ## Requirements
@@ -43,11 +43,11 @@ It is the matching Home Assistant side for the modern **HASS.Agent .NET10** Wind
 |-----------|----------------|
 | Home Assistant | 2026.6.0 |
 | HASS.Agent .NET10 (Windows client) | 10.1.0 |
-| MQTT broker | Mosquitto or any MQTT 3.1.1+ broker |
+| MQTT broker (recommended) | Mosquitto or any MQTT 3.1.1+ broker |
 
 HACS is required when installing through the custom repository flow.
 
-MQTT discovery is recommended for full functionality. The Local API setup supports notifications only.
+MQTT is recommended for full functionality. Alternatively, HA API (WebSocket) provides nearly the same features without requiring an MQTT broker. The Local HTTP API setup supports notifications only.
 
 ## Installation
 
@@ -60,7 +60,7 @@ MQTT discovery is recommended for full functionality. The Local API setup suppor
 
 3. Install **HASS.Agent Integration** from HACS.
 4. Restart Home Assistant.
-5. The device appears automatically if MQTT is enabled in the Windows client. Otherwise add it manually from **Settings > Devices & services > Add integration > HASS.Agent**.
+5. The device appears automatically if MQTT is enabled in the Windows client. If using HA API (WebSocket) only, the device registers when the Windows client connects. For Local HTTP API, add the device manually from **Settings > Devices & services > Add integration > HASS.Agent**.
 
 If another HASS.Agent integration is already installed, remove it before installing this one, then restart Home Assistant.
 
@@ -76,39 +76,47 @@ Enable MQTT in the HASS.Agent .NET10 Windows client. The device is discovered au
 - Command buttons (lock, shutdown, restart, etc.)
 - Update entity
 - Windows service integration
+- Retained state on restart
+- Last Will (automatic offline detection)
 
-### Local API
+### HA API (WebSocket)
 
-For environments where MQTT is not available. Add the device manually:
+The Windows client connects directly to Home Assistant's WebSocket API using a long-lived access token. Works remotely (e.g. via Nabu Casa) without an MQTT broker. Can be used standalone or as automatic failover when the MQTT broker is unreachable.
+
+Nearly all features work — notifications, media player, sensors, commands, update entity — with some trade-offs compared to MQTT:
+
+- No retained state (sensor values are lost until the agent reconnects after a restart)
+- No Last Will (no automatic offline detection)
+- Media thumbnails are ~33% larger (base64 encoding)
+- No Windows service integration
+- HTTPS is required for remote access
+
+The client communicates through Home Assistant's event bus:
+
+```text
+hass_agent_device_update          # discovery + capabilities
+hass_agent_sensor_update          # sensor values
+hass_agent_media_update           # media player state
+hass_agent_media_thumbnail        # media album art (base64)
+hass_agent_notification_action    # notification button press
+```
+
+All events and commands are targeted by `serial_number`, so renaming a device in Home Assistant does not break command delivery.
+
+### Local HTTP API
+
+A minimal fallback for environments where neither MQTT nor HA API is available. Add the device manually:
 
 - **Host**: the Windows machine's LAN IP address
 - **Port**: `5115` (default)
 - **SSL**: disabled
 - **API key**: copy from the agent's General settings page (Network section)
 
-Only notifications are supported in Local API mode. The `POST /notify` endpoint is protected with the API key (`Authorization: Bearer <key>`).
-
-### HA API WebSocket
-
-HASS.Agent .NET10 v10.1.0 can send device state through Home Assistant's WebSocket API. This is useful as an MQTT failover path, or when remote access to Home Assistant is available but the MQTT broker is not reachable from the Windows client.
-
-The client sends these Home Assistant events:
-
-```text
-hass_agent_device_update
-hass_agent_sensor_update
-hass_agent_media_update
-hass_agent_media_thumbnail
-hass_agent_notification_action
-```
-
-Commands and MQTT topics target the Windows client by `serial_number`, so renaming a device in Home Assistant does not break command delivery.
-
-MQTT is still the recommended full-featured transport. The WebSocket path does not provide retained MQTT discovery, last-will status, or broker-side buffering.
+Only notifications are supported. The `POST /notify` endpoint is protected with the API key (`Authorization: Bearer <key>`). Use MQTT or HA API for full functionality.
 
 ## Entities
 
-When connected via MQTT, the integration creates the following entities:
+When connected via MQTT or HA API, the integration creates the following entities:
 
 | Platform | Entity | Description |
 |----------|--------|-------------|
@@ -204,17 +212,7 @@ hass.agent/system/{serialNumber}/cmd             # service-routed commands
 
 ## Home Assistant Events
 
-When the HA API WebSocket transport is enabled in the Windows client, it fires these events into Home Assistant:
-
-| Event | Purpose |
-|-------|---------|
-| `hass_agent_device_update` | Device metadata and capabilities |
-| `hass_agent_sensor_update` | Sensor values and attributes |
-| `hass_agent_media_update` | Media player state |
-| `hass_agent_media_thumbnail` | Media player album art |
-| `hass_agent_notification_action` | Notification action button clicks |
-
-The integration sends commands back to the client through the `hass_agent_command` event:
+When using the HA API (WebSocket) transport, the Windows client fires events into Home Assistant's event bus instead of MQTT topics (see [HA API (WebSocket)](#ha-api-websocket) above). The integration also sends commands back to the client through the `hass_agent_command` event:
 
 ```json
 {
@@ -260,7 +258,7 @@ HASS.Agent .NET10 support:
 - Added `hass_agent.execute_command` service
 - Added shutdown/restart parameters: `comment`, `force`, `time`, `restart_cancel`
 - Added inactive entity removal when features are disabled in the Windows client
-- Added API key authentication for Local API mode
+- Added API key authentication for Local HTTP API mode
 
 ### 3.x (pre-.NET10)
 
