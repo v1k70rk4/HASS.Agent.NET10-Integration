@@ -2,13 +2,21 @@
   "config": {
     "flow_title": "{name}",
     "step": {
+      "user": {
+        "title": "Add HASS.Agent device",
+        "description": "MQTT devices are discovered automatically. Choose a manual connection method below.",
+        "menu_options": {
+          "ha_api_info": "HA API (WebSocket)",
+          "local_api": "Local HTTP API (notifications only)"
+        }
+      },
       "confirm": {
         "title": "Confirm",
         "description": "Do you want to start set up?"
       },
       "local_api": {
-        "title": "HASS.Agent .NET10 Local API",
-        "description": "This adds the device to HA using the local API. Currently ONLY notifications will work. Add the device using auto discovery if you want media player support.",
+        "title": "HASS.Agent .NET10 Local HTTP API",
+        "description": "This adds the device to HA using the local HTTP API. Only notifications are supported. Use MQTT or HA API for full functionality.",
         "data": {
           "host": "Host",
           "port": "Port",
@@ -23,7 +31,8 @@
     "abort": {
       "single_instance_allowed": "Already configured. Only a single configuration possible.",
       "no_devices_found": "No devices found on the network.",
-      "already_configured": "Device is already configured."
+      "already_configured": "Device is already configured.",
+      "ha_api_auto_discovery": "HA API devices are discovered automatically. Enable HA API in the HASS.Agent .NET10 Windows client settings and make sure the agent is running — the device will appear in Home Assistant within seconds."
     }
   },
   "options": {

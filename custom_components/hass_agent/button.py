@@ -14,7 +14,7 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 
-from .const import DOMAIN, SIGNAL_BUTTONS_UPDATED
+from .const import DOMAIN, CONF_HA_API, SIGNAL_BUTTONS_UPDATED
 
 
 SHUTDOWN_BUTTON_DELAY_SECONDS = 60
@@ -187,16 +187,18 @@ class HassAgentCommandButton(ButtonEntity):
             return
 
         payload = self._build_payload()
-        topic = self._service_command_topic if self._can_use_service(self.entity_description.key) else self._command_topic
 
-        await mqtt.async_publish(
-            self.hass,
-            topic,
-            json.dumps(payload),
-            qos=0,
-            retain=False,
-        )
-        # Also fire on the event bus for WebSocket failover transport.
+        if not self.hass.data.get(DOMAIN, {}).get(self._entry_id, {}).get("ha_api_only", False):
+            topic = self._service_command_topic if self._can_use_service(self.entity_description.key) else self._command_topic
+
+            await mqtt.async_publish(
+                self.hass,
+                topic,
+                json.dumps(payload),
+                qos=0,
+                retain=False,
+            )
+        # Also fire on the event bus for WebSocket transport.
         self.hass.bus.async_fire("hass_agent_command", {
             "serial_number": self._serial_number,
             "command_type": "button_command",

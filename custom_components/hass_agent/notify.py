@@ -20,6 +20,7 @@ from .const import (
     DOMAIN,
     CONF_API_KEY,
     CONF_DEFAULT_NOTIFICATION_TITLE,
+    CONF_HA_API,
     CONF_ORIGINAL_DEVICE_NAME,
 )
 
@@ -98,16 +99,18 @@ class HassAgentNotifyEntity(NotifyEntity):
         _logger.debug("Sending notification")
 
         url = self._entry.data.get(CONF_URL, None)
+        is_ha_api_only = self._entry.data.get(CONF_HA_API, False)
 
         if url is None:
-            await mqtt.async_publish(
-                self.hass,
-                f"hass.agent/notifications/{self._entry.unique_id}",
-                json.dumps(payload),
-                qos=0,
-                retain=False,
-            )
-            # Also fire on the event bus for WebSocket failover transport.
+            if not is_ha_api_only:
+                await mqtt.async_publish(
+                    self.hass,
+                    f"hass.agent/notifications/{self._entry.unique_id}",
+                    json.dumps(payload),
+                    qos=0,
+                    retain=False,
+                )
+            # Also fire on the event bus for WebSocket transport.
             self.hass.bus.async_fire("hass_agent_command", {
                 "serial_number": self._entry.unique_id,
                 "command_type": "notification",

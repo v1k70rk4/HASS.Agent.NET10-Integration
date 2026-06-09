@@ -1,22 +1,22 @@
 {
   "config": {
     "flow_title": "{name}",
-    "abort": {
-      "single_instance_allowed": "Csak egy példány engedélyezett.",
-      "no_devices_found": "Nem található eszköz a hálózaton.",
-      "already_configured": "Ez az eszköz már be van állítva."
-    },
-    "error": {
-      "cannot_connect": "Nem sikerült csatlakozni a HASS.Agent .NET10-hez"
-    },
     "step": {
+      "user": {
+        "title": "HASS.Agent eszköz hozzáadása",
+        "description": "Az MQTT eszközök automatikusan felderítésre kerülnek. Válasszon manuális kapcsolódási módot alább.",
+        "menu_options": {
+          "ha_api_info": "HA API (WebSocket)",
+          "local_api": "Helyi HTTP API (csak értesítések)"
+        }
+      },
       "confirm": {
         "title": "Megerősítés",
         "description": "El szeretné indítani a beállítást?"
       },
       "local_api": {
-        "title": "HASS.Agent .NET10 helyi API",
-        "description": "Ez az eszközt a helyi API használatával adja hozzá a Home Assistanthoz. Jelenleg CSAK az értesítések működnek. Ha media_player támogatást szeretne, adja hozzá az eszközt automatikus felderítéssel.",
+        "title": "HASS.Agent .NET10 helyi HTTP API",
+        "description": "Ez az eszközt a helyi HTTP API használatával adja hozzá. Csak az értesítések működnek. A teljes funkcionalitáshoz használjon MQTT-t vagy HA API-t.",
         "data": {
           "host": "Hoszt",
           "port": "Port",
@@ -24,6 +24,15 @@
           "api_key": "API kulcs (az agent Általános beállításaiból)"
         }
       }
+    },
+    "error": {
+      "cannot_connect": "Nem sikerült csatlakozni a HASS.Agent .NET10-hez"
+    },
+    "abort": {
+      "single_instance_allowed": "Csak egy példány engedélyezett.",
+      "no_devices_found": "Nem található eszköz a hálózaton.",
+      "already_configured": "Ez az eszköz már be van állítva.",
+      "ha_api_auto_discovery": "A HA API eszközök automatikusan felderítésre kerülnek. Kapcsolja be a HA API-t a HASS.Agent .NET10 Windows kliens beállításaiban, és győződjön meg róla, hogy az agent fut — az eszköz másodperceken belül megjelenik a Home Assistantban."
     }
   },
   "options": {

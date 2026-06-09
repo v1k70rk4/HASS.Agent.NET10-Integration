@@ -16,6 +16,7 @@ from homeassistant.components.mqtt.subscription import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import (
@@ -106,21 +107,48 @@ class HassAgentNotificationActionEventEntity(EventEntity):
         self._trigger_event(EVENT_TYPE_ACTION, event_data)
         self.async_write_ha_state()
 
+    @callback
+    def _handle_ws_notification_action(self, data: Any) -> None:
+        """Handle a notification action received via WebSocket transport."""
+        if not isinstance(data, dict):
+            return
+
+        action = data.get(CONF_ACTION)
+        if not isinstance(action, str) or not action:
+            return
+
+        event_data = dict(data)
+        event_data.setdefault(CONF_DEVICE_NAME, self._device_name)
+
+        self.hass.bus.async_fire(EVENT_NOTIFICATION_ACTIONS, event_data)
+        self._trigger_event(EVENT_TYPE_ACTION, event_data)
+        self.async_write_ha_state()
+
     async def async_added_to_hass(self) -> None:
         """Subscribe to notification action messages."""
-        self._listeners = async_prepare_subscribe_topics(
-            self.hass,
-            self._listeners,
-            {
-                f"{self._attr_unique_id}-actions": {
-                    "topic": f"hass.agent/notifications/{self._topic_id}/actions",
-                    "msg_callback": self._handle_action_message,
-                    "qos": 0,
-                }
-            },
-        )
+        if not self.hass.data.get(DOMAIN, {}).get(self._entry.entry_id, {}).get("ha_api_only", False):
+            self._listeners = async_prepare_subscribe_topics(
+                self.hass,
+                self._listeners,
+                {
+                    f"{self._attr_unique_id}-actions": {
+                        "topic": f"hass.agent/notifications/{self._topic_id}/actions",
+                        "msg_callback": self._handle_action_message,
+                        "qos": 0,
+                    }
+                },
+            )
 
-        await async_subscribe_topics(self.hass, self._listeners)
+            await async_subscribe_topics(self.hass, self._listeners)
+
+        # Also listen for notification actions coming via WebSocket transport.
+        self.async_on_remove(
+            async_dispatcher_connect(
+                self.hass,
+                f"hass_agent_notification_action_{self._entry.entry_id}",
+                self._handle_ws_notification_action,
+            )
+        )
 
     async def async_will_remove_from_hass(self) -> None:
         """Unsubscribe from notification action messages."""

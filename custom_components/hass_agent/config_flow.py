@@ -19,7 +19,7 @@ from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PORT, CONF_SSL, CONF_
 from homeassistant.helpers.service_info.mqtt import MqttServiceInfo
 from homeassistant.helpers.issue_registry import IssueSeverity, async_create_issue, async_delete_issue
 
-from .const import DOMAIN, CONF_API_KEY, CONF_DEFAULT_NOTIFICATION_TITLE, CONF_ORIGINAL_DEVICE_NAME, CONF_DEVICE_NAME
+from .const import DOMAIN, CONF_API_KEY, CONF_DEFAULT_NOTIFICATION_TITLE, CONF_HA_API, CONF_ORIGINAL_DEVICE_NAME, CONF_DEVICE_NAME
 
 _logger = logging.getLogger(__name__)
 
@@ -109,8 +109,10 @@ class FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             name_changed = device_name != entry.title
             old_title = entry.title
             switching_from_local_api = CONF_URL in entry.data
+            switching_from_ha_api = entry.data.get(CONF_HA_API, False)
             entry_data = {**entry.data, **self._data}
             entry_data.pop(CONF_URL, None)
+            entry_data.pop(CONF_HA_API, None)
 
             self.hass.config_entries.async_update_entry(
                 entry,
@@ -118,7 +120,7 @@ class FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 data=entry_data,
             )
 
-            reload_required = name_changed or switching_from_local_api
+            reload_required = name_changed or switching_from_local_api or switching_from_ha_api
             if reload_required:
                 self.hass.config_entries.async_schedule_reload(entry.entry_id)
 
@@ -147,6 +149,60 @@ class FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         self._device_name = device_name
 
         return await self.async_step_confirm()
+
+    async def async_step_ha_api(self, discovery_info: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Handle a flow initialized by HA API WebSocket auto-discovery."""
+        if discovery_info is None:
+            return self.async_abort(reason="not_supported")
+
+        try:
+            device = discovery_info["device"]
+            device_name = device["name"]
+            serial_number = discovery_info["serial_number"]
+            apis = discovery_info["apis"]
+        except (KeyError, TypeError):
+            _logger.warning("received invalid HA API discovery payload")
+            return self.async_abort(reason="not_supported")
+
+        if (
+            not isinstance(device, dict)
+            or not isinstance(device_name, str)
+            or not isinstance(serial_number, str)
+            or not isinstance(apis, dict)
+        ):
+            _logger.warning("received malformed HA API discovery payload")
+            return self.async_abort(reason="not_supported")
+
+        _logger.debug("found device via HA API. Name: %s, Serial Number: %s", device_name, serial_number)
+
+        self._data = {"device": device, "apis": apis, CONF_HA_API: True}
+
+        entry = await self.async_set_unique_id(serial_number)
+        if not entry or (CONF_ORIGINAL_DEVICE_NAME not in entry.data):
+            self._data[CONF_ORIGINAL_DEVICE_NAME] = device_name
+
+        if entry:
+            # Already configured — update with latest HA API data
+            entry_data = {**entry.data, **self._data}
+            self.hass.config_entries.async_update_entry(entry, data=entry_data)
+            return self.async_abort(reason="already_configured")
+
+        self._abort_if_unique_id_configured()
+
+        self._device_name = device_name
+
+        return await self.async_step_confirm()
+
+    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Handle manual device addition."""
+        return self.async_show_menu(
+            step_id="user",
+            menu_options=["ha_api_info", "local_api"],
+        )
+
+    async def async_step_ha_api_info(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Show information about HA API auto-discovery."""
+        return self.async_abort(reason="ha_api_auto_discovery")
 
     async def async_step_local_api(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         errors = {}
@@ -212,9 +268,6 @@ class FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             ),
             errors=errors,
         )
-
-    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        return await self.async_step_local_api()
 
     async def async_step_confirm(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Confirm the setup."""

@@ -16,7 +16,7 @@ from homeassistant.components.media_player.browse_media import (
 )
 from homeassistant.helpers import device_registry as dr
 
-from .const import DOMAIN, CONF_ORIGINAL_DEVICE_NAME
+from .const import DOMAIN, CONF_ORIGINAL_DEVICE_NAME, CONF_HA_API
 
 from homeassistant.components.mqtt.subscription import (
     async_prepare_subscribe_topics,
@@ -204,27 +204,28 @@ class HassAgentMediaPlayerDevice(MediaPlayerEntity):
         self.async_write_ha_state()
 
     async def async_added_to_hass(self) -> None:
-        self._listeners = async_prepare_subscribe_topics(
-            self.hass,
-            self._listeners,
-            {
-                f"{self._attr_unique_id}-state": {
-                    "topic": f"hass.agent/media_player/{self._topic_id}/state",
-                    "msg_callback": self.updated,
-                    "qos": 0,
+        if not self.hass.data.get(DOMAIN, {}).get(self._entry_id, {}).get("ha_api_only", False):
+            self._listeners = async_prepare_subscribe_topics(
+                self.hass,
+                self._listeners,
+                {
+                    f"{self._attr_unique_id}-state": {
+                        "topic": f"hass.agent/media_player/{self._topic_id}/state",
+                        "msg_callback": self.updated,
+                        "qos": 0,
+                    },
+                    f"{self._attr_unique_id}-thumbnail": {
+                        "topic": f"hass.agent/media_player/{self._topic_id}/thumbnail",
+                        "msg_callback": self.update_thumbnail,
+                        "qos": 0,
+                        "encoding": None,
+                    },
                 },
-                f"{self._attr_unique_id}-thumbnail": {
-                    "topic": f"hass.agent/media_player/{self._topic_id}/thumbnail",
-                    "msg_callback": self.update_thumbnail,
-                    "qos": 0,
-                    "encoding": None,
-                },
-            },
-        )
+            )
 
-        await async_subscribe_topics(self.hass, self._listeners)
+            await async_subscribe_topics(self.hass, self._listeners)
 
-        # Also listen for media data coming via WebSocket failover.
+        # Also listen for media data coming via WebSocket transport.
         self.async_on_remove(
             async_dispatcher_connect(
                 self.hass,
@@ -282,14 +283,15 @@ class HassAgentMediaPlayerDevice(MediaPlayerEntity):
 
         payload = {"command": command, "data": data}
 
-        await mqtt.async_publish(
-            self.hass,
-            self._command_topic,
-            json.dumps(payload),
-            qos=0,
-            retain=False,
-        )
-        # Also fire on the event bus for WebSocket failover transport.
+        if not self.hass.data.get(DOMAIN, {}).get(self._entry_id, {}).get("ha_api_only", False):
+            await mqtt.async_publish(
+                self.hass,
+                self._command_topic,
+                json.dumps(payload),
+                qos=0,
+                retain=False,
+            )
+        # Also fire on the event bus for WebSocket transport.
         self.hass.bus.async_fire("hass_agent_command", {
             "serial_number": self._serial_number,
             "command_type": "media_command",

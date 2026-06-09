@@ -391,7 +391,7 @@ class HassAgentSystemSensor(SensorEntity):
 
     @callback
     def _handle_ws_sensor_data(self, payload: Any) -> None:
-        """Handle sensor data received via WebSocket failover transport."""
+        """Handle sensor data received via WebSocket transport."""
         if not isinstance(payload, dict):
             return
 
@@ -419,21 +419,22 @@ class HassAgentSystemSensor(SensorEntity):
 
     async def async_added_to_hass(self) -> None:
         """Subscribe to the shared system metrics topic."""
-        self._listeners = async_prepare_subscribe_topics(
-            self.hass,
-            self._listeners,
-            {
-                f"{self._attr_unique_id}-state": {
-                    "topic": f"hass.agent/sensors/{self._topic_id}/state",
-                    "msg_callback": self.updated,
-                    "qos": 0,
-                }
-            },
-        )
+        if not self.hass.data.get(DOMAIN, {}).get(self._entry_id, {}).get("ha_api_only", False):
+            self._listeners = async_prepare_subscribe_topics(
+                self.hass,
+                self._listeners,
+                {
+                    f"{self._attr_unique_id}-state": {
+                        "topic": f"hass.agent/sensors/{self._topic_id}/state",
+                        "msg_callback": self.updated,
+                        "qos": 0,
+                    }
+                },
+            )
 
-        await async_subscribe_topics(self.hass, self._listeners)
+            await async_subscribe_topics(self.hass, self._listeners)
 
-        # Also listen for sensor data coming via WebSocket failover.
+        # Also listen for sensor data coming via WebSocket transport.
         self.async_on_remove(
             async_dispatcher_connect(
                 self.hass,
@@ -559,21 +560,23 @@ class HassAgentCustomSensor(SensorEntity):
                 self.async_write_ha_state,
             )
         )
-        self._listeners = async_prepare_subscribe_topics(
-            self.hass,
-            self._listeners,
-            {
-                f"{self._attr_unique_id}-state": {
-                    "topic": f"hass.agent/sensors/{self._topic_id}/state",
-                    "msg_callback": self.updated,
-                    "qos": 0,
-                }
-            },
-        )
 
-        await async_subscribe_topics(self.hass, self._listeners)
+        if not self.hass.data.get(DOMAIN, {}).get(self._entry_id, {}).get("ha_api_only", False):
+            self._listeners = async_prepare_subscribe_topics(
+                self.hass,
+                self._listeners,
+                {
+                    f"{self._attr_unique_id}-state": {
+                        "topic": f"hass.agent/sensors/{self._topic_id}/state",
+                        "msg_callback": self.updated,
+                        "qos": 0,
+                    }
+                },
+            )
 
-        # Also listen for sensor data coming via WebSocket failover.
+            await async_subscribe_topics(self.hass, self._listeners)
+
+        # Also listen for sensor data coming via WebSocket transport.
         self.async_on_remove(
             async_dispatcher_connect(
                 self.hass,

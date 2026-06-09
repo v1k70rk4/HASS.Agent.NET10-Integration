@@ -40,6 +40,7 @@ from .const import (
     CONF_COMMAND,
     CONF_DEVICE_NAME,
     CONF_FORCE,
+    CONF_HA_API,
     CONF_RESTART_CANCEL,
     CONF_TIME,
     DOMAIN,
@@ -503,6 +504,84 @@ async def handle_apis_changed(
         async_dispatcher_send(hass, _button_update_signal(entry.entry_id))
 
 
+def _register_ws_listeners(hass: HomeAssistant, entry: ConfigEntry) -> list:
+    """Register WebSocket event listeners for HA API failover/standalone transport."""
+
+    @callback
+    def _ws_device_update(event) -> None:
+        data = event.data
+        if data.get("serial_number") != entry.unique_id:
+            return
+        apis = data.get("apis")
+        if not isinstance(apis, dict):
+            return
+        update_device_info(hass, entry, data)
+        hass.data[DOMAIN][entry.entry_id]["apis"] = apis
+        hass.async_create_background_task(
+            handle_apis_changed(hass, entry, apis), "hass.agent-ws-device"
+        )
+
+    @callback
+    def _ws_sensor_update(event) -> None:
+        data = event.data
+        if data.get("serial_number") != entry.unique_id:
+            return
+        sensors = data.get("sensors")
+        if sensors is not None:
+            async_dispatcher_send(
+                hass,
+                f"hass_agent_sensor_data_{entry.entry_id}",
+                sensors,
+            )
+
+    @callback
+    def _ws_media_update(event) -> None:
+        data = event.data
+        if data.get("serial_number") != entry.unique_id:
+            return
+        state = data.get("state")
+        if state is not None:
+            async_dispatcher_send(
+                hass,
+                f"hass_agent_media_state_{entry.entry_id}",
+                state,
+            )
+
+    @callback
+    def _ws_media_thumbnail(event) -> None:
+        data = event.data
+        if data.get("serial_number") != entry.unique_id:
+            return
+        thumbnail_b64 = data.get("thumbnail")
+        hass.data[DOMAIN][entry.entry_id]["thumbnail"] = thumbnail_b64
+        async_dispatcher_send(
+            hass,
+            f"hass_agent_media_thumbnail_{entry.entry_id}",
+            thumbnail_b64,
+        )
+
+    @callback
+    def _ws_notification_action(event) -> None:
+        data = event.data
+        if data.get("serial_number") != entry.unique_id:
+            return
+        action = data.get("action")
+        if action:
+            async_dispatcher_send(
+                hass,
+                f"hass_agent_notification_action_{entry.entry_id}",
+                data,
+            )
+
+    return [
+        hass.bus.async_listen("hass_agent_device_update", _ws_device_update),
+        hass.bus.async_listen("hass_agent_sensor_update", _ws_sensor_update),
+        hass.bus.async_listen("hass_agent_media_update", _ws_media_update),
+        hass.bus.async_listen("hass_agent_media_thumbnail", _ws_media_thumbnail),
+        hass.bus.async_listen("hass_agent_notification_action", _ws_notification_action),
+    ]
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up HASS.Agent from a config entry."""
 
@@ -531,8 +610,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
 
     url = entry.data.get(CONF_URL, None)
+    is_ha_api = entry.data.get(CONF_HA_API, False)
+
+    # Store the transport mode so entity platforms can check it.
+    hass.data[DOMAIN][entry.entry_id]["ha_api_only"] = bool(is_ha_api)
 
     if url is not None:
+        # --- Local HTTP API path ---
         session = async_get_clientsession(hass)
         try:
             async with session.get(
@@ -558,7 +642,21 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         await handle_apis_changed(hass, entry, apis)
         hass.data[DOMAIN][entry.entry_id]["apis"] = apis
 
+    elif is_ha_api:
+        # --- HA API standalone path ---
+        # Device was discovered via WebSocket event, no MQTT broker needed.
+        update_device_info(hass, entry, entry.data)
+
+        apis = entry.data.get("apis", {})
+        hass.data[DOMAIN][entry.entry_id]["apis"] = apis
+
+        ws_unsubs = _register_ws_listeners(hass, entry)
+        hass.data[DOMAIN][entry.entry_id]["ws_unsubs"] = ws_unsubs
+
+        await handle_apis_changed(hass, entry, apis)
+
     else:
+        # --- MQTT path (with WebSocket failover listeners) ---
         device_name = entry.data["device"]["name"]
         topic_id = entry.unique_id
 
@@ -658,85 +756,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         hass.data[DOMAIN][entry.entry_id]["internal_mqtt"] = sub_state
 
-        # --- WebSocket failover event listeners ---
-        # When the agent can't reach the MQTT broker (e.g. away from home),
-        # it sends the same data via HA WebSocket API fire_event.
-        # These listeners run alongside the MQTT subscriptions; the agent
-        # only uses one transport at a time, so there's no duplication.
-
-        @callback
-        def _ws_device_update(event) -> None:
-            data = event.data
-            if data.get("serial_number") != entry.unique_id:
-                return
-            apis = data.get("apis")
-            if not isinstance(apis, dict):
-                return
-            update_device_info(hass, entry, data)
-            hass.data[DOMAIN][entry.entry_id]["apis"] = apis
-            hass.async_create_background_task(
-                handle_apis_changed(hass, entry, apis), "hass.agent-ws-device"
-            )
-
-        @callback
-        def _ws_sensor_update(event) -> None:
-            data = event.data
-            if data.get("serial_number") != entry.unique_id:
-                return
-            sensors = data.get("sensors")
-            if sensors is not None:
-                async_dispatcher_send(
-                    hass,
-                    f"hass_agent_sensor_data_{entry.entry_id}",
-                    sensors,
-                )
-
-        @callback
-        def _ws_media_update(event) -> None:
-            data = event.data
-            if data.get("serial_number") != entry.unique_id:
-                return
-            state = data.get("state")
-            if state is not None:
-                async_dispatcher_send(
-                    hass,
-                    f"hass_agent_media_state_{entry.entry_id}",
-                    state,
-                )
-
-        @callback
-        def _ws_media_thumbnail(event) -> None:
-            data = event.data
-            if data.get("serial_number") != entry.unique_id:
-                return
-            thumbnail_b64 = data.get("thumbnail")
-            hass.data[DOMAIN][entry.entry_id]["thumbnail"] = thumbnail_b64
-            async_dispatcher_send(
-                hass,
-                f"hass_agent_media_thumbnail_{entry.entry_id}",
-                thumbnail_b64,
-            )
-
-        @callback
-        def _ws_notification_action(event) -> None:
-            data = event.data
-            if data.get("serial_number") != entry.unique_id:
-                return
-            action = data.get("action")
-            if action:
-                async_dispatcher_send(
-                    hass,
-                    f"hass_agent_notification_action_{entry.entry_id}",
-                    data,
-                )
-
-        ws_unsubs = [
-            hass.bus.async_listen("hass_agent_device_update", _ws_device_update),
-            hass.bus.async_listen("hass_agent_sensor_update", _ws_sensor_update),
-            hass.bus.async_listen("hass_agent_media_update", _ws_media_update),
-            hass.bus.async_listen("hass_agent_media_thumbnail", _ws_media_thumbnail),
-            hass.bus.async_listen("hass_agent_notification_action", _ws_notification_action),
-        ]
+        # WebSocket failover event listeners (alongside MQTT subscriptions).
+        ws_unsubs = _register_ws_listeners(hass, entry)
         hass.data[DOMAIN][entry.entry_id]["ws_unsubs"] = ws_unsubs
 
     # Clean up stale restart_required repair issues for this device.
@@ -788,11 +809,16 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _logger.warning("config entry (%s) has no apis loaded?", entry.unique_id)
 
     url = entry.data.get(CONF_URL, None)
-    if url is None:
-        async_unsubscribe_topics(hass, entry_data["internal_mqtt"])
-        service_status = hass.data[DOMAIN].get(SERVICE_STATUS_STORAGE_KEY, {})
-        service_status.pop(entry.data["device"]["name"], None)
+    is_ha_api = entry.data.get(CONF_HA_API, False)
 
+    if url is None:
+        if not is_ha_api:
+            # MQTT path — unsubscribe from MQTT topics.
+            async_unsubscribe_topics(hass, entry_data["internal_mqtt"])
+            service_status = hass.data[DOMAIN].get(SERVICE_STATUS_STORAGE_KEY, {})
+            service_status.pop(entry.data.get("device", {}).get("name", ""), None)
+
+        # Both MQTT and HA API paths have WebSocket event listeners.
         for unsub in entry_data.get("ws_unsubs", []):
             unsub()
 
@@ -805,6 +831,34 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up hass_agent integration."""
 
     _logger.debug("integration setup start")
+
+    hass.data.setdefault(DOMAIN, {})
+
+    # --- HA API WebSocket auto-discovery ---
+    # When an agent connects via HA API and fires hass_agent_device_update,
+    # automatically start a config flow if the device isn't known yet.
+    @callback
+    def _ws_auto_discover(event) -> None:
+        data = event.data
+        serial_number = data.get("serial_number")
+        if not isinstance(serial_number, str) or not serial_number:
+            return
+
+        # Already configured?
+        for entry in hass.config_entries.async_entries(DOMAIN):
+            if entry.unique_id == serial_number:
+                return
+
+        _logger.info("discovered new HASS.Agent device via HA API: %s", serial_number)
+        hass.async_create_task(
+            hass.config_entries.flow.async_init(
+                DOMAIN,
+                context={"source": "ha_api"},
+                data=data,
+            )
+        )
+
+    hass.bus.async_listen("hass_agent_device_update", _ws_auto_discover)
 
     def should_route_to_system_service(device_name: str, command: str | None, restart_cancel: bool) -> bool:
         command_name = "restart_cancel" if restart_cancel else command
@@ -833,6 +887,16 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
         return None
 
+    def _is_ha_api_only_entry(device_name: str) -> bool:
+        """Check if the device is configured as HA API only (no MQTT)."""
+        for entry in hass.config_entries.async_entries(DOMAIN):
+            device = entry.data.get("device", {})
+            if not isinstance(device, dict):
+                continue
+            if device.get("name") == device_name:
+                return entry.data.get(CONF_HA_API, False)
+        return False
+
     async def async_execute_command(call) -> None:
         device_name = call.data[CONF_DEVICE_NAME]
         command = call.data.get(CONF_COMMAND)
@@ -855,20 +919,24 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         if serial_number is None:
             raise HomeAssistantError(f"device not found: {device_name}")
 
-        topic = (
-            f"hass.agent/system/{serial_number}/cmd"
-            if should_route_to_system_service(device_name, command, restart_cancel)
-            else f"hass.agent/buttons/{serial_number}/cmd"
-        )
+        ha_api_only = _is_ha_api_only_entry(device_name)
 
-        await mqtt.async_publish(
-            hass,
-            topic,
-            json.dumps(payload),
-            qos=0,
-            retain=False,
-        )
-        # Also fire on the event bus for WebSocket failover transport.
+        if not ha_api_only:
+            topic = (
+                f"hass.agent/system/{serial_number}/cmd"
+                if should_route_to_system_service(device_name, command, restart_cancel)
+                else f"hass.agent/buttons/{serial_number}/cmd"
+            )
+
+            await mqtt.async_publish(
+                hass,
+                topic,
+                json.dumps(payload),
+                qos=0,
+                retain=False,
+            )
+
+        # Also fire on the event bus for WebSocket transport.
         hass.bus.async_fire("hass_agent_command", {
             "serial_number": serial_number,
             "command_type": "button_command",

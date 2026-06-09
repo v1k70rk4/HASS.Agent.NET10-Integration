@@ -4,6 +4,7 @@ DOMAIN = "hass_agent"
 
 CONF_ACTION = "action"
 CONF_API_KEY = "api_key"
+CONF_HA_API = "ha_api"
 CONF_COMMENT = "comment"
 CONF_COMMAND = "command"
 CONF_DEVICE_NAME = "device_name"

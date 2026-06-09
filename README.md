@@ -12,7 +12,7 @@ It is the matching Home Assistant side for the modern **HASS.Agent .NET10** Wind
 
 > **Important**: This integration (v10.0.0+) requires **[HASS.Agent .NET10](https://github.com/v1k70rk4/HASS.Agent)** as the Windows client. The older pre-.NET10 HASS.Agent client is **not compatible** with this version.
 >
-> The HA API WebSocket transport requires HASS.Agent .NET10 v10.1.0 or newer.
+> The HA API WebSocket transport requires HASS.Agent .NET10 v10.2.0 or newer.
 >
 > If you want to keep using the old HASS.Agent client, switch to the **[`legacy` branch](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/tree/legacy)** of this integration. The legacy branch is compatible with Home Assistant 2026.6+ and the original pre-.NET10 HASS.Agent.
 
@@ -42,7 +42,7 @@ It is the matching Home Assistant side for the modern **HASS.Agent .NET10** Wind
 | Component | Minimum version |
 |-----------|----------------|
 | Home Assistant | 2026.6.0 |
-| HASS.Agent .NET10 (Windows client) | 10.1.0 |
+| HASS.Agent .NET10 (Windows client) | 10.2.0 |
 | MQTT broker (recommended) | Mosquitto or any MQTT 3.1.1+ broker |
 
 HACS is required when installing through the custom repository flow.
@@ -238,6 +238,13 @@ When using the HA API (WebSocket) transport, the Windows client fires events int
 
 ## Changelog
 
+### 10.2.0
+
+- Added standalone HA API auto-discovery so devices can be added without an MQTT broker
+- Added `async_step_ha_api` config flow and user menu with HA API info and Local API options
+- Fixed `event.py` missing WebSocket dispatcher listener for notification actions
+- Updated all entity platforms to skip MQTT operations for HA API-only entries
+
 ### 10.1.0
 
 - Added HA API WebSocket transport handling for device, sensor, media, thumbnail, and notification action events
@@ -273,11 +280,4 @@ HASS.Agent .NET10 support:
 - Enabled hassfest and HACS validation on push and pull request
 - Added Hungarian translations
 
-## Credits
 
-This project builds on the work done by:
-
-- [hass-agent/HASS.Agent-Integration](https://github.com/hass-agent/HASS.Agent-Integration)
-- [LAB02-Research/HASS.Agent-Integration](https://github.com/LAB02-Research/HASS.Agent-Integration)
-
-Thanks to the original maintainers and contributors for creating the foundation this integration is based on.
