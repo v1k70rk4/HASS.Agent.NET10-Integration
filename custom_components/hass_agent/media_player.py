@@ -16,7 +16,7 @@ from homeassistant.components.media_player.browse_media import (
 )
 from homeassistant.helpers import device_registry as dr
 
-from .const import DOMAIN, CONF_ORIGINAL_DEVICE_NAME, CONF_HA_API
+from .const import DOMAIN, CONF_ORIGINAL_DEVICE_NAME
 
 from homeassistant.components.mqtt.subscription import (
     async_prepare_subscribe_topics,

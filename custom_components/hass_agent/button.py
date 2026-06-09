@@ -14,7 +14,7 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 
-from .const import DOMAIN, CONF_HA_API, SIGNAL_BUTTONS_UPDATED
+from .const import DOMAIN, SIGNAL_BUTTONS_UPDATED
 
 
 SHUTDOWN_BUTTON_DELAY_SECONDS = 60
