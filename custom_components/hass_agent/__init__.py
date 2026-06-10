@@ -9,7 +9,7 @@ from typing import Any
 from aiohttp import ClientError, ClientTimeout
 
 import voluptuous as vol
-from homeassistant.components import mqtt
+from homeassistant.components import mqtt, persistent_notification
 from homeassistant.components.notify.const import (
     ATTR_DATA,
     ATTR_MESSAGE,
@@ -504,6 +504,19 @@ async def handle_apis_changed(
         async_dispatcher_send(hass, _button_update_signal(entry.entry_id))
 
 
+@callback
+def _create_device_notification(hass: HomeAssistant, entry: ConfigEntry, title: Any, message: Any) -> None:
+    """Create a persistent notification on behalf of the device (e.g. update progress)."""
+    if not message:
+        return
+    persistent_notification.async_create(
+        hass,
+        str(message),
+        title=str(title) if title else entry.title,
+        notification_id=f"{DOMAIN}_{entry.unique_id}",
+    )
+
+
 def _register_ws_listeners(hass: HomeAssistant, entry: ConfigEntry) -> list:
     """Register WebSocket event listeners for HA API failover/standalone transport."""
 
@@ -573,12 +586,20 @@ def _register_ws_listeners(hass: HomeAssistant, entry: ConfigEntry) -> list:
                 data,
             )
 
+    @callback
+    def _ws_persistent_notification(event) -> None:
+        data = event.data
+        if data.get("serial_number") != entry.unique_id:
+            return
+        _create_device_notification(hass, entry, data.get("title"), data.get("message"))
+
     return [
         hass.bus.async_listen("hass_agent_device_update", _ws_device_update),
         hass.bus.async_listen("hass_agent_sensor_update", _ws_sensor_update),
         hass.bus.async_listen("hass_agent_media_update", _ws_media_update),
         hass.bus.async_listen("hass_agent_media_thumbnail", _ws_media_thumbnail),
         hass.bus.async_listen("hass_agent_notification_action", _ws_notification_action),
+        hass.bus.async_listen("hass_agent_persistent_notification", _ws_persistent_notification),
     ]
 
 
@@ -735,6 +756,22 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     "hass.agent-service",
                 )
 
+        @callback
+        def device_notification(message: ReceiveMessage) -> None:
+            if not message.payload:
+                return
+
+            try:
+                payload = json.loads(message.payload)
+            except ValueError:
+                _logger.warning("received invalid notification JSON on '%s'", message.topic)
+                return
+
+            if not isinstance(payload, dict):
+                return
+
+            _create_device_notification(hass, entry, payload.get("title"), payload.get("message"))
+
         sub_state = async_prepare_subscribe_topics(
             hass,
             sub_state,
@@ -747,6 +784,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 f"{entry.unique_id}-service": {
                     "topic": f"hass.agent/system/{topic_id}/state",
                     "msg_callback": service_updated,
+                    "qos": 0,
+                },
+                f"{entry.unique_id}-persistent-notification": {
+                    "topic": f"hass.agent/persistent_notification/{topic_id}",
+                    "msg_callback": device_notification,
                     "qos": 0,
                 },
             },
