@@ -238,6 +238,11 @@ When using the HA API (WebSocket) transport, the Windows client fires events int
 
 ## Changelog
 
+### 10.3.0
+
+- Added persistent notification support: the device can create Home Assistant persistent notifications (update progress, update completed, errors) over MQTT and the HA API WebSocket transport
+- Fully backwards compatible — the notification feature activates with HASS.Agent .NET10 v10.3.0 (currently in beta) or newer, older clients work unchanged
+
 ### 10.2.0
 
 - Added standalone HA API auto-discovery so devices can be added without an MQTT broker
