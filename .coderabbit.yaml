@@ -1,0 +1,10 @@
+# CodeRabbit configuration — https://docs.coderabbit.ai/reference/configuration
+# Docstring coverage check disabled; docstrings are kept where Home Assistant
+# conventions expect them (setup functions, entity classes).
+reviews:
+  pre_merge_checks:
+    docstrings:
+      mode: "off"
+  finishing_touches:
+    docstrings:
+      enabled: false
