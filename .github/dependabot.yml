@@ -1,0 +1,14 @@
+version: 2
+updates:
+  # Keep the GitHub Actions used by the hassfest / ruff / validate workflows
+  # up to date and patched. Grouped into a single weekly PR.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      actions:
+        patterns:
+          - "*"
+    commit-message:
+      prefix: "ci"
