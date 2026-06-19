@@ -238,6 +238,10 @@ When using the HA API (WebSocket) transport, the Windows client fires events int
 
 ## Changelog
 
+### 10.5.0
+
+- Fixed a spurious "received invalid discovery payload" warning: the device availability sub-topic (`hass.agent/devices/<serial>/availability`) matches the same MQTT discovery wildcard and is no longer treated as a discovery message
+
 ### 10.4.0
 
 - Added device availability: entities now turn **unavailable** when the device disconnects — via the MQTT availability topic / Last Will, and via a heartbeat timeout on the HA API WebSocket transport

@@ -65,6 +65,12 @@ class FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_mqtt(self, discovery_info: MqttServiceInfo) -> ConfigFlowResult:
         """Handle a flow initialized by MQTT discovery."""
+        # Only the bare device topic (hass.agent/devices/<serial>) is a discovery
+        # payload. Sub-topics like .../availability match the same wildcard but carry
+        # plain text (online/offline), so ignore them quietly here.
+        if "/" in discovery_info.topic.removeprefix("hass.agent/devices/"):
+            return self.async_abort(reason="not_supported")
+
         if not discovery_info.payload:
             _logger.debug(
                 "received empty discovery message on '%s', ignoring",
