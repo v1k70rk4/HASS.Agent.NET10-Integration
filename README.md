@@ -238,10 +238,16 @@ When using the HA API (WebSocket) transport, the Windows client fires events int
 
 ## Changelog
 
+### 10.4.0
+
+- Added device availability: entities now turn **unavailable** when the device disconnects — via the MQTT availability topic / Last Will, and via a heartbeat timeout on the HA API WebSocket transport
+- Added `enum` device class with possible-value options for the monitor power state, power status, and session state sensors, so Home Assistant knows their selectable states
+- Fully backwards compatible — these activate with HASS.Agent .NET10 v10.4.0 or newer; older clients keep working unchanged
+
 ### 10.3.0
 
 - Added persistent notification support: the device can create Home Assistant persistent notifications (update progress, update completed, errors) over MQTT and the HA API WebSocket transport
-- Fully backwards compatible — the notification feature activates with HASS.Agent .NET10 v10.3.0 (currently in beta) or newer, older clients work unchanged
+- Fully backwards compatible — the notification feature activates with HASS.Agent .NET10 v10.3.0 or newer, older clients work unchanged
 
 ### 10.2.0
 

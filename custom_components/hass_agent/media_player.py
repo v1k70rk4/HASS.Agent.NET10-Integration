@@ -17,6 +17,7 @@ from homeassistant.components.media_player.browse_media import (
 from homeassistant.helpers import device_registry as dr
 
 from .const import DOMAIN, CONF_ORIGINAL_DEVICE_NAME
+from .entity import availability_signal
 
 from homeassistant.components.mqtt.subscription import (
     async_prepare_subscribe_topics,
@@ -240,6 +241,18 @@ class HassAgentMediaPlayerDevice(MediaPlayerEntity):
                 self._handle_ws_thumbnail,
             )
         )
+        self.async_on_remove(
+            async_dispatcher_connect(
+                self.hass,
+                availability_signal(self._entry_id),
+                self._on_device_availability,
+            )
+        )
+
+    @callback
+    def _on_device_availability(self, online: bool) -> None:
+        """Re-evaluate availability when the device goes online/offline."""
+        self.async_write_ha_state()
 
     async def async_will_remove_from_hass(self) -> None:
         if self._listeners is not None:
@@ -348,6 +361,8 @@ class HassAgentMediaPlayerDevice(MediaPlayerEntity):
     def available(self):
         """Return if we're available"""
 
+        if not self.hass.data.get(DOMAIN, {}).get(self._entry_id, {}).get("available", True):
+            return False
         diff = round(time.monotonic() - self._last_updated)
         return diff < MEDIA_PLAYER_AVAILABLE_TIMEOUT
 

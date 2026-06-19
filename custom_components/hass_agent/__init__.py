@@ -32,6 +32,7 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import service
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.dispatcher import async_dispatcher_send
+from homeassistant.helpers.event import async_call_later
 from homeassistant.helpers.issue_registry import async_delete_issue
 from homeassistant.helpers.typing import ConfigType
 
@@ -47,6 +48,7 @@ from .const import (
     SIGNAL_BUTTONS_UPDATED,
     SIGNAL_SENSORS_UPDATED,
 )
+from .entity import availability_signal
 
 PLATFORMS: list[Platform] = [
     Platform.MEDIA_PLAYER,
@@ -58,6 +60,10 @@ PLATFORMS: list[Platform] = [
 SERVICE_SEND_NOTIFICATION = "send_notification"
 SERVICE_EXECUTE_COMMAND = "execute_command"
 SERVICE_STATUS_STORAGE_KEY = "_service_status"
+
+# HA API (WebSocket) has no broker Last Will, so the device sends a heartbeat
+# every 30s; mark it offline if three in a row are missed.
+WS_AVAILABILITY_TIMEOUT = 90
 BUTTON_COMMANDS_STORAGE_KEY = "button_commands"
 CUSTOM_SENSORS_STORAGE_KEY = "custom_sensors"
 STANDARD_SENSORS_STORAGE_KEY = "standard_sensors"
@@ -593,6 +599,43 @@ def _register_ws_listeners(hass: HomeAssistant, entry: ConfigEntry) -> list:
             return
         _create_device_notification(hass, entry, data.get("title"), data.get("message"))
 
+    @callback
+    def _ws_availability(event) -> None:
+        data = event.data
+        if data.get("serial_number") != entry.unique_id:
+            return
+        online = bool(data.get("online"))
+        entry_data = hass.data[DOMAIN].get(entry.entry_id)
+        if entry_data is None:
+            return
+
+        # Cancel any pending offline timeout; each heartbeat reschedules it.
+        cancel = entry_data.get("availability_timeout")
+        if cancel is not None:
+            cancel()
+            entry_data["availability_timeout"] = None
+
+        if not online:
+            entry_data["available"] = False
+            async_dispatcher_send(hass, availability_signal(entry.entry_id), False)
+            return
+
+        entry_data["available"] = True
+        async_dispatcher_send(hass, availability_signal(entry.entry_id), True)
+
+        @callback
+        def _mark_offline(_now) -> None:
+            entry_data["availability_timeout"] = None
+            if not entry_data.get("available", True):
+                return
+            entry_data["available"] = False
+            async_dispatcher_send(hass, availability_signal(entry.entry_id), False)
+
+        # No broker Last Will on the WebSocket transport: if heartbeats stop, go offline.
+        entry_data["availability_timeout"] = async_call_later(
+            hass, WS_AVAILABILITY_TIMEOUT, _mark_offline
+        )
+
     return [
         hass.bus.async_listen("hass_agent_device_update", _ws_device_update),
         hass.bus.async_listen("hass_agent_sensor_update", _ws_sensor_update),
@@ -600,6 +643,7 @@ def _register_ws_listeners(hass: HomeAssistant, entry: ConfigEntry) -> list:
         hass.bus.async_listen("hass_agent_media_thumbnail", _ws_media_thumbnail),
         hass.bus.async_listen("hass_agent_notification_action", _ws_notification_action),
         hass.bus.async_listen("hass_agent_persistent_notification", _ws_persistent_notification),
+        hass.bus.async_listen("hass_agent_availability", _ws_availability),
     ]
 
 
@@ -616,6 +660,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             "internal_mqtt": {},
             "apis": {},
             "service": {},
+            "available": True,
+            "availability_timeout": None,
             BUTTON_COMMANDS_STORAGE_KEY: (),
             CUSTOM_SENSORS_STORAGE_KEY: (),
             STANDARD_SENSORS_STORAGE_KEY: (),
@@ -772,6 +818,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
             _create_device_notification(hass, entry, payload.get("title"), payload.get("message"))
 
+        @callback
+        def availability_updated(message: ReceiveMessage) -> None:
+            online = str(message.payload).strip().lower() == "online"
+            entry_data = hass.data[DOMAIN].get(entry.entry_id)
+            if entry_data is None:
+                return
+            entry_data["available"] = online
+            async_dispatcher_send(hass, availability_signal(entry.entry_id), online)
+
         sub_state = async_prepare_subscribe_topics(
             hass,
             sub_state,
@@ -790,6 +845,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     "topic": f"hass.agent/persistent_notification/{topic_id}",
                     "msg_callback": device_notification,
                     "qos": 0,
+                },
+                f"{entry.unique_id}-availability": {
+                    "topic": f"hass.agent/devices/{topic_id}/availability",
+                    "msg_callback": availability_updated,
+                    "qos": 1,
                 },
             },
         )
@@ -819,6 +879,12 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if entry_data is None:
         _logger.debug("config entry (%s) has no runtime data to unload", entry.unique_id)
         return True
+
+    # Cancel any pending HA API availability timeout.
+    cancel_availability = entry_data.get("availability_timeout")
+    if cancel_availability is not None:
+        cancel_availability()
+        entry_data["availability_timeout"] = None
 
     loaded = entry_data.get("loaded", None)
 

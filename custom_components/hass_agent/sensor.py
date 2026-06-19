@@ -29,6 +29,7 @@ from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN, SIGNAL_SENSORS_UPDATED
+from .entity import HassAgentAvailableEntity
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -114,11 +115,15 @@ SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
         key="power_status",
         translation_key="power_status",
         icon="mdi:power-plug",
+        device_class=SensorDeviceClass.ENUM,
+        options=["no_battery", "charging", "plugged_in", "battery", "unknown"],
     ),
     SensorEntityDescription(
         key="monitor_power_state",
         translation_key="monitor_power_state",
         icon="mdi:monitor",
+        device_class=SensorDeviceClass.ENUM,
+        options=["off", "on", "dimmed", "unknown"],
     ),
     SensorEntityDescription(
         key="active_display",
@@ -156,6 +161,11 @@ SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
         key="session_state",
         translation_key="session_state",
         icon="mdi:account-circle",
+        device_class=SensorDeviceClass.ENUM,
+        options=[
+            "active", "connected", "connect_query", "shadow", "disconnected",
+            "idle", "listen", "reset", "down", "init", "none", "unknown",
+        ],
     ),
     SensorEntityDescription(
         key="logged_in_user",
@@ -314,7 +324,7 @@ def _custom_sensor_descriptors(hass: HomeAssistant, entry: ConfigEntry) -> list[
     return sensors
 
 
-class HassAgentSystemSensor(SensorEntity):
+class HassAgentSystemSensor(HassAgentAvailableEntity, SensorEntity):
     """HASS.Agent system metric sensor."""
 
     _attr_has_entity_name = True
@@ -344,6 +354,7 @@ class HassAgentSystemSensor(SensorEntity):
         )
         self._listeners: dict[str, Any] = {}
         self._attr_extra_state_attributes = {}
+        self._setup_availability(entry_id)
 
     @callback
     def updated(self, message: ReceiveMessage) -> None:
@@ -443,6 +454,8 @@ class HassAgentSystemSensor(SensorEntity):
             )
         )
 
+        await self._connect_availability()
+
     async def async_will_remove_from_hass(self) -> None:
         """Unsubscribe from system metrics updates."""
         if self._listeners:
@@ -450,7 +463,7 @@ class HassAgentSystemSensor(SensorEntity):
             self._listeners = {}
 
 
-class HassAgentCustomSensor(SensorEntity):
+class HassAgentCustomSensor(HassAgentAvailableEntity, SensorEntity):
     """HASS.Agent user-configured metric sensor."""
 
     _attr_should_poll = False
@@ -485,6 +498,7 @@ class HassAgentCustomSensor(SensorEntity):
         )
         self._listeners: dict[str, Any] = {}
         self._attr_extra_state_attributes = {}
+        self._setup_availability(entry_id)
 
     @callback
     def updated(self, message: ReceiveMessage) -> None:
@@ -584,6 +598,8 @@ class HassAgentCustomSensor(SensorEntity):
                 self._handle_ws_sensor_data,
             )
         )
+
+        await self._connect_availability()
 
     async def async_will_remove_from_hass(self) -> None:
         """Unsubscribe from system metrics updates."""

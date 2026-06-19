@@ -15,6 +15,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 
 from .const import DOMAIN, SIGNAL_BUTTONS_UPDATED
+from .entity import availability_signal
 
 
 SHUTDOWN_BUTTON_DELAY_SECONDS = 60
@@ -163,6 +164,8 @@ class HassAgentCommandButton(ButtonEntity):
     @property
     def available(self) -> bool:
         """Return if this command can currently be handled by app or service."""
+        if not self.hass.data.get(DOMAIN, {}).get(self._entry_id, {}).get("available", True):
+            return False
         command = self.entity_description.key
         return self._can_use_service(command) or self._can_use_tray_app(command)
 
@@ -175,6 +178,18 @@ class HassAgentCommandButton(ButtonEntity):
                 self._handle_button_update,
             )
         )
+        self.async_on_remove(
+            async_dispatcher_connect(
+                self.hass,
+                availability_signal(self._entry_id),
+                self._on_device_availability,
+            )
+        )
+
+    @callback
+    def _on_device_availability(self, online: bool) -> None:
+        """Re-evaluate availability when the device goes online/offline."""
+        self.async_write_ha_state()
 
     @callback
     def _handle_button_update(self) -> None:

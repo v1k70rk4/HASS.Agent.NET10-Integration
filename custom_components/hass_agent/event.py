@@ -26,6 +26,7 @@ from .const import (
     DOMAIN,
     EVENT_NOTIFICATION_ACTIONS,
 )
+from .entity import HassAgentAvailableEntity
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -52,7 +53,7 @@ async def async_setup_entry(
     )
 
 
-class HassAgentNotificationActionEventEntity(EventEntity):
+class HassAgentNotificationActionEventEntity(HassAgentAvailableEntity, EventEntity):
     """HASS.Agent notification action event entity."""
 
     _attr_event_types = [EVENT_TYPE_ACTION]
@@ -76,6 +77,7 @@ class HassAgentNotificationActionEventEntity(EventEntity):
             identifiers={(DOMAIN, entry.unique_id)},
         )
         self._listeners: dict[str, Any] = {}
+        self._setup_availability(entry.entry_id)
 
     @callback
     def _handle_action_message(self, message: ReceiveMessage) -> None:
@@ -149,6 +151,8 @@ class HassAgentNotificationActionEventEntity(EventEntity):
                 self._handle_ws_notification_action,
             )
         )
+
+        await self._connect_availability()
 
     async def async_will_remove_from_hass(self) -> None:
         """Unsubscribe from notification action messages."""
