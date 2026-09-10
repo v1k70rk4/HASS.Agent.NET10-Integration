@@ -45,7 +45,7 @@ It is the matching Home Assistant side for the modern **HASS.Agent .NET10** Wind
 | Component | Minimum version |
 |-----------|----------------|
 | Home Assistant | 2026.6.0 |
-| HASS.Agent .NET10 (Windows client) | 10.2.0 (10.6.6+ recommended) |
+| HASS.Agent .NET10 (Windows client) | 10.2.0 (10.6.7+ recommended) |
 | MQTT broker (recommended) | Mosquitto or any MQTT 3.1.1+ broker |
 
 HACS is required for installation. This integration is available in the **HACS default store**, so no custom repository needs to be added.
@@ -99,7 +99,6 @@ Nearly all features work — notifications, media player, sensors, commands — 
 - No retained state (sensor values are lost until the agent reconnects after a restart)
 - No Last Will (no automatic offline detection)
 - Media thumbnails are ~33% larger (base64 encoding)
-- No update entity: it comes from Home Assistant's own MQTT discovery, so the Windows client is updated from its own About page instead
 - HTTPS is required for remote access
 
 The Windows service takes part on this transport too (client 10.6.5+): it announces itself on its own event, and command buttons are routed to the app or the service exactly as they are over MQTT.
@@ -109,6 +108,7 @@ The client communicates through Home Assistant's event bus:
 ```text
 hass_agent_device_update          # discovery + capabilities (tray app)
 hass_agent_service_update         # Windows service status + capabilities
+hass_agent_update_state           # available app update (drives the update entity)
 hass_agent_sensor_update          # sensor values
 hass_agent_media_update           # media player state
 hass_agent_media_thumbnail        # media album art (base64)
@@ -139,7 +139,7 @@ When connected via MQTT or HA API, the integration creates the following entitie
 | `event` | Notification actions | Action button press events from notifications |
 | `sensor` | System sensors | Built-in and custom sensors from the Windows client |
 | `button` | System commands | Lock, sleep, shutdown, restart, volume, etc. |
-| `update` | App update | Shows available HASS.Agent .NET10 updates (MQTT only) |
+| `update` | App update | Shows available HASS.Agent .NET10 updates |
 
 Entities are created and removed dynamically as the Windows client changes its configuration.
 
@@ -251,6 +251,11 @@ When using the HA API (WebSocket) transport, the Windows client fires events int
 > The `main` branch (v10.0.0+) is designed exclusively for **HASS.Agent .NET10** and is not backwards compatible with the old client.
 
 ## Changelog
+
+### 10.6.7
+
+- **A PC can now be added over the HA API (WebSocket) transport without MQTT.** Automatic discovery only ever worked once the integration was already set up, which left the *first* device unable to arrive on its own — and MQTT was no help to the people most likely to be affected, since HA API is the transport you choose when Home Assistant is not on your local network. **Settings → Devices & services → Add integration → HASS.Agent → HA API** now waits for the PC to announce itself and adds it.
+- **The update entity works on the HA API transport.** It came from Home Assistant's own MQTT discovery, so without a broker there was no update entity and no Install button. The integration now builds it from the agent's own events. Requires HASS.Agent .NET10 **10.6.7** or newer.
 
 ### 10.6.6
 

@@ -48,6 +48,7 @@ from .const import (
     DOMAIN,
     SIGNAL_BUTTONS_UPDATED,
     SIGNAL_SENSORS_UPDATED,
+    SIGNAL_UPDATE_STATE,
 )
 from .entity import availability_signal
 
@@ -658,6 +659,34 @@ def _register_ws_listeners(hass: HomeAssistant, entry: ConfigEntry) -> list:
         )
 
     @callback
+    def _ws_update_state(event) -> None:
+        """The agent's update state, on the HA API transport.
+
+        Over MQTT the update entity comes from Home Assistant's own discovery, so
+        this event is only sent when there is no broker to carry it. Creating the
+        entity on the first event keeps the two from ever existing side by side.
+        """
+        data = event.data
+        if data.get("serial_number") != entry.unique_id:
+            return
+        state = data.get("state")
+        if not isinstance(state, dict):
+            return
+
+        entry_data = hass.data[DOMAIN][entry.entry_id]
+        entry_data["update_state"] = state
+
+        if not entry_data["loaded"].get("update", False):
+            hass.async_create_background_task(
+                _async_update_platform(
+                    hass, entry, Platform.UPDATE, "update", True, entry.title
+                ),
+                "hass.agent-ws-update-platform",
+            )
+        else:
+            async_dispatcher_send(hass, SIGNAL_UPDATE_STATE.format(entry.entry_id))
+
+    @callback
     def _ws_sensor_update(event) -> None:
         data = event.data
         if data.get("serial_number") != entry.unique_id:
@@ -757,6 +786,7 @@ def _register_ws_listeners(hass: HomeAssistant, entry: ConfigEntry) -> list:
     return [
         hass.bus.async_listen("hass_agent_device_update", _ws_device_update),
         hass.bus.async_listen("hass_agent_service_update", _ws_service_update),
+        hass.bus.async_listen("hass_agent_update_state", _ws_update_state),
         hass.bus.async_listen("hass_agent_sensor_update", _ws_sensor_update),
         hass.bus.async_listen("hass_agent_media_update", _ws_media_update),
         hass.bus.async_listen("hass_agent_media_thumbnail", _ws_media_thumbnail),
@@ -792,6 +822,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 "event": False,
                 "sensor": False,
                 "button": False,
+                "update": False,
             },
         },
     )
@@ -1032,6 +1063,9 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         if loaded.get("button", False):
             platforms_to_unload.append(Platform.BUTTON)
+
+        if loaded.get("update", False):
+            platforms_to_unload.append(Platform.UPDATE)
 
         if platforms_to_unload:
             unload_ok = await hass.config_entries.async_unload_platforms(entry, platforms_to_unload)
