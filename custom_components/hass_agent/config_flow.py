@@ -63,6 +63,8 @@ class FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         """Initialize flow."""
         self._device_name = ""
         self._data: dict[str, Any] = {}
+        self._ha_api_unsub: Any = None
+        self._ha_api_payload: dict[str, Any] | None = None
 
     @staticmethod
     @callback
@@ -216,8 +218,54 @@ class FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
     async def async_step_ha_api_info(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        """Show information about HA API auto-discovery."""
-        return self.async_abort(reason="ha_api_auto_discovery")
+        """Adopt a device that talks to us over the HA API (WebSocket) transport.
+
+        Automatic discovery only works once this integration is already set up,
+        because the listener for it lives in async_setup — which Home Assistant
+        does not run while there are no config entries. That leaves the very first
+        device unable to arrive on its own, and MQTT is not an alternative for the
+        people most likely to be here: HA API is the transport you pick when Home
+        Assistant is not on the local network.
+
+        So the flow itself listens while it is open. It is running, so it needs
+        nothing set up beforehand.
+        """
+        errors: dict[str, str] = {}
+
+        if self._ha_api_unsub is None:
+            @callback
+            def _capture(event) -> None:
+                data = event.data
+                if isinstance(data, dict) and isinstance(data.get("serial_number"), str):
+                    self._ha_api_payload = data
+
+            self._ha_api_unsub = self.hass.bus.async_listen("hass_agent_device_update", _capture)
+
+        if user_input is not None:
+            if self._ha_api_payload is None:
+                errors["base"] = "no_discovery"
+            else:
+                payload = self._ha_api_payload
+                self._async_stop_ha_api_listener()
+                return await self.async_step_ha_api(payload)
+
+        return self.async_show_form(
+            step_id="ha_api_info",
+            data_schema=vol.Schema({}),
+            errors=errors,
+        )
+
+    @callback
+    def _async_stop_ha_api_listener(self) -> None:
+        """Drop the discovery listener this flow set up, if any."""
+        if self._ha_api_unsub is not None:
+            self._ha_api_unsub()
+            self._ha_api_unsub = None
+
+    @callback
+    def async_remove(self) -> None:
+        """Clean up when the flow is abandoned."""
+        self._async_stop_ha_api_listener()
 
     async def async_step_local_api(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         errors = {}

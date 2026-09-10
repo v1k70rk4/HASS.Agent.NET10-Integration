@@ -23,16 +23,20 @@
           "ssl": "SSL használata",
           "api_key": "API kulcs (az agent Általános beállításaiból)"
         }
+      },
+      "ha_api_info": {
+        "title": "Csatlakozás HA API-n",
+        "description": "Győződj meg róla, hogy a HASS.Agent .NET10 fut a gépen, és a **HA API** kapcsolat van beállítva.\n\nUtána nyisd meg az alkalmazást, menj a **Veszélyzónára**, és nyomd meg a **Felderítés újraküldése** gombot — vagy egyszerűen indítsd újra az alkalmazást.\n\nHa ezzel megvagy, nyomd meg itt a **Küldés** gombot, és a gép bekerül."
       }
     },
     "error": {
-      "cannot_connect": "Nem sikerült csatlakozni a HASS.Agent .NET10-hez"
+      "cannot_connect": "Nem sikerült csatlakozni a HASS.Agent .NET10-hez",
+      "no_discovery": "Még nem jelentkezett be gép. Nyomd meg a **Felderítés újraküldése** gombot a Windows alkalmazásban (Veszélyzóna), majd próbáld újra."
     },
     "abort": {
       "single_instance_allowed": "Csak egy példány engedélyezett.",
       "no_devices_found": "Nem található eszköz a hálózaton.",
-      "already_configured": "Ez az eszköz már be van állítva.",
-      "ha_api_auto_discovery": "A HA API eszközök automatikusan felderítésre kerülnek. Kapcsolja be a HA API-t a HASS.Agent .NET10 Windows kliens beállításaiban, és győződjön meg róla, hogy az agent fut — az eszköz másodperceken belül megjelenik a Home Assistantban."
+      "already_configured": "Ez az eszköz már be van állítva."
     }
   },
   "options": {

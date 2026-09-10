@@ -23,16 +23,20 @@
           "ssl": "Use SSL",
           "api_key": "API key (from agent General settings)"
         }
+      },
+      "ha_api_info": {
+        "title": "Connect over the HA API",
+        "description": "Make sure HASS.Agent .NET10 is running on the PC and set to use the **HA API** connection.\n\nThen open the app, go to **Danger Zone** and press **Republish discovery** — or simply restart the app.\n\nPress **Submit** here once you have done that, and the PC will be added."
       }
     },
     "error": {
-      "cannot_connect": "Failed to connect"
+      "cannot_connect": "Failed to connect",
+      "no_discovery": "No PC announced itself yet. Press **Republish discovery** in the Windows app (Danger Zone), then try again."
     },
     "abort": {
       "single_instance_allowed": "Already configured. Only a single configuration possible.",
       "no_devices_found": "No devices found on the network.",
-      "already_configured": "Device is already configured.",
-      "ha_api_auto_discovery": "HA API devices are discovered automatically. Enable HA API in the HASS.Agent .NET10 Windows client settings and make sure the agent is running — the device will appear in Home Assistant within seconds."
+      "already_configured": "Device is already configured."
     }
   },
   "options": {

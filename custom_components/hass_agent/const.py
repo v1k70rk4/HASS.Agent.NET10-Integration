@@ -18,3 +18,4 @@ EVENT_NOTIFICATION_ACTIONS = "hass_agent_notifications"
 
 SIGNAL_BUTTONS_UPDATED = "hass_agent_buttons_updated_{}"
 SIGNAL_SENSORS_UPDATED = "hass_agent_sensors_updated_{}"
+SIGNAL_UPDATE_STATE = "hass_agent_update_state_{}"
