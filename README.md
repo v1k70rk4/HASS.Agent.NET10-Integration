@@ -94,11 +94,12 @@ Enable MQTT in the HASS.Agent .NET10 Windows client. The device is discovered au
 
 The Windows client connects directly to Home Assistant's WebSocket API using a long-lived access token. Works remotely (e.g. via Nabu Casa) without an MQTT broker. Can be used standalone or as automatic failover when the MQTT broker is unreachable.
 
-Nearly all features work — notifications, media player, sensors, commands, update entity — with some trade-offs compared to MQTT:
+Nearly all features work — notifications, media player, sensors, commands — with some trade-offs compared to MQTT:
 
 - No retained state (sensor values are lost until the agent reconnects after a restart)
 - No Last Will (no automatic offline detection)
 - Media thumbnails are ~33% larger (base64 encoding)
+- No update entity: it comes from Home Assistant's own MQTT discovery, so the Windows client is updated from its own About page instead
 - HTTPS is required for remote access
 
 The Windows service takes part on this transport too (client 10.6.5+): it announces itself on its own event, and command buttons are routed to the app or the service exactly as they are over MQTT.
@@ -138,7 +139,7 @@ When connected via MQTT or HA API, the integration creates the following entitie
 | `event` | Notification actions | Action button press events from notifications |
 | `sensor` | System sensors | Built-in and custom sensors from the Windows client |
 | `button` | System commands | Lock, sleep, shutdown, restart, volume, etc. |
-| `update` | App update | Shows available HASS.Agent .NET10 updates |
+| `update` | App update | Shows available HASS.Agent .NET10 updates (MQTT only) |
 
 Entities are created and removed dynamically as the Windows client changes its configuration.
 
