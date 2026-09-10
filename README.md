@@ -65,7 +65,7 @@ This integration is in the **HACS default store** — no custom repository neede
 
    [![Open your Home Assistant instance and start setting up a new integration.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=hass_agent)
 
-   With MQTT enabled in the Windows client the device also appears automatically; over the HA API (WebSocket) it registers when the client connects. For the Local HTTP API you always add it manually here.
+   With MQTT enabled in the Windows client — or over the HA API (WebSocket), as soon as the client connects — the PC turns up on its own under **Discovered** at the top of **Settings → Devices & services**. Like any Home Assistant discovery it waits for you: click **Add** on that card to create the device and its entities. For the Local HTTP API you always add it manually here.
 
 <details>
 <summary>Manual install (custom repository fallback)</summary>
