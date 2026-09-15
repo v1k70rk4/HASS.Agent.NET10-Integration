@@ -252,6 +252,13 @@ When using the HA API (WebSocket) transport, the Windows client fires events int
 
 ## Changelog
 
+### 10.6.8
+
+- **The old HASS.Agent client is no longer added as a broken device.** The original pre-.NET10 client sends a discovery message of the same shape, so it used to pass validation and turn up as a device that could never work properly — a notify entity that would not come back, for example. Discovery now checks the client's version: the old client is not added, and a notice under **Settings → Repairs** explains that the Windows client needs updating to HASS.Agent .NET10. A HASS.Agent .NET10 older than **10.2.0** is still added, with a notice to update it. Either notice disappears on its own once the client is updated.
+- The legacy line of this integration (v3.x) is **no longer maintained**.
+
+Works with every supported HASS.Agent .NET10 client; no client update is needed for this release.
+
 ### 10.6.7
 
 - **A PC can now be added over the HA API (WebSocket) transport without MQTT.** Automatic discovery only ever worked once the integration was already set up, which left the *first* device unable to arrive on its own — and MQTT was no help to the people most likely to be affected, since HA API is the transport you choose when Home Assistant is not on your local network. **Settings → Devices & services → Add integration → HASS.Agent → HA API** now waits for the PC to announce itself and adds it.
