@@ -2,6 +2,12 @@
 
 DOMAIN = "hass_agent"
 
+# Oldest HASS.Agent .NET10 client this integration supports. Kept in step with the
+# requirements table in README.md; the client has the mirror image of this check
+# (MinimumIntegrationVersion) for the integration.
+MINIMUM_CLIENT_VERSION = "10.2.0"
+CLIENT_RELEASES_URL = "https://github.com/v1k70rk4/HASS.Agent.NET10/releases/latest"
+
 CONF_ACTION = "action"
 CONF_API_KEY = "api_key"
 CONF_HA_API = "ha_api"

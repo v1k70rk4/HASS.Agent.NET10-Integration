@@ -36,7 +36,8 @@
     "abort": {
       "single_instance_allowed": "Csak egy példány engedélyezett.",
       "no_devices_found": "Nem található eszköz a hálózaton.",
-      "already_configured": "Ez az eszköz már be van állítva."
+      "already_configured": "Ez az eszköz már be van állítva.",
+      "legacy_client": "Ezen a gépen a régi HASS.Agent fut, amit ez az integráció nem támogat. Frissítsd a Windows klienst HASS.Agent .NET10-re."
     }
   },
   "options": {
@@ -73,6 +74,14 @@
           }
         }
       }
+    },
+    "legacy_client": {
+      "title": "{name} a régi HASS.Agentet futtatja",
+      "description": "A(z) **{name}** gépen a HASS.Agent {version}, az eredeti Windows kliens fut. Ez az integráció a **HASS.Agent .NET10**-hez készült, és a régi klienssel nem működik, ezért a gépet nem vettem fel.\n\nFrissítsd a Windows klienst HASS.Agent .NET10-re — lásd lent a **További információ**-t. A frissítés után ez az értesítés eltűnik, és a gép újra megjelenik."
+    },
+    "outdated_client": {
+      "title": "{name} újabb HASS.Agent .NET10-et igényel",
+      "description": "A(z) **{name}** gépen a HASS.Agent .NET10 {version} fut, de ehhez az integrációhoz legalább **{minimum}** kell. Néhány funkció nem fog működni, amíg a Windows kliens nincs frissítve — lásd lent a **További információ**-t. A frissítés után ez az értesítés eltűnik."
     }
   }
 }

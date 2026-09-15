@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from typing import Any
 
 import voluptuous as vol
@@ -22,15 +23,89 @@ from homeassistant.helpers.issue_registry import (
 from homeassistant.helpers.service_info.mqtt import MqttServiceInfo
 
 from .const import (
+    CLIENT_RELEASES_URL,
     CONF_API_KEY,
     CONF_DEFAULT_NOTIFICATION_TITLE,
     CONF_DEVICE_NAME,
     CONF_HA_API,
     CONF_ORIGINAL_DEVICE_NAME,
     DOMAIN,
+    MINIMUM_CLIENT_VERSION,
 )
 
 _logger = logging.getLogger(__name__)
+
+_VERSION_PATTERN = re.compile(r"^\s*(\d+)\.(\d+)(?:\.(\d+))?")
+
+
+def _parse_version(value: object) -> tuple[int, int, int] | None:
+    """Return (major, minor, patch) from a version string, ignoring any suffix."""
+    if not isinstance(value, str):
+        return None
+
+    match = _VERSION_PATTERN.match(value)
+    if match is None:
+        return None
+
+    return int(match.group(1)), int(match.group(2)), int(match.group(3) or 0)
+
+
+def _client_compatibility(device: dict[str, Any]) -> str | None:
+    """Classify the Windows client that sent a discovery message.
+
+    Returns "legacy" for the original pre-.NET10 HASS.Agent, "outdated" for a
+    HASS.Agent .NET10 older than the supported minimum, and None when it is fine.
+
+    The old client sends a discovery message of the same shape — this integration
+    started out as a fork of the original one — so it used to pass validation and
+    end up as a half-working device. Its version is what gives it away; a serial
+    number does not, since the old client has one too. An unreadable version is
+    let through, so an odd version string can never lock out a supported client.
+    """
+    version = _parse_version(device.get("sw_version"))
+    minimum = _parse_version(MINIMUM_CLIENT_VERSION)
+    if version is None or minimum is None:
+        return None
+
+    # The old client used 2.x, and before that calendar versions such as 2022.14.0 —
+    # which would otherwise look newer than any .NET10 release.
+    if version < (10, 0, 0) or version[0] >= 2000:
+        return "legacy"
+
+    if version < minimum:
+        return "outdated"
+
+    return None
+
+
+@callback
+def _async_report_client_version(
+    hass: Any, serial_number: str, device_name: str, device: dict[str, Any]
+) -> str | None:
+    """Raise, or clear, the repair notice about this PC's Windows client."""
+    issue_id = f"client_version_{serial_number}"
+    status = _client_compatibility(device)
+
+    if status is None:
+        # Also clears a notice once the client has been updated.
+        async_delete_issue(hass, DOMAIN, issue_id)
+        return None
+
+    async_create_issue(
+        hass=hass,
+        domain=DOMAIN,
+        issue_id=issue_id,
+        is_fixable=False,
+        severity=IssueSeverity.ERROR if status == "legacy" else IssueSeverity.WARNING,
+        learn_more_url=CLIENT_RELEASES_URL,
+        translation_key=f"{status}_client",
+        translation_placeholders={
+            "name": device_name,
+            "version": str(device.get("sw_version", "")),
+            "minimum": MINIMUM_CLIENT_VERSION,
+        },
+    )
+    return status
 
 
 class OptionsFlowHandler(config_entries.OptionsFlow):
@@ -116,6 +191,11 @@ class FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
         _logger.debug("found device. Name: %s, Serial Number: %s", device_name, serial_number)
 
+        # The old client is refused outright rather than added as a device that cannot
+        # work; the repair notice is what tells the user, since discovery shows no UI.
+        if _async_report_client_version(self.hass, serial_number, device_name, device) == "legacy":
+            return self.async_abort(reason="legacy_client")
+
         self._data = {"device": device, "apis": apis}
 
         entry = await self.async_set_unique_id(serial_number)
@@ -191,6 +271,9 @@ class FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             return self.async_abort(reason="not_supported")
 
         _logger.debug("found device via HA API. Name: %s, Serial Number: %s", device_name, serial_number)
+
+        if _async_report_client_version(self.hass, serial_number, device_name, device) == "legacy":
+            return self.async_abort(reason="legacy_client")
 
         self._data = {"device": device, "apis": apis, CONF_HA_API: True}
 
