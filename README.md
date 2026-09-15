@@ -12,11 +12,11 @@ It is the matching Home Assistant side for the modern **HASS.Agent .NET10** Wind
 
 ---
 
-> **Important**: This integration (v10.0.0+) requires **[HASS.Agent .NET10](https://github.com/v1k70rk4/HASS.Agent)** as the Windows client. The older pre-.NET10 HASS.Agent client is **not compatible** with this version.
+> **Important**: This integration (v10.0.0+) requires **[HASS.Agent .NET10](https://github.com/v1k70rk4/HASS.Agent.NET10)** as the Windows client. The older pre-.NET10 HASS.Agent client is **not compatible** with this version: if one is detected it is not added, and a notice appears under **Settings → Repairs**. A HASS.Agent .NET10 older than the minimum below is added, with a notice to update it.
 >
 > The HA API WebSocket transport requires HASS.Agent .NET10 v10.2.0 or newer.
 >
-> If you want to keep using the old HASS.Agent client, switch to the **[`legacy` branch](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/tree/legacy)** of this integration. The legacy branch is compatible with Home Assistant 2026.6+ and the original pre-.NET10 HASS.Agent.
+> If you want to keep using the old HASS.Agent client, switch to the **[`legacy` branch](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/tree/legacy)** of this integration. The legacy branch works with Home Assistant 2026.6+ and the original pre-.NET10 HASS.Agent, but it is **no longer maintained**.
 
 ---
 
@@ -244,7 +244,7 @@ When using the HA API (WebSocket) transport, the Windows client fires events int
 
 > **Using the old pre-.NET10 HASS.Agent?** Install **[v3.0.2](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/releases/tag/v3.0.2)** from HACS (available in the releases).
 >
-> v3.0.2 is compatible with **Home Assistant 2026.6+** and the original pre-.NET10 HASS.Agent client. It will continue to receive compatibility fixes but no new features.
+> v3.0.2 is compatible with **Home Assistant 2026.6+** and the original pre-.NET10 HASS.Agent client. It is **no longer maintained** — updating the Windows client to HASS.Agent .NET10 is the way forward.
 >
 > Documentation and usage instructions for v3.0.2 are available on the **[`legacy` branch](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/tree/legacy)**.
 >

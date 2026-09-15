@@ -36,7 +36,8 @@
     "abort": {
       "single_instance_allowed": "Already configured. Only a single configuration possible.",
       "no_devices_found": "No devices found on the network.",
-      "already_configured": "Device is already configured."
+      "already_configured": "Device is already configured.",
+      "legacy_client": "This PC runs the original HASS.Agent, which this integration does not support. Update the Windows client to HASS.Agent .NET10."
     }
   },
   "options": {
@@ -73,6 +74,14 @@
           }
         }
       }
+    },
+    "legacy_client": {
+      "title": "{name} runs the old HASS.Agent",
+      "description": "**{name}** runs HASS.Agent {version}, the original Windows client. This integration is made for **HASS.Agent .NET10** and does not work with the old client, so this PC was not added.\n\nUpdate the Windows client to HASS.Agent .NET10 — see **Learn more** below. Once it is updated, this notice disappears and the PC is discovered again."
+    },
+    "outdated_client": {
+      "title": "{name} needs a newer HASS.Agent .NET10",
+      "description": "**{name}** runs HASS.Agent .NET10 {version}, but this integration needs **{minimum}** or newer. Some features will not work until the Windows client is updated — see **Learn more** below. This notice disappears once it is."
     }
   }
 }
