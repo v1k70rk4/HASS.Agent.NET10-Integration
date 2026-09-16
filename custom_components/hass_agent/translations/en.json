@@ -77,7 +77,7 @@
     },
     "legacy_client": {
       "title": "{name} runs the old HASS.Agent",
-      "description": "**{name}** runs HASS.Agent {version}, the original Windows client. This integration is made for **HASS.Agent .NET10** and does not work with the old client, so this PC was not added.\n\nUpdate the Windows client to HASS.Agent .NET10 — see **Learn more** below. Once it is updated, this notice disappears and the PC is discovered again."
+      "description": "**{name}** runs HASS.Agent {version}, the original Windows client. This integration is made for **HASS.Agent .NET10** and cannot talk to the old client, so this PC was not added. Nothing on the PC was changed.\n\nTwo ways forward:\n\n- **Update the Windows client** to HASS.Agent .NET10 (recommended) — see **Learn more** below. Once it is updated, this notice disappears and the PC is discovered again.\n- **Keep the old client for now** and go back to the last legacy release of this integration: in HACS open *HASS.Agent .NET10 Integration*, choose *Redownload* and pick version `v3.0.2`. That line still works with the old client, but it is no longer maintained.\n\nIf something goes wrong with the switch, the README and the issue tracker are linked from the project page under Learn more."
     },
     "outdated_client": {
       "title": "{name} needs a newer HASS.Agent .NET10",
