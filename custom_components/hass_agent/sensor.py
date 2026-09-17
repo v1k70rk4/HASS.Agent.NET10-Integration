@@ -43,6 +43,13 @@ SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
         icon="mdi:cpu-64-bit",
     ),
     SensorEntityDescription(
+        key="gpu_usage",
+        translation_key="gpu_usage",
+        native_unit_of_measurement=PERCENTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:expansion-card",
+    ),
+    SensorEntityDescription(
         key="memory_usage",
         translation_key="memory_usage",
         native_unit_of_measurement=PERCENTAGE,
@@ -178,6 +185,11 @@ SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
         icon="mdi:update",
     ),
     SensorEntityDescription(
+        key="sleep_blocked",
+        translation_key="sleep_blocked",
+        icon="mdi:sleep-off",
+    ),
+    SensorEntityDescription(
         key="windows_update_pending",
         translation_key="windows_update_pending",
         icon="mdi:microsoft-windows",
@@ -197,6 +209,11 @@ SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
         key="last_shutdown_reason",
         translation_key="last_shutdown_reason",
         icon="mdi:power-plug-off",
+    ),
+    SensorEntityDescription(
+        key="last_wake_reason",
+        translation_key="last_wake_reason",
+        icon="mdi:alarm",
     ),
     SensorEntityDescription(
         key="boot_time",
@@ -249,6 +266,16 @@ SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
         key="microphone_muted",
         translation_key="microphone_muted",
         icon="mdi:microphone-off",
+    ),
+    SensorEntityDescription(
+        key="camera_in_use",
+        translation_key="camera_in_use",
+        icon="mdi:webcam",
+    ),
+    SensorEntityDescription(
+        key="microphone_in_use",
+        translation_key="microphone_in_use",
+        icon="mdi:microphone",
     ),
 )
 
