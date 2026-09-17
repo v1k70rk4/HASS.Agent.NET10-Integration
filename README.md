@@ -47,7 +47,7 @@ It is the matching Home Assistant side for the modern **HASS.Agent .NET10** Wind
 | Component | Minimum version |
 |-----------|----------------|
 | Home Assistant | 2026.6.0 |
-| HASS.Agent .NET10 (Windows client) | 10.2.0 (10.6.7+ recommended) |
+| HASS.Agent .NET10 (Windows client) | 10.2.0 (10.7.0+ recommended) |
 | MQTT broker (recommended) | Mosquitto or any MQTT 3.1.1+ broker |
 
 HACS is required for installation. This integration is available in the **HACS default store**, so no custom repository needs to be added.
@@ -253,6 +253,15 @@ When using the HA API (WebSocket) transport, the Windows client fires events int
 > The `main` branch (v10.0.0+) is designed exclusively for **HASS.Agent .NET10** and is not backwards compatible with the old client.
 
 ## Changelog
+
+### 10.7.0
+
+- **Five new sensors from the Windows client** (HASS.Agent .NET10 **10.7.0** or newer). They are switched off in the client until you enable them on its *Sensors* page, and only then appear in Home Assistant:
+  - **GPU usage** — GPU load in percent, as Task Manager shows it, on Intel, AMD and NVIDIA alike. Attributes: load per engine (`3d`, `videodecode`, …), NPU load, dedicated / shared memory in use, the installed adapters.
+  - **Sleep blocked** — `on` while something keeps the PC or its display awake; the attributes name what (`primary_blocker`, `blockers`).
+  - **Last wake reason** — what woke the PC last (`Input Keyboard`, `Power Button`, `Lid`, a device, a wake timer…), with the time, how long it was away and whether it really slept.
+  - **Camera in use** / **Microphone in use** — `on` while an app uses the camera or the microphone, with the apps in the `apps` attribute.
+- **Nothing changes for existing devices.** Entities are only created for the sensors a client advertises, so no new entity appears until you enable a sensor in the client, and older clients keep working exactly as before.
 
 ### 10.6.8
 
