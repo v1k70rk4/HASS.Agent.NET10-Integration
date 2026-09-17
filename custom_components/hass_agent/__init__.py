@@ -50,7 +50,7 @@ from .const import (
     SIGNAL_SENSORS_UPDATED,
     SIGNAL_UPDATE_STATE,
 )
-from .entity import availability_signal
+from .entity import async_get_agent_device, availability_signal
 
 PLATFORMS: list[Platform] = [
     Platform.MEDIA_PLAYER,
@@ -536,8 +536,7 @@ async def handle_apis_changed(
             _logger.warning("received invalid API capabilities for %s", entry.unique_id)
             return
 
-        device_registry = dr.async_get(hass)
-        device = device_registry.async_get_device(identifiers={(DOMAIN, entry.unique_id)})
+        device = async_get_agent_device(hass, entry)
         device_name = device.name if device is not None else entry.title
 
         media_player = apis.get("media_player", False)

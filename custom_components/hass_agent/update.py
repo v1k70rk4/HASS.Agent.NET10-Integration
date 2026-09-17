@@ -19,8 +19,8 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, SIGNAL_UPDATE_STATE
-from .entity import HassAgentAvailableEntity
+from .const import SIGNAL_UPDATE_STATE
+from .entity import HassAgentAvailableEntity, async_get_agent_device
 
 UPDATE_STATE_STORAGE_KEY = "update_state"
 
@@ -31,8 +31,7 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> bool:
     """Set up the update entity from a config entry."""
-    device_registry = dr.async_get(hass)
-    device = device_registry.async_get_device(identifiers={(DOMAIN, entry.unique_id)})
+    device = async_get_agent_device(hass, entry)
 
     if device is None:
         return False

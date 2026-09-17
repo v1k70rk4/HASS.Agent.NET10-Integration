@@ -261,6 +261,7 @@ When using the HA API (WebSocket) transport, the Windows client fires events int
   - **Sleep blocked** — `on` while something keeps the PC or its display awake; the attributes name what (`primary_blocker`, `blockers`).
   - **Last wake reason** — what woke the PC last (`Input Keyboard`, `Power Button`, `Lid`, a device, a wake timer…), with the time, how long it was away and whether it really slept.
   - **Camera in use** / **Microphone in use** — `on` while an app uses the camera or the microphone, with the apps in the `apps` attribute.
+- **No more deprecation warnings at startup.** Home Assistant logged four of them at every start (`device_registry.async_get_device` … *will stop working in Home Assistant 2027.8.0*). The device lookup now uses the replacement on Home Assistant 2026.8 and newer, and keeps working on 2026.6 / 2026.7.
 - **Nothing changes for existing devices.** Entities are only created for the sensors a client advertises, so no new entity appears until you enable a sensor in the client, and older clients keep working exactly as before.
 
 ### 10.6.8

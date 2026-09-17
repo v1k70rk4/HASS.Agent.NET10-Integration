@@ -15,7 +15,7 @@ from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN, SIGNAL_BUTTONS_UPDATED
-from .entity import availability_signal
+from .entity import async_get_agent_device, availability_signal
 
 SHUTDOWN_BUTTON_DELAY_SECONDS = 60
 SYSTEM_SERVICE_COMMANDS = {"shutdown", "restart", "restart_cancel"}
@@ -75,8 +75,7 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> bool:
     """Set up HASS.Agent command buttons from a config entry."""
-    device_registry = dr.async_get(hass)
-    device = device_registry.async_get_device(identifiers={(DOMAIN, entry.unique_id)})
+    device = async_get_agent_device(hass, entry)
 
     if device is None:
         return False
