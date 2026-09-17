@@ -37,7 +37,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.event import async_call_later
 
 from .const import CONF_ORIGINAL_DEVICE_NAME, DOMAIN
-from .entity import availability_signal
+from .entity import async_get_agent_device, availability_signal
 
 _logger = logging.getLogger(__name__)
 
@@ -59,8 +59,7 @@ SUPPORT_HAMP = (
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> bool:
-    device_registry = dr.async_get(hass)
-    device = device_registry.async_get_device(identifiers={(DOMAIN, entry.unique_id)})
+    device = async_get_agent_device(hass, entry)
 
     if device is None:
         return False

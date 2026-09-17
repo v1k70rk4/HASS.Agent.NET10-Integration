@@ -2,10 +2,29 @@
 
 from __future__ import annotations
 
-from homeassistant.core import callback
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 
 from .const import DOMAIN
+
+
+@callback
+def async_get_agent_device(hass: HomeAssistant, entry: ConfigEntry) -> dr.DeviceEntry | None:
+    """Return the device that belongs to this config entry.
+
+    `DeviceRegistry.async_get_device` is deprecated (it stops working in Home Assistant
+    2027.8): identifiers are no longer unique across config entries, so the lookup has to
+    name the entry. The replacement arrived in 2026.8; older versions still get the old call.
+    """
+    registry = dr.async_get(hass)
+    identifier = (DOMAIN, entry.unique_id)
+    by_identifier = getattr(registry, "async_get_device_by_identifier", None)
+    if by_identifier is not None:
+        return by_identifier(identifier, entry.entry_id)
+
+    return registry.async_get_device(identifiers={identifier})
 
 
 def availability_signal(entry_id: str) -> str:

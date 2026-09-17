@@ -29,7 +29,7 @@ from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN, SIGNAL_SENSORS_UPDATED
-from .entity import HassAgentAvailableEntity
+from .entity import HassAgentAvailableEntity, async_get_agent_device
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -286,8 +286,7 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> bool:
     """Set up HASS.Agent system metric sensors from a config entry."""
-    device_registry = dr.async_get(hass)
-    device = device_registry.async_get_device(identifiers={(DOMAIN, entry.unique_id)})
+    device = async_get_agent_device(hass, entry)
 
     if device is None:
         return False
