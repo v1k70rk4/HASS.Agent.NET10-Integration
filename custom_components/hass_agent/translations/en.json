@@ -61,6 +61,11 @@
       "notification_action": {
         "name": "Notification actions"
       }
+    },
+    "button": {
+      "update_check": {
+        "name": "Check for updates"
+      }
     }
   },
   "issues": {

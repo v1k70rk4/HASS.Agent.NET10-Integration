@@ -101,7 +101,16 @@ class HassAgentMediaPlayerDevice(MediaPlayerEntity):
         if thumbnail is None:
             return None, None
 
-        return thumbnail, "image/png"
+        # The agent re-encodes large covers as JPEG (10.7.2+) and passes small ones
+        # through as they are, so the type comes from the bytes.
+        if thumbnail[:3] == b"\xff\xd8\xff":
+            content_type = "image/jpeg"
+        elif thumbnail[:4] == b"RIFF" and thumbnail[8:12] == b"WEBP":
+            content_type = "image/webp"
+        else:
+            content_type = "image/png"
+
+        return thumbnail, content_type
 
     @callback
     def updated(self, message: ReceiveMessage) -> None:

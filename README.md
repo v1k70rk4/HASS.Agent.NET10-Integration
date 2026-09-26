@@ -47,7 +47,7 @@ It is the matching Home Assistant side for the modern **HASS.Agent .NET10** Wind
 | Component | Minimum version |
 |-----------|----------------|
 | Home Assistant | 2026.6.0 |
-| HASS.Agent .NET10 (Windows client) | 10.2.0 (10.7.0+ recommended) |
+| HASS.Agent .NET10 (Windows client) | 10.2.0 (10.7.3+ recommended) |
 | MQTT broker (recommended) | Mosquitto or any MQTT 3.1.1+ broker |
 
 HACS is required for installation. This integration is available in the **HACS default store**, so no custom repository needs to be added.
@@ -253,6 +253,13 @@ When using the HA API (WebSocket) transport, the Windows client fires events int
 > The `main` branch (v10.0.0+) is designed exclusively for **HASS.Agent .NET10** and is not backwards compatible with the old client.
 
 ## Changelog
+
+### 10.7.3
+
+- **A *Check for updates* button next to the update entity.** It makes the Windows client ask GitHub right away instead of waiting for its six-hourly check, so a fresh release shows up in Home Assistant at once. Needs HASS.Agent .NET10 **10.7.3** or newer (an older client ignores the command). Thanks to [@Taomyn](https://github.com/Taomyn) for the idea.
+- **One update entity, on both transports.** Over MQTT the update entity came from Home Assistant's own MQTT discovery and over the HA API from this integration, so a PC that switched transports ended up with two, one of them always unavailable. The integration now builds the entity on MQTT as well and tells the client so (a retained message on `hass.agent/integration/{id}`); a client 10.7.3 or newer removes its discovered one in return. With an older client the discovered entity stays and the integration leaves it alone. The entity now follows the whole device rather than the tray app, so it stays available while only the service runs, and *Install* works with nobody logged in (client 10.7.3+).
+- The media player image is served with the right content type (the client sends JPEG covers since 10.7.2).
+- The issue templates link to the renamed client repository.
 
 ### 10.7.0
 

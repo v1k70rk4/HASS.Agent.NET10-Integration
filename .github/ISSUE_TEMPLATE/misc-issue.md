@@ -9,7 +9,7 @@ assignees: ''
 
 **Note:** If your issue is about the HASS.Agent .NET10 tray application (Windows client), please open it here instead:
 
-https://github.com/v1k70rk4/HASS.Agent/issues
+https://github.com/v1k70rk4/HASS.Agent.NET10/issues
 
 ----
 

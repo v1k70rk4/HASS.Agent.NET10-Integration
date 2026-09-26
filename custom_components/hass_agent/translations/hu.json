@@ -61,6 +61,11 @@
       "notification_action": {
         "name": "Értesítési műveletek"
       }
+    },
+    "button": {
+      "update_check": {
+        "name": "Frissítés keresése"
+      }
     }
   },
   "issues": {
