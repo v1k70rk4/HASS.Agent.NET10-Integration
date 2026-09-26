@@ -661,11 +661,11 @@ def _apply_update_state_when_free(hass: HomeAssistant, entry: ConfigEntry, state
         _logger.debug("update entity %s comes from MQTT discovery (older agent), not adding another", discovered)
         return
 
-    async_call_later(
-        hass,
-        5,
-        lambda _now: _apply_update_state_when_free(hass, entry, state, attempt + 1),
-    )
+    @callback
+    def _retry(_now) -> None:
+        _apply_update_state_when_free(hass, entry, state, attempt + 1)
+
+    async_call_later(hass, 5, _retry)
 
 
 async def _async_publish_integration_info(hass: HomeAssistant, entry: ConfigEntry) -> None:

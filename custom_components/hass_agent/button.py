@@ -201,9 +201,14 @@ class HassAgentUpdateCheckButton(ButtonEntity):
             async_dispatcher_connect(
                 self.hass,
                 availability_signal(self._entry_id),
-                lambda online: self.async_write_ha_state(),
+                self._on_device_availability,
             )
         )
+
+    @callback
+    def _on_device_availability(self, online: bool) -> None:
+        """Re-evaluate availability when the device goes online/offline."""
+        self.async_write_ha_state()
 
     async def async_press(self) -> None:
         """Send update_check to whichever side is up (the tray app first)."""
