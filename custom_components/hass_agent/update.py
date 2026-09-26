@@ -1,16 +1,20 @@
-"""Update platform for HASS.Agent devices on the HA API transport.
+"""Update platform for HASS.Agent devices.
 
-Over MQTT the update entity comes from Home Assistant's own MQTT discovery, so
-this platform is not needed — and is not loaded. Without a broker there is no
-such discovery, which used to leave HA API users with no update entity at all,
-even though that is the transport you pick when Home Assistant is not on the
-local network and MQTT is not an option.
+One update entity per PC, on both transports. It used to exist only on the HA
+API transport, where there is no broker for Home Assistant's own MQTT discovery
+to build it from; on MQTT the discovered entity did the job. A PC that switched
+transports ended up with both, one of them always unavailable. The integration
+now announces on MQTT (hass.agent/integration/{id}, retained) that it builds
+the entity itself, and an agent 10.7.3 or newer clears its discovery config in
+return. With an older agent the discovered entity is still there, and this
+platform stays out of its way (see __init__).
 """
 
 from __future__ import annotations
 
 from typing import Any
 
+from homeassistant.components import mqtt
 from homeassistant.components.update import UpdateEntity, UpdateEntityFeature
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
@@ -19,7 +23,7 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import SIGNAL_UPDATE_STATE
+from .const import DOMAIN, SIGNAL_UPDATE_STATE
 from .entity import HassAgentAvailableEntity, async_get_agent_device
 
 UPDATE_STATE_STORAGE_KEY = "update_state"
@@ -67,10 +71,6 @@ class HassAgentUpdate(HassAgentAvailableEntity, UpdateEntity):
         state = self._entry_data().get(UPDATE_STATE_STORAGE_KEY)
         return state if isinstance(state, dict) else {}
 
-    def _provider_online(self, entry_data: dict) -> bool | None:
-        """The tray app is what checks for and installs updates."""
-        return self._app_online(entry_data)
-
     @property
     def installed_version(self) -> str | None:
         """Return the version running on the PC."""
@@ -112,9 +112,19 @@ class HassAgentUpdate(HassAgentAvailableEntity, UpdateEntity):
     async def async_install(self, version: str | None, backup: bool, **kwargs: Any) -> None:
         """Ask the PC to install the update.
 
-        The agent does the work itself, exactly as it does when the MQTT update
-        entity's Install button is pressed.
+        The agent does the work itself: the tray app when it runs, the service
+        otherwise (agent 10.7.3+). Over MQTT the request goes to the agent's
+        install topic; the event covers the HA API transport.
         """
+        if not self.hass.data.get(DOMAIN, {}).get(self._entry_id, {}).get("ha_api_only", False):
+            await mqtt.async_publish(
+                self.hass,
+                f"hass.agent/update/{self._serial_number}/install",
+                "install",
+                qos=0,
+                retain=False,
+            )
+
         self.hass.bus.async_fire(
             "hass_agent_command",
             {

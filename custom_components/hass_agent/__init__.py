@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from typing import Any
 
 import voluptuous as vol
@@ -36,6 +37,7 @@ from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.event import async_call_later
 from homeassistant.helpers.issue_registry import async_delete_issue
 from homeassistant.helpers.typing import ConfigType
+from homeassistant.loader import async_get_integration
 
 from .const import (
     CONF_COMMAND,
@@ -615,6 +617,73 @@ def _create_device_notification(hass: HomeAssistant, entry: ConfigEntry, title: 
     )
 
 
+@callback
+def _apply_update_state(hass: HomeAssistant, entry: ConfigEntry, state: dict) -> None:
+    """Store the agent's update state and create or refresh the update entity."""
+    entry_data = hass.data[DOMAIN][entry.entry_id]
+    entry_data["update_state"] = state
+
+    if not entry_data["loaded"].get("update", False):
+        hass.async_create_background_task(
+            _async_update_platform(hass, entry, Platform.UPDATE, "update", True, entry.title),
+            "hass.agent-update-platform",
+        )
+    else:
+        async_dispatcher_send(hass, SIGNAL_UPDATE_STATE.format(entry.entry_id))
+
+
+def _discovered_update_entity_id(hass: HomeAssistant, entry: ConfigEntry) -> str | None:
+    """The update entity Home Assistant's MQTT discovery built from an older agent, if any.
+
+    Agents before 10.7.3 publish a discovery config for the update entity and do
+    not know to stop; while that entity exists, the integration must not add a
+    second one. The agent sanitizes the serial number the same way for the id.
+    """
+    sanitized = re.sub(r"[^a-z0-9]", "_", entry.unique_id.strip().lower()) or "hass_agent_net10"
+    return er.async_get(hass).async_get_entity_id("update", "mqtt", f"{sanitized}_hass_agent_net10_update")
+
+
+@callback
+def _apply_update_state_when_free(hass: HomeAssistant, entry: ConfigEntry, state: dict, attempt: int = 0) -> None:
+    """Apply an update state from MQTT unless an older agent's discovered entity is in the way.
+
+    A second entity next to the discovered one would only confuse. An agent 10.7.3+
+    clears its discovery config right before it publishes the state, and Home
+    Assistant removes the discovered entity a moment later, so a few short retries
+    let the integration's entity take over on the same connect.
+    """
+    discovered = _discovered_update_entity_id(hass, entry)
+    if discovered is None:
+        _apply_update_state(hass, entry, state)
+        return
+
+    if attempt >= 6:
+        _logger.debug("update entity %s comes from MQTT discovery (older agent), not adding another", discovered)
+        return
+
+    @callback
+    def _retry(_now) -> None:
+        _apply_update_state_when_free(hass, entry, state, attempt + 1)
+
+    async_call_later(hass, 5, _retry)
+
+
+async def _async_publish_integration_info(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Tell the agent what this integration takes care of (retained, per device).
+
+    An agent 10.7.3 or newer reads it right after connecting and leaves the update
+    entity to the integration on MQTT as well; older agents ignore the topic.
+    """
+    integration = await async_get_integration(hass, DOMAIN)
+    await mqtt.async_publish(
+        hass,
+        f"hass.agent/integration/{entry.unique_id}",
+        json.dumps({"version": integration.version, "update_entity": True}),
+        qos=0,
+        retain=True,
+    )
+
+
 def _register_ws_listeners(hass: HomeAssistant, entry: ConfigEntry) -> list:
     """Register WebSocket event listeners for HA API failover/standalone transport."""
 
@@ -659,12 +728,7 @@ def _register_ws_listeners(hass: HomeAssistant, entry: ConfigEntry) -> list:
 
     @callback
     def _ws_update_state(event) -> None:
-        """The agent's update state, on the HA API transport.
-
-        Over MQTT the update entity comes from Home Assistant's own discovery, so
-        this event is only sent when there is no broker to carry it. Creating the
-        entity on the first event keeps the two from ever existing side by side.
-        """
+        """The agent's update state, on the HA API transport."""
         data = event.data
         if data.get("serial_number") != entry.unique_id:
             return
@@ -672,18 +736,7 @@ def _register_ws_listeners(hass: HomeAssistant, entry: ConfigEntry) -> list:
         if not isinstance(state, dict):
             return
 
-        entry_data = hass.data[DOMAIN][entry.entry_id]
-        entry_data["update_state"] = state
-
-        if not entry_data["loaded"].get("update", False):
-            hass.async_create_background_task(
-                _async_update_platform(
-                    hass, entry, Platform.UPDATE, "update", True, entry.title
-                ),
-                "hass.agent-ws-update-platform",
-            )
-        else:
-            async_dispatcher_send(hass, SIGNAL_UPDATE_STATE.format(entry.entry_id))
+        _apply_update_state(hass, entry, state)
 
     @callback
     def _ws_sensor_update(event) -> None:
@@ -974,6 +1027,23 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             _create_device_notification(hass, entry, payload.get("title"), payload.get("message"))
 
         @callback
+        def update_state_updated(message: ReceiveMessage) -> None:
+            """The agent's update state (retained), the same one its discovered entity reads."""
+            if not message.payload:
+                return
+
+            try:
+                state = json.loads(message.payload)
+            except ValueError:
+                _logger.warning("received invalid update state JSON on '%s'", message.topic)
+                return
+
+            if not isinstance(state, dict):
+                return
+
+            _apply_update_state_when_free(hass, entry, state)
+
+        @callback
         def availability_updated(message: ReceiveMessage) -> None:
             # This topic is published by the tray app only, so it says nothing about
             # the service — hence app_online rather than the device's availability.
@@ -1008,10 +1078,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     "msg_callback": availability_updated,
                     "qos": 1,
                 },
+                f"{entry.unique_id}-update": {
+                    "topic": f"hass.agent/update/{topic_id}/state",
+                    "msg_callback": update_state_updated,
+                    "qos": 0,
+                },
             },
         )
 
         await async_subscribe_topics(hass, sub_state)
+        await _async_publish_integration_info(hass, entry)
 
         hass.data[DOMAIN][entry.entry_id]["internal_mqtt"] = sub_state
 
@@ -1025,6 +1101,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     async_delete_issue(hass, DOMAIN, f"restart_required_{entry.title}")
 
     return True
+
+
+async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Clear the retained announcement of a device that is being deleted."""
+    if entry.data.get(CONF_URL) is None and not entry.data.get(CONF_HA_API, False):
+        try:
+            await mqtt.async_publish(hass, f"hass.agent/integration/{entry.unique_id}", "", qos=0, retain=True)
+        except HomeAssistantError:
+            # No broker right now: a stale retained message is harmless, the agent
+            # only reads it while the device is set up here.
+            pass
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

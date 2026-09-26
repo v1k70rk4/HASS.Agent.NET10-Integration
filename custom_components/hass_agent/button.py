@@ -90,6 +90,8 @@ async def async_setup_entry(
     ]
 
     custom_signature = hass.data.get(DOMAIN, {}).get(entry.entry_id, {}).get("custom_button_commands", ())
+    entities.append(HassAgentUpdateCheckButton(entry.entry_id, entry.unique_id, device))
+
     for command in _custom_command_descriptors(custom_signature):
         entities.append(
             HassAgentCustomCommandButton(entry.entry_id, entry.unique_id, device, command[0], command[1])
@@ -162,6 +164,74 @@ def _command_list_contains(commands: object, command: str) -> bool:
             return True
 
     return False
+
+
+class HassAgentUpdateCheckButton(ButtonEntity):
+    """Makes the agent check GitHub for a new release right away (agent 10.7.3+).
+
+    The agent otherwise checks at startup and every six hours; this is for when a
+    release just came out. The service takes it when no tray app runs.
+    """
+
+    _attr_has_entity_name = True
+    _attr_translation_key = "update_check"
+    _attr_icon = "mdi:update"
+
+    def __init__(self, entry_id: str, unique_id: str, device: dr.DeviceEntry) -> None:
+        """Initialize the button."""
+        self._entry_id = entry_id
+        self._serial_number = unique_id
+        self._attr_unique_id = f"button_{unique_id}_update_check"
+        self._attr_device_info = DeviceInfo(
+            identifiers=device.identifiers,
+            name=device.name,
+            manufacturer=device.manufacturer,
+            model=device.model,
+            sw_version=device.sw_version,
+        )
+
+    @property
+    def available(self) -> bool:
+        """Available while either side of the agent is."""
+        return bool(self.hass.data.get(DOMAIN, {}).get(self._entry_id, {}).get("available", True))
+
+    async def async_added_to_hass(self) -> None:
+        """Follow the device's availability."""
+        self.async_on_remove(
+            async_dispatcher_connect(
+                self.hass,
+                availability_signal(self._entry_id),
+                self._on_device_availability,
+            )
+        )
+
+    @callback
+    def _on_device_availability(self, online: bool) -> None:
+        """Re-evaluate availability when the device goes online/offline."""
+        self.async_write_ha_state()
+
+    async def async_press(self) -> None:
+        """Send update_check to whichever side is up (the tray app first)."""
+        entry_data = self.hass.data.get(DOMAIN, {}).get(self._entry_id, {})
+        service_status = entry_data.get("service", {})
+        service_online = isinstance(service_status, dict) and service_status.get("online") is True
+        use_service = service_online and not entry_data.get("app_online", True)
+        payload = {"command": "update_check"}
+
+        if not entry_data.get("ha_api_only", False):
+            topic = (
+                f"hass.agent/system/{self._serial_number}/cmd"
+                if use_service
+                else f"hass.agent/buttons/{self._serial_number}/cmd"
+            )
+            await mqtt.async_publish(self.hass, topic, json.dumps(payload), qos=0, retain=False)
+
+        self.hass.bus.async_fire("hass_agent_command", {
+            "serial_number": self._serial_number,
+            "command_type": "button_command",
+            "target": "service" if use_service else "app",
+            "payload": payload,
+        })
 
 
 class HassAgentCommandButton(ButtonEntity):
