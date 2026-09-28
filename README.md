@@ -261,7 +261,11 @@ When using the HA API (WebSocket) transport, the Windows client fires events int
 - The media player image is served with the right content type (the client sends JPEG covers since 10.7.2).
 - The issue templates link to the renamed client repository.
 
-### 10.7.0
+<details>
+<summary><b>Older versions</b></summary>
+
+<details>
+<summary><b>10.7.0</b></summary>
 
 - **Five new sensors from the Windows client** (HASS.Agent .NET10 **10.7.0** or newer). They are switched off in the client until you enable them on its *Sensors* page, and only then appear in Home Assistant:
   - **GPU usage** — GPU load in percent, as Task Manager shows it, on Intel, AMD and NVIDIA alike. Attributes: load per engine (`3d`, `videodecode`, …), NPU load, dedicated / shared memory in use, the installed adapters.
@@ -271,54 +275,84 @@ When using the HA API (WebSocket) transport, the Windows client fires events int
 - **No more deprecation warnings at startup.** Home Assistant logged four of them at every start (`device_registry.async_get_device` … *will stop working in Home Assistant 2027.8.0*). The device lookup now uses the replacement on Home Assistant 2026.8 and newer, and keeps working on 2026.6 / 2026.7.
 - **Nothing changes for existing devices.** Entities are only created for the sensors a client advertises, so no new entity appears until you enable a sensor in the client, and older clients keep working exactly as before.
 
-### 10.6.8
+</details>
+
+<details>
+<summary><b>10.6.8</b></summary>
 
 - **The old HASS.Agent client is no longer added as a broken device.** The original pre-.NET10 client sends a discovery message of the same shape, so it used to pass validation and turn up as a device that could never work properly — a notify entity that would not come back, for example. Discovery now checks the client's version: the old client is not added, and a notice under **Settings → Repairs** explains that the Windows client needs updating to HASS.Agent .NET10. A HASS.Agent .NET10 older than **10.2.0** is still added, with a notice to update it. Either notice disappears on its own once the client is updated.
 - The legacy line of this integration (v3.x) is **no longer maintained**.
 
 Works with every supported HASS.Agent .NET10 client; no client update is needed for this release.
 
-### 10.6.7
+</details>
+
+<details>
+<summary><b>10.6.7</b></summary>
 
 - **A PC can now be added over the HA API (WebSocket) transport without MQTT.** Automatic discovery only ever worked once the integration was already set up, which left the *first* device unable to arrive on its own — and MQTT was no help to the people most likely to be affected, since HA API is the transport you choose when Home Assistant is not on your local network. **Settings → Devices & services → Add integration → HASS.Agent → HA API** now waits for the PC to announce itself and adds it.
 - **The update entity works on the HA API transport.** It came from Home Assistant's own MQTT discovery, so without a broker there was no update entity and no Install button. The integration now builds it from the agent's own events. Requires HASS.Agent .NET10 **10.6.7** or newer.
 
-### 10.6.6
+</details>
+
+<details>
+<summary><b>10.6.6</b></summary>
 
 - **The tray app and the Windows service are now treated as two independent providers.** Previously only the tray app published the device's availability, so closing it (or logging out) turned *everything* unavailable — including sensors the service was still happily reporting. The device now stays reachable while either side is running, and each entity follows whichever side actually feeds it: tray-only entities (media player, active window, notifications) go **unavailable** instead of disappearing, and return as soon as it is back.
 - **A provider that stops no longer has its entities deleted.** Entity creation is now independent of whether the side that offers it happens to be running, so its entities stay in place and simply grey out. Turning a capability off in the Windows client still removes those entities, as before. Requires HASS.Agent .NET10 **10.6.6** or newer.
 
-### 10.6.5
+</details>
+
+<details>
+<summary><b>10.6.5</b></summary>
 
 - Added a **service channel for the HA API (WebSocket) transport**. Over MQTT the tray app and the Windows service each announce what they can handle on their own topic, and this integration merges the two — the WebSocket had no equivalent, so the service had to announce itself as the app. It now has its own event, and button presses name the side they are meant for, so a command runs exactly once and on the right side even when the tray app is not running. Requires HASS.Agent .NET10 **10.6.5** or newer; older clients keep working as before.
 
-### 10.6.0
+</details>
+
+<details>
+<summary><b>10.6.0</b></summary>
 
 - Added **custom command buttons**: programs and PowerShell scripts you define in the Windows client (10.6.0+) now appear as button entities. The client advertises only each command's id and name; pressing the button asks the client to run the command you defined — Home Assistant never sends the underlying program or script. Buttons route to the tray app or the Windows service depending on where the command is enabled, and are removed automatically when the client stops advertising them.
 
-### 10.5.0
+</details>
+
+<details>
+<summary><b>10.5.0</b></summary>
 
 - Fixed a spurious "received invalid discovery payload" warning: the device availability sub-topic (`hass.agent/devices/<serial>/availability`) matches the same MQTT discovery wildcard and is no longer treated as a discovery message
 
-### 10.4.0
+</details>
+
+<details>
+<summary><b>10.4.0</b></summary>
 
 - Added device availability: entities now turn **unavailable** when the device disconnects — via the MQTT availability topic / Last Will, and via a heartbeat timeout on the HA API WebSocket transport
 - Added `enum` device class with possible-value options for the monitor power state, power status, and session state sensors, so Home Assistant knows their selectable states
 - Fully backwards compatible — these activate with HASS.Agent .NET10 v10.4.0 or newer; older clients keep working unchanged
 
-### 10.3.0
+</details>
+
+<details>
+<summary><b>10.3.0</b></summary>
 
 - Added persistent notification support: the device can create Home Assistant persistent notifications (update progress, update completed, errors) over MQTT and the HA API WebSocket transport
 - Fully backwards compatible — the notification feature activates with HASS.Agent .NET10 v10.3.0 or newer, older clients work unchanged
 
-### 10.2.0
+</details>
+
+<details>
+<summary><b>10.2.0</b></summary>
 
 - Added standalone HA API auto-discovery so devices can be added without an MQTT broker
 - Added `async_step_ha_api` config flow and user menu with HA API info and Local API options
 - Fixed `event.py` missing WebSocket dispatcher listener for notification actions
 - Updated all entity platforms to skip MQTT operations for HA API-only entries
 
-### 10.1.0
+</details>
+
+<details>
+<summary><b>10.1.0</b></summary>
 
 - Added HA API WebSocket transport handling for device, sensor, media, thumbnail, and notification action events
 - Added serial-number based MQTT topic and WebSocket command routing so Home Assistant device renames do not break commands
@@ -326,7 +360,10 @@ Works with every supported HASS.Agent .NET10 client; no client update is needed 
 - Documented the HA API WebSocket mode and its event payloads
 - Bumped the integration version to 10.1.0
 
-### 10.0.0
+</details>
+
+<details>
+<summary><b>10.0.0</b></summary>
 
 HASS.Agent .NET10 support:
 
@@ -340,7 +377,10 @@ HASS.Agent .NET10 support:
 - Added inactive entity removal when features are disabled in the Windows client
 - Added API key authentication for Local HTTP API mode
 
-### 3.x (pre-.NET10)
+</details>
+
+<details>
+<summary><b>3.x (pre-.NET10)</b></summary>
 
 - Replaced the custom unauthenticated thumbnail endpoint with Home Assistant's built-in media player image proxy
 - Added a notification action event entity
@@ -353,4 +393,6 @@ HASS.Agent .NET10 support:
 - Enabled hassfest and HACS validation on push and pull request
 - Added Hungarian translations
 
+</details>
 
+</details>
