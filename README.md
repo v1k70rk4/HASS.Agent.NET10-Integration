@@ -255,22 +255,21 @@ When using the HA API (WebSocket) transport, the Windows client fires events int
 
 ## Changelog
 
-### 10.9.0
+### 10.9.0 (coming soon)
+
+> **Not released yet.** This is what the next release brings; the current release is **10.7.3**, below.
 
 - **The PC's display as a light.** With the Windows client **10.9.0** or newer and its *Display brightness* sensor turned on (tray app), the device gets a *Display* light: the brightness slider sets the screen brightness, off switches the monitor off, on wakes it. The client adjusts the built-in panel of a laptop and external monitors that speak DDC/CI; with no adjustable display (many TVs) the light is a plain on/off one. Works over MQTT and the HA API. The light disappears again when the sensor is turned off.
 
-<details>
-<summary><b>Older versions</b></summary>
-
-<details>
-<summary><b>10.7.3</b></summary>
+### 10.7.3
 
 - **A *Check for updates* button next to the update entity.** It makes the Windows client ask GitHub right away instead of waiting for its six-hourly check, so a fresh release shows up in Home Assistant at once. Needs HASS.Agent .NET10 **10.7.3** or newer (an older client ignores the command). Thanks to [@Taomyn](https://github.com/Taomyn) for the idea.
 - **One update entity, on both transports.** Over MQTT the update entity came from Home Assistant's own MQTT discovery and over the HA API from this integration, so a PC that switched transports ended up with two, one of them always unavailable. The integration now builds the entity on MQTT as well and tells the client so (a retained message on `hass.agent/integration/{id}`); a client 10.7.3 or newer removes its discovered one in return. With an older client the discovered entity stays and the integration leaves it alone. The entity now follows the whole device rather than the tray app, so it stays available while only the service runs, and *Install* works with nobody logged in (client 10.7.3+).
 - The media player image is served with the right content type (the client sends JPEG covers since 10.7.2).
 - The issue templates link to the renamed client repository.
 
-</details>
+<details>
+<summary><b>Older versions</b></summary>
 
 <details>
 <summary><b>10.7.0</b></summary>
