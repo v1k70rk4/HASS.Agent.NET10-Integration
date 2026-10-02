@@ -67,6 +67,10 @@ PLATFORMS: list[Platform] = [
 SENSOR_PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.LIGHT, Platform.SELECT]
 SERVICE_SEND_NOTIFICATION = "send_notification"
 SERVICE_EXECUTE_COMMAND = "execute_command"
+SERVICE_SET_APP_VOLUME = "set_app_volume"
+CONF_APP = "app"
+CONF_VOLUME = "volume"
+CONF_MUTED = "muted"
 SERVICE_STATUS_STORAGE_KEY = "_service_status"
 
 # HA API (WebSocket) has no broker Last Will, so the device sends a heartbeat
@@ -1325,6 +1329,52 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
             "command_type": "button_command",
             "payload": payload,
         })
+
+    async def async_set_app_volume(call) -> None:
+        """Set the volume or mute of one app in the volume mixer (client 10.9.0+, tray app)."""
+        device_name = call.data[CONF_DEVICE_NAME]
+        if CONF_VOLUME not in call.data and CONF_MUTED not in call.data:
+            raise HomeAssistantError("volume or muted is required")
+
+        serial_number = serial_number_for_device_name(device_name)
+        if serial_number is None:
+            raise HomeAssistantError(f"device not found: {device_name}")
+
+        payload: dict[str, Any] = {"command": "set_app_volume", "text": call.data[CONF_APP]}
+        if CONF_VOLUME in call.data:
+            payload["value"] = call.data[CONF_VOLUME]
+        if CONF_MUTED in call.data:
+            payload["muted"] = call.data[CONF_MUTED]
+
+        if not _is_ha_api_only_entry(device_name):
+            await mqtt.async_publish(
+                hass,
+                f"hass.agent/buttons/{serial_number}/cmd",
+                json.dumps(payload),
+                qos=0,
+                retain=False,
+            )
+
+        hass.bus.async_fire("hass_agent_command", {
+            "serial_number": serial_number,
+            "command_type": "button_command",
+            "target": "app",
+            "payload": payload,
+        })
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_SET_APP_VOLUME,
+        async_set_app_volume,
+        schema=vol.Schema(
+            {
+                vol.Required(CONF_DEVICE_NAME): cv.string,
+                vol.Required(CONF_APP): cv.string,
+                vol.Optional(CONF_VOLUME): vol.All(vol.Coerce(int), vol.Range(min=0, max=100)),
+                vol.Optional(CONF_MUTED): cv.boolean,
+            }
+        ),
+    )
 
     service.async_register_platform_entity_service(
         hass,

@@ -261,6 +261,7 @@ When using the HA API (WebSocket) transport, the Windows client fires events int
 > **Not released yet.** This is what the next release brings; the current release is **10.7.3**, below.
 
 - **Audio device selects.** Two select entities choose the PC's default playback and recording device, from the list of devices Windows has active. The output one appears for every client **10.9.0** or newer whose *Audio output device* sensor is on (it is by default); the input one when the new *Audio input device* sensor is turned on.
+- **`hass_agent.set_app_volume` service.** Sets the volume or mute of one app in the Windows volume mixer (client 10.9.0+ with its *Audio sessions* sensor on; the sensor lists the apps with their volumes as attributes).
 - **Hibernate and Log off buttons**, for clients 10.9.0+ that have the command enabled (both are off by default in the client).
 - **The PC's display as a light.** With the Windows client **10.9.0** or newer and its *Display brightness* sensor turned on (tray app), the device gets a *Display* light: the brightness slider sets the screen brightness, off switches the monitor off, on wakes it. The client adjusts the built-in panel of a laptop and external monitors that speak DDC/CI; with no adjustable display (many TVs) the light is a plain on/off one. Works over MQTT and the HA API. The light disappears again when the sensor is turned off.
 

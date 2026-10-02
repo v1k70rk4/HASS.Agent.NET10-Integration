@@ -101,5 +101,29 @@
       "title": "{name} needs a newer HASS.Agent .NET10",
       "description": "**{name}** runs HASS.Agent .NET10 {version}, but this integration needs **{minimum}** or newer. Some features will not work until the Windows client is updated — see **Learn more** below. This notice disappears once it is."
     }
+  },
+  "services": {
+    "set_app_volume": {
+      "name": "Set app volume",
+      "description": "Sets the volume or mute of one app in the Windows volume mixer (client 10.9.0+, Audio sessions sensor enabled).",
+      "fields": {
+        "device_name": {
+          "name": "Device name",
+          "description": "The Windows device, as named in the client."
+        },
+        "app": {
+          "name": "App",
+          "description": "The app as Task Manager names it, without .exe (e.g. spotify)."
+        },
+        "volume": {
+          "name": "Volume",
+          "description": "Volume in percent."
+        },
+        "muted": {
+          "name": "Muted",
+          "description": "Mute or unmute the app."
+        }
+      }
+    }
   }
 }
