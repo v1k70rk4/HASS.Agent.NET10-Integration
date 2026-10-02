@@ -62,6 +62,14 @@
         "name": "Értesítési műveletek"
       }
     },
+    "select": {
+      "audio_output": {
+        "name": "Audio kimenet"
+      },
+      "audio_input": {
+        "name": "Audio bemenet"
+      }
+    },
     "light": {
       "display": {
         "name": "Kijelző"

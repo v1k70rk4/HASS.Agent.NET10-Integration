@@ -60,8 +60,11 @@ PLATFORMS: list[Platform] = [
     Platform.EVENT,
     Platform.SENSOR,
     Platform.LIGHT,
+    Platform.SELECT,
     Platform.BUTTON,
 ]
+# Loaded and unloaded together: the light and the selects exist for sensor keys.
+SENSOR_PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.LIGHT, Platform.SELECT]
 SERVICE_SEND_NOTIFICATION = "send_notification"
 SERVICE_EXECUTE_COMMAND = "execute_command"
 SERVICE_STATUS_STORAGE_KEY = "_service_status"
@@ -76,6 +79,8 @@ STANDARD_SENSORS_STORAGE_KEY = "standard_sensors"
 SYSTEM_COMMANDS = {
     "lock",
     "sleep",
+    "hibernate",
+    "logoff",
     "monitor_off",
     "volume_up",
     "volume_down",
@@ -420,6 +425,18 @@ def _async_remove_inactive_standard_sensor_entities(
     entity_registry = er.async_get(hass)
 
     for entity in list(er.async_entries_for_config_entry(entity_registry, entry.entry_id)):
+        if entity.domain == Platform.SELECT.value:
+            # An audio select exists while the agent advertises the sensor it belongs to.
+            for sensor_key, select_key in (
+                ("audio_output_device", "audio_output"),
+                ("audio_input_device", "audio_input"),
+            ):
+                if (
+                    entity.unique_id == f"select_{entry.unique_id}_{select_key}"
+                    and sensor_key not in active_sensor_keys
+                ):
+                    entity_registry.async_remove(entity.entity_id)
+            continue
         if entity.domain == Platform.LIGHT.value:
             # The display light exists while the agent advertises its brightness.
             if (
@@ -517,8 +534,9 @@ async def _async_update_sensor_platform(
 
     if is_loaded:
         _logger.debug("unloading sensor for device: %s [%s]", device_name, entry.unique_id)
-        # The display light is built from a sensor key, so it lives and dies with the sensors.
-        unload_ok = await hass.config_entries.async_unload_platforms(entry, [Platform.SENSOR, Platform.LIGHT])
+        # The display light and the audio selects are built from sensor keys, so they
+        # live and die with the sensors.
+        unload_ok = await hass.config_entries.async_unload_platforms(entry, SENSOR_PLATFORMS)
         if not unload_ok:
             _logger.warning("failed to unload sensor for device: %s [%s]", device_name, entry.unique_id)
             return
@@ -533,7 +551,7 @@ async def _async_update_sensor_platform(
 
     if should_load:
         _logger.debug("loading sensor for device: %s [%s]", device_name, entry.unique_id)
-        await hass.config_entries.async_forward_entry_setups(entry, [Platform.SENSOR, Platform.LIGHT])
+        await hass.config_entries.async_forward_entry_setups(entry, SENSOR_PLATFORMS)
         loaded["sensor"] = True
 
 
@@ -1155,8 +1173,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             platforms_to_unload.append(Platform.EVENT)
 
         if loaded.get("sensor", False):
-            platforms_to_unload.append(Platform.SENSOR)
-            platforms_to_unload.append(Platform.LIGHT)
+            platforms_to_unload.extend(SENSOR_PLATFORMS)
 
         if loaded.get("button", False):
             platforms_to_unload.append(Platform.BUTTON)

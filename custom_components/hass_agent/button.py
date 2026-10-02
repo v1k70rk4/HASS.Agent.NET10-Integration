@@ -32,6 +32,16 @@ BUTTON_DESCRIPTIONS: tuple[ButtonEntityDescription, ...] = (
         icon="mdi:power-sleep",
     ),
     ButtonEntityDescription(
+        key="hibernate",
+        translation_key="hibernate",
+        icon="mdi:power-sleep",
+    ),
+    ButtonEntityDescription(
+        key="logoff",
+        translation_key="logoff",
+        icon="mdi:logout",
+    ),
+    ButtonEntityDescription(
         key="monitor_off",
         translation_key="monitor_off",
         icon="mdi:monitor-off",

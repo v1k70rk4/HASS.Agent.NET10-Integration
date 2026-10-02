@@ -141,6 +141,7 @@ When connected via MQTT or HA API, the integration creates the following entitie
 | `event` | Notification actions | Action button press events from notifications |
 | `sensor` | System sensors | Built-in and custom sensors from the Windows client |
 | `button` | System commands | Lock, sleep, shutdown, restart, volume, etc. |
+| `select` | Audio output / input | Chooses the default playback and recording device (client 10.9.0+, the matching *Audio output device* / *Audio input device* sensor enabled) |
 | `light` | Display | Screen brightness where the display can be dimmed; off switches the monitor off, on wakes it (client 10.9.0+, *Display brightness* sensor enabled) |
 | `update` | App update | Shows available HASS.Agent .NET10 updates |
 
@@ -174,7 +175,7 @@ Sends a system command to a HASS.Agent .NET10 device:
 | Field | Required | Description |
 |-------|:--------:|-------------|
 | `device_name` | yes | Target Windows device name |
-| `command` | * | `lock`, `sleep`, `monitor_off`, `volume_up`, `volume_down`, `toggle_mute`, `shutdown`, `restart` |
+| `command` | * | `lock`, `sleep`, `hibernate`, `logoff`, `monitor_off`, `volume_up`, `volume_down`, `toggle_mute`, `shutdown`, `restart` |
 | `comment` | | Windows shutdown/restart comment |
 | `force` | | Force shutdown/restart (default: `false`) |
 | `time` | | Delay in seconds (default: `0`) |
@@ -259,6 +260,8 @@ When using the HA API (WebSocket) transport, the Windows client fires events int
 
 > **Not released yet.** This is what the next release brings; the current release is **10.7.3**, below.
 
+- **Audio device selects.** Two select entities choose the PC's default playback and recording device, from the list of devices Windows has active. The output one appears for every client **10.9.0** or newer whose *Audio output device* sensor is on (it is by default); the input one when the new *Audio input device* sensor is turned on.
+- **Hibernate and Log off buttons**, for clients 10.9.0+ that have the command enabled (both are off by default in the client).
 - **The PC's display as a light.** With the Windows client **10.9.0** or newer and its *Display brightness* sensor turned on (tray app), the device gets a *Display* light: the brightness slider sets the screen brightness, off switches the monitor off, on wakes it. The client adjusts the built-in panel of a laptop and external monitors that speak DDC/CI; with no adjustable display (many TVs) the light is a plain on/off one. Works over MQTT and the HA API. The light disappears again when the sensor is turned off.
 
 ### 10.7.3

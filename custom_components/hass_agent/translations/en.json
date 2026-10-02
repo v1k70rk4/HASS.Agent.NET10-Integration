@@ -62,6 +62,14 @@
         "name": "Notification actions"
       }
     },
+    "select": {
+      "audio_output": {
+        "name": "Audio output"
+      },
+      "audio_input": {
+        "name": "Audio input"
+      }
+    },
     "light": {
       "display": {
         "name": "Display"
