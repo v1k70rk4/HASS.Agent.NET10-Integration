@@ -59,6 +59,7 @@ PLATFORMS: list[Platform] = [
     Platform.NOTIFY,
     Platform.EVENT,
     Platform.SENSOR,
+    Platform.LIGHT,
     Platform.BUTTON,
 ]
 SERVICE_SEND_NOTIFICATION = "send_notification"
@@ -419,6 +420,14 @@ def _async_remove_inactive_standard_sensor_entities(
     entity_registry = er.async_get(hass)
 
     for entity in list(er.async_entries_for_config_entry(entity_registry, entry.entry_id)):
+        if entity.domain == Platform.LIGHT.value:
+            # The display light exists while the agent advertises its brightness.
+            if (
+                entity.unique_id == f"light_{entry.unique_id}_display"
+                and "display_brightness" not in active_sensor_keys
+            ):
+                entity_registry.async_remove(entity.entity_id)
+            continue
         if entity.domain != Platform.SENSOR.value:
             continue
         if entity.unique_id.startswith(f"sensor_{entry.unique_id}_custom_"):
@@ -508,7 +517,8 @@ async def _async_update_sensor_platform(
 
     if is_loaded:
         _logger.debug("unloading sensor for device: %s [%s]", device_name, entry.unique_id)
-        unload_ok = await hass.config_entries.async_forward_entry_unload(entry, Platform.SENSOR)
+        # The display light is built from a sensor key, so it lives and dies with the sensors.
+        unload_ok = await hass.config_entries.async_unload_platforms(entry, [Platform.SENSOR, Platform.LIGHT])
         if not unload_ok:
             _logger.warning("failed to unload sensor for device: %s [%s]", device_name, entry.unique_id)
             return
@@ -523,7 +533,7 @@ async def _async_update_sensor_platform(
 
     if should_load:
         _logger.debug("loading sensor for device: %s [%s]", device_name, entry.unique_id)
-        await hass.config_entries.async_forward_entry_setups(entry, [Platform.SENSOR])
+        await hass.config_entries.async_forward_entry_setups(entry, [Platform.SENSOR, Platform.LIGHT])
         loaded["sensor"] = True
 
 
@@ -1146,6 +1156,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         if loaded.get("sensor", False):
             platforms_to_unload.append(Platform.SENSOR)
+            platforms_to_unload.append(Platform.LIGHT)
 
         if loaded.get("button", False):
             platforms_to_unload.append(Platform.BUTTON)
