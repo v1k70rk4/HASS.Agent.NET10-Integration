@@ -579,6 +579,11 @@ async def handle_apis_changed(
         # The event platform also carries the hotkeys (client 10.9.0+).
         hotkeys = apis.get("hotkeys")
         has_hotkeys = isinstance(hotkeys, list) and len(hotkeys) > 0
+        hotkey_signature = tuple(sorted(
+            str(hotkey.get("name"))
+            for hotkey in (hotkeys if has_hotkeys else [])
+            if isinstance(hotkey, dict) and hotkey.get("name")
+        ))
         entry_data = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
         service_status = entry_data.get("service", {})
         if not isinstance(service_status, dict):
@@ -612,6 +617,14 @@ async def handle_apis_changed(
             bool(notifications),
             device_name,
         )
+        # The event entities are built at setup: when the list of hotkeys changes while
+        # the platform is loaded, it is reloaded so the entity and its event types follow.
+        loaded = hass.data[DOMAIN][entry.entry_id]["loaded"]
+        if loaded.get("event", False) and entry_data.get("hotkey_signature") != hotkey_signature:
+            # Unloaded only, not removed from the registry: the entities come straight back.
+            if await hass.config_entries.async_forward_entry_unload(entry, Platform.EVENT):
+                loaded["event"] = False
+        entry_data["hotkey_signature"] = hotkey_signature
         await _async_update_platform(
             hass,
             entry,
