@@ -26,6 +26,7 @@ from .entity import HassAgentAvailableEntity, async_get_agent_device
 # The agent reports this key when its "Display brightness" sensor is enabled (agent
 # 10.9.0+, tray app). The light is built from it rather than a plain sensor.
 BRIGHTNESS_KEY = "display_brightness"
+SUPPORTED_KEY = "display_brightness_supported"
 MONITOR_POWER_KEY = "monitor_power_state"
 
 
@@ -54,16 +55,14 @@ class HassAgentDisplayLight(HassAgentAvailableEntity, LightEntity):
     """The display of the PC: brightness, and on/off through the monitor power.
 
     The agent sets every display it can adjust (a laptop's panel, DDC/CI monitors)
-    and reports the brightness of the first one. With no adjustable display it reports
-    nothing, and the light stays unavailable.
+    and reports the brightness of the first one. With no adjustable display (many TVs)
+    it says so, and the light is a plain on/off one.
     """
 
     _attr_has_entity_name = True
     _attr_translation_key = "display"
     _attr_icon = "mdi:monitor"
     _attr_should_poll = False
-    _attr_color_mode = ColorMode.BRIGHTNESS
-    _attr_supported_color_modes = {ColorMode.BRIGHTNESS}
 
     def __init__(self, entry_id: str, unique_id: str, device: dr.DeviceEntry) -> None:
         """Initialize the light."""
@@ -78,6 +77,8 @@ class HassAgentDisplayLight(HassAgentAvailableEntity, LightEntity):
             sw_version=device.sw_version,
         )
         self._percent: int | None = None
+        # None until the agent has reported: whether a brightness can be read and set.
+        self._dimmable: bool | None = None
         self._monitor_on = True
         self._listeners: dict[str, Any] = {}
         self._setup_availability(entry_id)
@@ -88,8 +89,18 @@ class HassAgentDisplayLight(HassAgentAvailableEntity, LightEntity):
 
     @property
     def available(self) -> bool:
-        """Available once the tray app is up and has reported a brightness."""
-        return bool(self._attr_available) and self._percent is not None
+        """Available once the tray app is up and has reported what the display can do."""
+        return bool(self._attr_available) and self._dimmable is not None
+
+    @property
+    def color_mode(self) -> ColorMode:
+        """Brightness when the display can be dimmed, plain on/off otherwise."""
+        return ColorMode.BRIGHTNESS if self._dimmable else ColorMode.ONOFF
+
+    @property
+    def supported_color_modes(self) -> set[ColorMode]:
+        """Follows what the agent reports about the display."""
+        return {self.color_mode}
 
     @property
     def is_on(self) -> bool | None:
@@ -99,7 +110,7 @@ class HassAgentDisplayLight(HassAgentAvailableEntity, LightEntity):
     @property
     def brightness(self) -> int | None:
         """Brightness on Home Assistant's 0..255 scale."""
-        if self._percent is None:
+        if not self._dimmable or self._percent is None:
             return None
         return max(1, round(self._percent * 255 / 100)) if self._percent > 0 else 0
 
@@ -113,6 +124,12 @@ class HassAgentDisplayLight(HassAgentAvailableEntity, LightEntity):
         value = payload.get(BRIGHTNESS_KEY)
         if isinstance(value, int | float) and not isinstance(value, bool):
             self._percent = max(0, min(100, round(value)))
+            self._dimmable = True
+            changed = True
+        elif payload.get(SUPPORTED_KEY) is False:
+            # The sensor is on, but no display there can be adjusted.
+            self._percent = None
+            self._dimmable = False
             changed = True
 
         power = payload.get(MONITOR_POWER_KEY)
@@ -185,7 +202,7 @@ class HassAgentDisplayLight(HassAgentAvailableEntity, LightEntity):
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Wake the display, and set the brightness when one is given."""
         payload: dict[str, object] = {"command": "set_brightness" if self._monitor_on else "display_on"}
-        if ATTR_BRIGHTNESS in kwargs:
+        if ATTR_BRIGHTNESS in kwargs and self._dimmable:
             percent = max(0, min(100, round(kwargs[ATTR_BRIGHTNESS] * 100 / 255)))
             payload["value"] = percent
             self._percent = percent

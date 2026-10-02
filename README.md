@@ -141,7 +141,7 @@ When connected via MQTT or HA API, the integration creates the following entitie
 | `event` | Notification actions | Action button press events from notifications |
 | `sensor` | System sensors | Built-in and custom sensors from the Windows client |
 | `button` | System commands | Lock, sleep, shutdown, restart, volume, etc. |
-| `light` | Display | Screen brightness; off switches the monitor off, on wakes it (client 10.9.0+, *Display brightness* sensor enabled) |
+| `light` | Display | Screen brightness where the display can be dimmed; off switches the monitor off, on wakes it (client 10.9.0+, *Display brightness* sensor enabled) |
 | `update` | App update | Shows available HASS.Agent .NET10 updates |
 
 Entities are created and removed dynamically as the Windows client changes its configuration.
@@ -257,7 +257,7 @@ When using the HA API (WebSocket) transport, the Windows client fires events int
 
 ### 10.9.0
 
-- **The PC's display as a light.** With the Windows client **10.9.0** or newer and its *Display brightness* sensor turned on (tray app), the device gets a *Display* light: the brightness slider sets the screen brightness, off switches the monitor off, on wakes it. The client adjusts the built-in panel of a laptop and external monitors that speak DDC/CI; with no adjustable display the light stays unavailable. Works over MQTT and the HA API. The light disappears again when the sensor is turned off.
+- **The PC's display as a light.** With the Windows client **10.9.0** or newer and its *Display brightness* sensor turned on (tray app), the device gets a *Display* light: the brightness slider sets the screen brightness, off switches the monitor off, on wakes it. The client adjusts the built-in panel of a laptop and external monitors that speak DDC/CI; with no adjustable display (many TVs) the light is a plain on/off one. Works over MQTT and the HA API. The light disappears again when the sensor is turned off.
 
 <details>
 <summary><b>Older versions</b></summary>
