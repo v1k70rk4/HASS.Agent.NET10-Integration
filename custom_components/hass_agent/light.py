@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from typing import Any
 
 from homeassistant.components import mqtt
@@ -15,6 +16,7 @@ from homeassistant.components.mqtt.subscription import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
@@ -25,6 +27,8 @@ from .entity import HassAgentAvailableEntity, async_get_agent_device
 
 # The agent reports this key when its "Display brightness" sensor is enabled (agent
 # 10.9.0+, tray app). The light is built from it rather than a plain sensor.
+_LOGGER = logging.getLogger(__name__)
+
 BRIGHTNESS_KEY = "display_brightness"
 SUPPORTED_KEY = "display_brightness_supported"
 MONITOR_POWER_KEY = "monitor_power_state"
@@ -79,7 +83,9 @@ class HassAgentDisplayLight(HassAgentAvailableEntity, LightEntity):
         self._percent: int | None = None
         # None until the agent has reported: whether a brightness can be read and set.
         self._dimmable: bool | None = None
-        self._monitor_on = True
+        # Optimistic until the monitor power sensor (if enabled) says otherwise; None when
+        # that sensor reports a state it cannot tell.
+        self._monitor_on: bool | None = True
         self._listeners: dict[str, Any] = {}
         self._setup_availability(entry_id)
 
@@ -104,7 +110,7 @@ class HassAgentDisplayLight(HassAgentAvailableEntity, LightEntity):
 
     @property
     def is_on(self) -> bool | None:
-        """On while the monitor is powered."""
+        """On while the monitor is powered; unknown when the client cannot tell."""
         return self._monitor_on
 
     @property
@@ -134,7 +140,8 @@ class HassAgentDisplayLight(HassAgentAvailableEntity, LightEntity):
 
         power = payload.get(MONITOR_POWER_KEY)
         if isinstance(power, str):
-            self._monitor_on = power != "off"
+            # "dimmed" is still on; anything else ("unknown") is not known to be either.
+            self._monitor_on = True if power in ("on", "dimmed") else False if power == "off" else None
             changed = True
 
         if changed:
@@ -184,13 +191,17 @@ class HassAgentDisplayLight(HassAgentAvailableEntity, LightEntity):
     async def _send(self, payload: dict[str, object]) -> None:
         """Send a display command to the tray app, on whichever transport is in use."""
         if not self.hass.data.get(DOMAIN, {}).get(self._entry_id, {}).get("ha_api_only", False):
-            await mqtt.async_publish(
-                self.hass,
-                f"hass.agent/buttons/{self._serial_number}/cmd",
-                json.dumps(payload),
-                qos=0,
-                retain=False,
-            )
+            try:
+                await mqtt.async_publish(
+                    self.hass,
+                    f"hass.agent/buttons/{self._serial_number}/cmd",
+                    json.dumps(payload),
+                    qos=0,
+                    retain=False,
+                )
+            except HomeAssistantError as err:
+                # The broker being away must not keep the command from the HA API transport.
+                _LOGGER.debug("display command not sent over MQTT: %s", err)
 
         self.hass.bus.async_fire("hass_agent_command", {
             "serial_number": self._serial_number,
@@ -201,13 +212,14 @@ class HassAgentDisplayLight(HassAgentAvailableEntity, LightEntity):
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Wake the display, and set the brightness when one is given."""
-        payload: dict[str, object] = {"command": "set_brightness" if self._monitor_on else "display_on"}
+        # Wake the display unless it is known to be on.
+        payload: dict[str, object] = {"command": "set_brightness" if self._monitor_on is True else "display_on"}
         if ATTR_BRIGHTNESS in kwargs and self._dimmable:
             percent = max(0, min(100, round(kwargs[ATTR_BRIGHTNESS] * 100 / 255)))
             payload["value"] = percent
             self._percent = percent
-        elif self._monitor_on:
-            # Already on and nothing to change.
+        elif self._monitor_on is True:
+            # Known to be on and nothing to change.
             return
 
         self._monitor_on = True
