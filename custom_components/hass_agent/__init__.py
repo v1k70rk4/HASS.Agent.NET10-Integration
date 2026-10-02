@@ -576,6 +576,9 @@ async def handle_apis_changed(
         media_player = apis.get("media_player", False)
         notifications = apis.get("notifications", False)
         notification_events = notifications and entry.data.get(CONF_URL) is None
+        # The event platform also carries the hotkeys (client 10.9.0+).
+        hotkeys = apis.get("hotkeys")
+        has_hotkeys = isinstance(hotkeys, list) and len(hotkeys) > 0
         entry_data = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
         service_status = entry_data.get("service", {})
         if not isinstance(service_status, dict):
@@ -614,7 +617,7 @@ async def handle_apis_changed(
             entry,
             Platform.EVENT,
             "event",
-            bool(notification_events),
+            bool(notification_events) or has_hotkeys,
             device_name,
         )
         await _async_update_sensor_platform(
@@ -823,6 +826,14 @@ def _register_ws_listeners(hass: HomeAssistant, entry: ConfigEntry) -> list:
             )
 
     @callback
+    def _ws_hotkey(event) -> None:
+        data = event.data
+        if data.get("serial_number") != entry.unique_id:
+            return
+        if data.get("hotkey"):
+            async_dispatcher_send(hass, f"hass_agent_hotkey_{entry.entry_id}", data)
+
+    @callback
     def _ws_persistent_notification(event) -> None:
         data = event.data
         if data.get("serial_number") != entry.unique_id:
@@ -875,6 +886,7 @@ def _register_ws_listeners(hass: HomeAssistant, entry: ConfigEntry) -> list:
         hass.bus.async_listen("hass_agent_media_update", _ws_media_update),
         hass.bus.async_listen("hass_agent_media_thumbnail", _ws_media_thumbnail),
         hass.bus.async_listen("hass_agent_notification_action", _ws_notification_action),
+        hass.bus.async_listen("hass_agent_hotkey", _ws_hotkey),
         hass.bus.async_listen("hass_agent_persistent_notification", _ws_persistent_notification),
         hass.bus.async_listen("hass_agent_availability", _ws_availability),
     ]

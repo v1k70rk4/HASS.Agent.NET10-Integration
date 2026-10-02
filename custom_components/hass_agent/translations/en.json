@@ -60,6 +60,9 @@
     "event": {
       "notification_action": {
         "name": "Notification actions"
+      },
+      "hotkey": {
+        "name": "Hotkeys"
       }
     },
     "select": {

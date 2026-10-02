@@ -60,6 +60,9 @@
     "event": {
       "notification_action": {
         "name": "Értesítési műveletek"
+      },
+      "hotkey": {
+        "name": "Gyorsbillentyűk"
       }
     },
     "select": {
