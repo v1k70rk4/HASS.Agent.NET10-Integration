@@ -1376,13 +1376,17 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
             payload["muted"] = call.data[CONF_MUTED]
 
         if not _is_ha_api_only_entry(device_name):
-            await mqtt.async_publish(
-                hass,
-                f"hass.agent/buttons/{serial_number}/cmd",
-                json.dumps(payload),
-                qos=0,
-                retain=False,
-            )
+            try:
+                await mqtt.async_publish(
+                    hass,
+                    f"hass.agent/buttons/{serial_number}/cmd",
+                    json.dumps(payload),
+                    qos=0,
+                    retain=False,
+                )
+            except HomeAssistantError as err:
+                # The broker being away must not keep the command from the HA API transport.
+                _logger.debug("set_app_volume not sent over MQTT: %s", err)
 
         hass.bus.async_fire("hass_agent_command", {
             "serial_number": serial_number,

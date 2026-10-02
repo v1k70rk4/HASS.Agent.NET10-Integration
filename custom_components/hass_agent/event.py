@@ -31,7 +31,10 @@ from .entity import HassAgentAvailableEntity
 _LOGGER = logging.getLogger(__name__)
 
 EVENT_TYPE_ACTION = "action"
-EVENT_HOTKEY = "hass_agent_hotkey"
+# What the integration fires on the bus for a press. Deliberately not "hass_agent_hotkey":
+# that is the client's own WebSocket event, which __init__ listens to; the same name here
+# would feed every press straight back into that listener.
+EVENT_HOTKEY_PRESSED = "hass_agent_hotkey_pressed"
 
 
 async def async_setup_entry(
@@ -49,7 +52,9 @@ async def async_setup_entry(
         apis = {}
 
     entities: list[EventEntity] = []
-    if apis.get("notifications") is True:
+    # Every client sends the notifications flag; a payload without it is treated as before
+    # (the entity existed whenever the platform was loaded).
+    if apis.get("notifications") is not False:
         entities.append(HassAgentNotificationActionEventEntity(entry, device_name, original_device_name))
 
     hotkeys = apis.get("hotkeys")
@@ -219,7 +224,7 @@ class HassAgentHotkeyEventEntity(HassAgentAvailableEntity, EventEntity):
 
         event_data = dict(data)
         event_data.setdefault(CONF_DEVICE_NAME, self._device_name)
-        self.hass.bus.async_fire(EVENT_HOTKEY, event_data)
+        self.hass.bus.async_fire(EVENT_HOTKEY_PRESSED, event_data)
         self._trigger_event(name, event_data)
         self.async_write_ha_state()
 
