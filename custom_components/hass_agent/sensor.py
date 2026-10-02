@@ -263,6 +263,17 @@ SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
         icon="mdi:speaker",
     ),
     SensorEntityDescription(
+        key="audio_sessions",
+        translation_key="audio_sessions",
+        icon="mdi:tune-vertical",
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    SensorEntityDescription(
+        key="audio_input_device",
+        translation_key="audio_input_device",
+        icon="mdi:microphone",
+    ),
+    SensorEntityDescription(
         key="microphone_muted",
         translation_key="microphone_muted",
         icon="mdi:microphone-off",

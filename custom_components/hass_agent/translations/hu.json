@@ -60,6 +60,17 @@
     "event": {
       "notification_action": {
         "name": "Értesítési műveletek"
+      },
+      "hotkey": {
+        "name": "Gyorsbillentyűk"
+      }
+    },
+    "select": {
+      "audio_output": {
+        "name": "Audio kimenet"
+      },
+      "audio_input": {
+        "name": "Audio bemenet"
       }
     },
     "light": {
@@ -92,6 +103,30 @@
     "outdated_client": {
       "title": "{name} újabb HASS.Agent .NET10-et igényel",
       "description": "A(z) **{name}** gépen a HASS.Agent .NET10 {version} fut, de ehhez az integrációhoz legalább **{minimum}** kell. Néhány funkció nem fog működni, amíg a Windows kliens nincs frissítve — lásd lent a **További információ**-t. A frissítés után ez az értesítés eltűnik."
+    }
+  },
+  "services": {
+    "set_app_volume": {
+      "name": "Alkalmazás hangereje",
+      "description": "Egy alkalmazás hangerejét vagy némítását állítja a Windows hangerőkeverőjében (kliens 10.9.0+, bekapcsolt Hangmunkamenetek szenzorral).",
+      "fields": {
+        "device_name": {
+          "name": "Eszköznév",
+          "description": "A Windows-gép neve, ahogy a kliensben szerepel."
+        },
+        "app": {
+          "name": "Alkalmazás",
+          "description": "Az alkalmazás neve a Feladatkezelő szerint, .exe nélkül (pl. spotify)."
+        },
+        "volume": {
+          "name": "Hangerő",
+          "description": "Hangerő százalékban."
+        },
+        "muted": {
+          "name": "Némítva",
+          "description": "Némítás vagy annak feloldása."
+        }
+      }
     }
   }
 }

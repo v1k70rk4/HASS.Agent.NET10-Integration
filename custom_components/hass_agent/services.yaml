@@ -26,6 +26,8 @@ execute_command:
           options:
             - lock
             - sleep
+            - hibernate
+            - logoff
             - monitor_off
             - volume_up
             - volume_down
@@ -51,3 +53,25 @@ execute_command:
       default: false
       selector:
         boolean:
+
+set_app_volume:
+  fields:
+    device_name:
+      required: true
+      selector:
+        text:
+    app:
+      required: true
+      example: spotify
+      selector:
+        text:
+    volume:
+      selector:
+        number:
+          min: 0
+          max: 100
+          unit_of_measurement: "%"
+    muted:
+      selector:
+        boolean:
+

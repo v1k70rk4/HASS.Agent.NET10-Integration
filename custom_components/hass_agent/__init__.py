@@ -60,10 +60,17 @@ PLATFORMS: list[Platform] = [
     Platform.EVENT,
     Platform.SENSOR,
     Platform.LIGHT,
+    Platform.SELECT,
     Platform.BUTTON,
 ]
+# Loaded and unloaded together: the light and the selects exist for sensor keys.
+SENSOR_PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.LIGHT, Platform.SELECT]
 SERVICE_SEND_NOTIFICATION = "send_notification"
 SERVICE_EXECUTE_COMMAND = "execute_command"
+SERVICE_SET_APP_VOLUME = "set_app_volume"
+CONF_APP = "app"
+CONF_VOLUME = "volume"
+CONF_MUTED = "muted"
 SERVICE_STATUS_STORAGE_KEY = "_service_status"
 
 # HA API (WebSocket) has no broker Last Will, so the device sends a heartbeat
@@ -76,6 +83,8 @@ STANDARD_SENSORS_STORAGE_KEY = "standard_sensors"
 SYSTEM_COMMANDS = {
     "lock",
     "sleep",
+    "hibernate",
+    "logoff",
     "monitor_off",
     "volume_up",
     "volume_down",
@@ -420,6 +429,18 @@ def _async_remove_inactive_standard_sensor_entities(
     entity_registry = er.async_get(hass)
 
     for entity in list(er.async_entries_for_config_entry(entity_registry, entry.entry_id)):
+        if entity.domain == Platform.SELECT.value:
+            # An audio select exists while the agent advertises the sensor it belongs to.
+            for sensor_key, select_key in (
+                ("audio_output_device", "audio_output"),
+                ("audio_input_device", "audio_input"),
+            ):
+                if (
+                    entity.unique_id == f"select_{entry.unique_id}_{select_key}"
+                    and sensor_key not in active_sensor_keys
+                ):
+                    entity_registry.async_remove(entity.entity_id)
+            continue
         if entity.domain == Platform.LIGHT.value:
             # The display light exists while the agent advertises its brightness.
             if (
@@ -517,8 +538,9 @@ async def _async_update_sensor_platform(
 
     if is_loaded:
         _logger.debug("unloading sensor for device: %s [%s]", device_name, entry.unique_id)
-        # The display light is built from a sensor key, so it lives and dies with the sensors.
-        unload_ok = await hass.config_entries.async_unload_platforms(entry, [Platform.SENSOR, Platform.LIGHT])
+        # The display light and the audio selects are built from sensor keys, so they
+        # live and die with the sensors.
+        unload_ok = await hass.config_entries.async_unload_platforms(entry, SENSOR_PLATFORMS)
         if not unload_ok:
             _logger.warning("failed to unload sensor for device: %s [%s]", device_name, entry.unique_id)
             return
@@ -533,7 +555,7 @@ async def _async_update_sensor_platform(
 
     if should_load:
         _logger.debug("loading sensor for device: %s [%s]", device_name, entry.unique_id)
-        await hass.config_entries.async_forward_entry_setups(entry, [Platform.SENSOR, Platform.LIGHT])
+        await hass.config_entries.async_forward_entry_setups(entry, SENSOR_PLATFORMS)
         loaded["sensor"] = True
 
 
@@ -554,6 +576,14 @@ async def handle_apis_changed(
         media_player = apis.get("media_player", False)
         notifications = apis.get("notifications", False)
         notification_events = notifications and entry.data.get(CONF_URL) is None
+        # The event platform also carries the hotkeys (client 10.9.0+).
+        hotkeys = apis.get("hotkeys")
+        has_hotkeys = isinstance(hotkeys, list) and len(hotkeys) > 0
+        hotkey_signature = tuple(sorted(
+            str(hotkey.get("name"))
+            for hotkey in (hotkeys if has_hotkeys else [])
+            if isinstance(hotkey, dict) and hotkey.get("name")
+        ))
         entry_data = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
         service_status = entry_data.get("service", {})
         if not isinstance(service_status, dict):
@@ -587,12 +617,24 @@ async def handle_apis_changed(
             bool(notifications),
             device_name,
         )
+        # The event entities are built at setup: when the list of hotkeys changes while
+        # the platform is loaded, it is reloaded so the entity and its event types follow.
+        loaded = hass.data[DOMAIN][entry.entry_id]["loaded"]
+        hotkeys_changed = entry_data.get("hotkey_signature") != hotkey_signature
+        # Unloaded only, not removed from the registry: the entities come straight back.
+        if (
+            loaded.get("event", False)
+            and hotkeys_changed
+            and await hass.config_entries.async_forward_entry_unload(entry, Platform.EVENT)
+        ):
+            loaded["event"] = False
+        entry_data["hotkey_signature"] = hotkey_signature
         await _async_update_platform(
             hass,
             entry,
             Platform.EVENT,
             "event",
-            bool(notification_events),
+            bool(notification_events) or has_hotkeys,
             device_name,
         )
         await _async_update_sensor_platform(
@@ -801,6 +843,14 @@ def _register_ws_listeners(hass: HomeAssistant, entry: ConfigEntry) -> list:
             )
 
     @callback
+    def _ws_hotkey(event) -> None:
+        data = event.data
+        if data.get("serial_number") != entry.unique_id:
+            return
+        if data.get("hotkey"):
+            async_dispatcher_send(hass, f"hass_agent_hotkey_{entry.entry_id}", data)
+
+    @callback
     def _ws_persistent_notification(event) -> None:
         data = event.data
         if data.get("serial_number") != entry.unique_id:
@@ -853,6 +903,7 @@ def _register_ws_listeners(hass: HomeAssistant, entry: ConfigEntry) -> list:
         hass.bus.async_listen("hass_agent_media_update", _ws_media_update),
         hass.bus.async_listen("hass_agent_media_thumbnail", _ws_media_thumbnail),
         hass.bus.async_listen("hass_agent_notification_action", _ws_notification_action),
+        hass.bus.async_listen("hass_agent_hotkey", _ws_hotkey),
         hass.bus.async_listen("hass_agent_persistent_notification", _ws_persistent_notification),
         hass.bus.async_listen("hass_agent_availability", _ws_availability),
     ]
@@ -1155,8 +1206,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             platforms_to_unload.append(Platform.EVENT)
 
         if loaded.get("sensor", False):
-            platforms_to_unload.append(Platform.SENSOR)
-            platforms_to_unload.append(Platform.LIGHT)
+            platforms_to_unload.extend(SENSOR_PLATFORMS)
 
         if loaded.get("button", False):
             platforms_to_unload.append(Platform.BUTTON)
@@ -1308,6 +1358,56 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
             "command_type": "button_command",
             "payload": payload,
         })
+
+    async def async_set_app_volume(call) -> None:
+        """Set the volume or mute of one app in the volume mixer (client 10.9.0+, tray app)."""
+        device_name = call.data[CONF_DEVICE_NAME]
+        if CONF_VOLUME not in call.data and CONF_MUTED not in call.data:
+            raise HomeAssistantError("volume or muted is required")
+
+        serial_number = serial_number_for_device_name(device_name)
+        if serial_number is None:
+            raise HomeAssistantError(f"device not found: {device_name}")
+
+        payload: dict[str, Any] = {"command": "set_app_volume", "text": call.data[CONF_APP]}
+        if CONF_VOLUME in call.data:
+            payload["value"] = call.data[CONF_VOLUME]
+        if CONF_MUTED in call.data:
+            payload["muted"] = call.data[CONF_MUTED]
+
+        if not _is_ha_api_only_entry(device_name):
+            try:
+                await mqtt.async_publish(
+                    hass,
+                    f"hass.agent/buttons/{serial_number}/cmd",
+                    json.dumps(payload),
+                    qos=0,
+                    retain=False,
+                )
+            except HomeAssistantError as err:
+                # The broker being away must not keep the command from the HA API transport.
+                _logger.debug("set_app_volume not sent over MQTT: %s", err)
+
+        hass.bus.async_fire("hass_agent_command", {
+            "serial_number": serial_number,
+            "command_type": "button_command",
+            "target": "app",
+            "payload": payload,
+        })
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_SET_APP_VOLUME,
+        async_set_app_volume,
+        schema=vol.Schema(
+            {
+                vol.Required(CONF_DEVICE_NAME): cv.string,
+                vol.Required(CONF_APP): cv.string,
+                vol.Optional(CONF_VOLUME): vol.All(vol.Coerce(int), vol.Range(min=0, max=100)),
+                vol.Optional(CONF_MUTED): cv.boolean,
+            }
+        ),
+    )
 
     service.async_register_platform_entity_service(
         hass,
