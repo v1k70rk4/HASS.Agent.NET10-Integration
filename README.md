@@ -258,7 +258,7 @@ When using the HA API (WebSocket) transport, the Windows client fires events int
 
 ### 10.9.0-beta.1
 
-> **Beta.** A pre-release: in HACS, open the integration, choose **Redownload** and turn on **Show beta versions** to get it. It goes with the Windows client **10.9.0-beta.1**. The current stable release is **10.7.3**, below.
+> **Beta.** A pre-release: in HACS, open the integration, choose **Redownload**, turn on **Show beta versions**, then pick **10.9.0-beta.1** in the version list. It goes with the Windows client **10.9.0-beta.1**. The current stable release is **10.7.3**, below.
 
 - **Audio device selects.** Two select entities choose the PC's default playback and recording device, from the list of devices Windows has active. The output one appears for every client **10.9.0** or newer whose *Audio output device* sensor is on (it is by default); the input one when the new *Audio input device* sensor is turned on.
 - **Hotkeys as events.** A client 10.9.0+ with hotkeys set up gets a *Hotkeys* event entity whose event types are the hotkey names, for automations that start from the keyboard. The press also fires `hass_agent_hotkey_pressed` on the event bus.
