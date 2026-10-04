@@ -4,10 +4,13 @@ from __future__ import annotations
 
 import json
 import logging
+import re
+from datetime import timedelta
 from typing import Any
 
 from aiohttp import ClientError, ClientTimeout
 from homeassistant.components import mqtt
+from homeassistant.components.http.auth import async_sign_path
 from homeassistant.components.notify import NotifyEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_URL
@@ -15,6 +18,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.network import NoURLAvailableError, get_url
 
 from .const import (
     CONF_API_KEY,
@@ -25,6 +29,58 @@ from .const import (
 )
 
 _logger = logging.getLogger(__name__)
+
+# How long the client has to fetch a picture that lives on this Home Assistant. It does so
+# the moment the notification arrives and keeps its own copy.
+IMAGE_LINK_LIFETIME = timedelta(minutes=5)
+
+# A camera or image entity given as the picture: its current frame is what is sent.
+_IMAGE_ENTITY = re.compile(r"^(camera|image)\.[a-z0-9_]+$")
+
+
+def _prepare_image(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, Any]:
+    """Make a picture that lives on this Home Assistant fetchable by the client.
+
+    `image` may be a camera or image entity, or a path on this Home Assistant
+    (`/local/...`, `/api/camera_proxy/...`). Such a path needs a login the client does not
+    have, so it is signed for a few minutes. The client gets it as `image_path`, which it
+    joins to the Home Assistant address it is itself connected to (HA API transport), and
+    as full addresses for a client that only knows the broker: the internal URL of this
+    instance in `image` (a PC that reaches the broker is as a rule on the same network)
+    and the external one in `image_alt`, tried when the first cannot be reached. A full
+    web address is passed on untouched.
+    """
+    image = data.get("image")
+    if not isinstance(image, str):
+        return data
+
+    image = image.strip()
+    if match := _IMAGE_ENTITY.match(image):
+        image = f"/api/{match.group(1)}_proxy/{image}"
+
+    if not image.startswith("/"):
+        return data
+
+    signed = async_sign_path(hass, image, IMAGE_LINK_LIFETIME, use_content_user=True)
+    prepared = dict(data)
+    prepared["image_path"] = signed
+
+    addresses: list[str] = []
+    for options in ({"allow_external": False}, {"allow_internal": False}, {}):
+        try:
+            address = f"{get_url(hass, **options)}{signed}"
+        except NoURLAvailableError:
+            continue
+        if address not in addresses:
+            addresses.append(address)
+
+    # With no address of its own to offer, a client on the HA API transport still has one.
+    prepared.pop("image")
+    if addresses:
+        prepared["image"] = addresses[0]
+    if len(addresses) > 1:
+        prepared["image_alt"] = addresses[1]
+    return prepared
 
 
 async def async_setup_entry(
@@ -93,7 +149,7 @@ class HassAgentNotifyEntity(NotifyEntity):
                 CONF_DEFAULT_NOTIFICATION_TITLE, "Home Assistant"
             )
 
-        data = data or {}
+        data = _prepare_image(self.hass, data or {})
         payload = {"message": message, "title": title, "data": data}
 
         _logger.debug("Sending notification")

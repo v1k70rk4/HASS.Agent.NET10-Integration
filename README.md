@@ -20,7 +20,7 @@ It is the matching Home Assistant side for the modern **HASS.Agent .NET10** Wind
 >
 > If you want to keep using the old HASS.Agent client, switch to the **[`legacy` branch](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/tree/legacy)** of this integration. The legacy branch works with Home Assistant 2026.6+ and the original pre-.NET10 HASS.Agent, but it is **no longer maintained**.
 
-> **Stable:** [10.7.3](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/releases/latest) &nbsp;·&nbsp; **Beta:** [10.9.0-beta.1](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/releases/tag/v10.9.0-beta.1) &nbsp;·&nbsp; [What changed](#changelog) &nbsp;·&nbsp; [Full changelog](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/blob/main/CHANGELOG.md)
+> **Stable:** [10.7.3](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/releases/latest) &nbsp;·&nbsp; **Beta:** [10.9.0-beta.2](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/releases/tag/v10.9.0-beta.2) &nbsp;·&nbsp; [What changed](#changelog) &nbsp;·&nbsp; [Full changelog](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/blob/main/CHANGELOG.md)
 
 ---
 
@@ -176,6 +176,45 @@ data:
         title: "Turn off"
 ```
 
+What can go under the inner `data`:
+
+| Field | Description |
+|-------|-------------|
+| `actions` | Buttons, each with an `action` (what comes back) and a `title`. Up to five. |
+| `image` | A picture: a web address, a path on this Home Assistant (`/local/doorbell.jpg`, `/api/camera_proxy/camera.front_door`), or a camera or image entity (`camera.front_door`). A path or an entity is signed for five minutes so the PC can fetch it. Client 10.9.0+. |
+| `inputs` | Text fields, each with an `id` and a `title` (the hint in the empty field). Up to five. What was typed comes back with the pressed button, in `input`, by id. Client 10.9.0+. |
+| `duration` | Seconds on screen, 1 to 60 (default 10). |
+| `style` | `toast` (a Windows notification) or `window` (the client's own always-visible window), for this one notification. Without it the client's own setting decides. Client 10.9.0+. |
+
+> `image`, `inputs` and `style` are in the 10.9.0 beta (integration and client 10.9.0-beta.2 or newer). An older client shows the notification without them.
+
+```yaml
+action: hass_agent.send_notification
+target:
+  entity_id: notify.my_pc_notifications
+data:
+  title: Doorbell
+  message: "Somebody is at the front door."
+  data:
+    image: camera.front_door
+    style: window
+    inputs:
+      - id: answer
+        title: "Say something through the intercom"
+    actions:
+      - action: speak
+        title: "Speak"
+```
+
+The press arrives on the device's *Notification actions* event entity and as a `hass_agent_notifications` event, with the typed text in `input`:
+
+```yaml
+action: speak
+input:
+  answer: "Leave it at the door, please"
+device_name: MY-PC
+```
+
 ### hass_agent.execute_command
 
 Sends a system command to a HASS.Agent .NET10 device:
@@ -282,9 +321,19 @@ A hotkey pressed on the PC (client 10.9.0+) reaches the device's *Hotkeys* event
 
 ## Changelog
 
-### 10.9.0-beta.1
+### 10.9.0-beta.2
 
-> **Beta.** A pre-release: in HACS, open the integration, choose **Redownload**, turn on **Show beta versions**, then pick **10.9.0-beta.1** in the version list. It goes with the Windows client **10.9.0-beta.1**. The current stable release is **10.7.3**, below.
+> **Beta.** A pre-release: in HACS, open the integration, choose **Redownload**, turn on **Show beta versions**, then pick **10.9.0-beta.2** in the version list. It goes with the Windows client **10.9.0-beta.2**. The current stable release is **10.7.3**, below.
+
+**New since beta.1**
+
+- **Pictures in notifications, straight from Home Assistant.** `image` in a notification's `data` can now be a path on this Home Assistant (`/local/doorbell.jpg`, `/api/camera_proxy/camera.front_door`) or simply a camera or image entity (`camera.front_door`). The integration signs the address for five minutes, so the PC can fetch the picture without a login of its own; it sends both the internal and the external address of this Home Assistant, and the PC uses the one it can reach. A full web address is passed on as it is. Showing the picture needs the Windows client **10.9.0-beta.2** or newer.
+- **Text typed into a notification comes back.** The client 10.9.0-beta.2 can show text fields (`inputs`) on a notification; what was typed arrives with the pressed button, as `input` in the data of the *Notification actions* event and of the `hass_agent_notifications` bus event.
+- The integration now names `http` as a dependency, which the signed picture addresses need.
+- **Fixed: "has already been setup" errors at a Home Assistant start.** Two capability messages of one PC arriving back to back (the retained one and the client's fresh one) could both start setting up the same platform; Home Assistant refused the second with an error in the log, once per platform. The entities were there all the same.
+- **Fixed: a custom sensor with a unit and a value that is not a number no longer floods the log.** Home Assistant takes a sensor with a unit for a number and raised an error on every update when the value was a text such as `off`. Such a sensor now shows as unknown, and the log says once which sensor it is and what to change in the Windows client.
+
+**From beta.1**
 
 - **Audio device selects.** Two select entities choose the PC's default playback and recording device, from the list of devices Windows has active. The output one appears for every client **10.9.0** or newer whose *Audio output device* sensor is on (it is by default); the input one when the new *Audio input device* sensor is turned on.
 - **Hotkeys as events.** A client 10.9.0+ with hotkeys set up gets a *Hotkeys* event entity whose event types are the hotkey names, for automations that start from the keyboard. The press also fires `hass_agent_hotkey_pressed` on the event bus.
