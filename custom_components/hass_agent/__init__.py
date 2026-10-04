@@ -168,7 +168,9 @@ def _async_store_device_data(hass: HomeAssistant, entry: ConfigEntry, payload: d
 
     device = payload.get("device")
     apis = payload.get("apis")
-    if not isinstance(device, dict) or not device.get("name") or not isinstance(apis, dict):
+    # The same conditions as update_device_info: what is stored must be usable at set-up.
+    name = device.get("name") if isinstance(device, dict) else None
+    if not isinstance(name, str) or not name or not isinstance(apis, dict):
         return
 
     if entry.data.get("device") == device and entry.data.get("apis") == apis:
@@ -655,13 +657,22 @@ async def handle_apis_changed(
     entry_data["apis_busy"] = True
     try:
         while True:
-            await _async_apply_apis(hass, entry, apis)
+            try:
+                await _async_apply_apis(hass, entry, apis)
+            except Exception:
+                # A newer set of capabilities is waiting: that is the one that counts.
+                if "apis_pending" not in entry_data:
+                    raise
+                _logger.exception("failed to apply capabilities for %s, applying the newer ones", entry.unique_id)
             pending = entry_data.pop("apis_pending", None)
             if pending is None:
                 break
             (apis,) = pending
     finally:
+        # Also on the way out with an error or a cancellation: nothing stale stays behind
+        # to be applied after some later, newer change.
         entry_data["apis_busy"] = False
+        entry_data.pop("apis_pending", None)
 
 
 async def _async_apply_apis(
