@@ -224,8 +224,10 @@ Sets the volume of one app in the Windows volume mixer, or mutes it. The *Audio 
 |-------|:--------:|-------------|
 | `device_name` | yes | Target Windows device name |
 | `app` | yes | The app as the *Audio sessions* sensor names it, e.g. `spotify` |
-| `volume` | | Volume in percent, `0` to `100` |
-| `muted` | | `true` to mute, `false` to unmute |
+| `volume` | * | Volume in percent, `0` to `100` |
+| `muted` | * | `true` to mute, `false` to unmute |
+
+\* At least one of `volume` and `muted` is required; both can be given in one call.
 
 ```yaml
 action: hass_agent.set_app_volume
