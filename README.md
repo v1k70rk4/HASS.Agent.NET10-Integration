@@ -330,6 +330,7 @@ A hotkey pressed on the PC (client 10.9.0+) reaches the device's *Hotkeys* event
 - **Pictures in notifications, straight from Home Assistant.** `image` in a notification's `data` can now be a path on this Home Assistant (`/local/doorbell.jpg`, `/api/camera_proxy/camera.front_door`) or simply a camera or image entity (`camera.front_door`). The integration signs the address for five minutes, so the PC can fetch the picture without a login of its own. A full web address is passed on as it is. Showing the picture needs the Windows client **10.9.0-beta.2** or newer.
 - **Text typed into a notification comes back.** The client 10.9.0-beta.2 can show text fields (`inputs`) on a notification; what was typed arrives with the pressed button, as `input` in the data of the *Notification actions* event and of the `hass_agent_notifications` bus event.
 - The integration now names `http` as a dependency, which the signed picture addresses need.
+- **Fixed: a custom sensor with a unit and a value that is not a number no longer floods the log.** Home Assistant takes a sensor with a unit for a number and raised an error on every update when the value was a text such as `off`. Such a sensor now shows as unknown, and the log says once which sensor it is and what to change in the Windows client.
 
 **From beta.1**
 

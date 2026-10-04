@@ -565,6 +565,7 @@ class HassAgentCustomSensor(HassAgentAvailableEntity, SensorEntity):
         )
         self._listeners: dict[str, Any] = {}
         self._attr_extra_state_attributes = {}
+        self._warned_not_numeric = False
         self._setup_availability(entry_id)
 
     def _provider_online(self, entry_data: dict) -> bool | None:
@@ -577,6 +578,42 @@ class HassAgentCustomSensor(HassAgentAvailableEntity, SensorEntity):
         return (by_app and self._app_online(entry_data)) or (
             by_service and self._service_online(entry_data)
         )
+
+    @callback
+    def _apply(self, sensor: dict[str, Any]) -> None:
+        """Take the value and the attributes of this sensor out of its entry in a payload."""
+        value = sensor.get("value")
+        if isinstance(value, bool):
+            value = "on" if value else "off"
+        elif isinstance(value, str):
+            value = value[:255]
+        elif value is not None and not isinstance(value, int | float):
+            return
+
+        # With a unit (or a state class) Home Assistant takes the sensor for a number and
+        # raises on anything else, on every update. A unit set on a value that is not a
+        # number, "off" for instance, is a slip in the client's settings: the state is
+        # unknown until that is put right, and the log says so once.
+        if isinstance(value, str) and (
+            self.native_unit_of_measurement is not None or self.state_class is not None
+        ):
+            try:
+                float(value)
+            except ValueError:
+                if not self._warned_not_numeric:
+                    self._warned_not_numeric = True
+                    _LOGGER.warning(
+                        "custom sensor '%s' has a unit but reports '%s', which is not a number; "
+                        "remove the unit in the Windows client or pick a numeric value",
+                        self._attr_name,
+                        value,
+                    )
+                value = None
+
+        attributes = sensor.get("attributes")
+        self._attr_extra_state_attributes = attributes if isinstance(attributes, dict) else {}
+        self._attr_native_value = value
+        self.async_write_ha_state()
 
     @callback
     def updated(self, message: ReceiveMessage) -> None:
@@ -601,18 +638,7 @@ class HassAgentCustomSensor(HassAgentAvailableEntity, SensorEntity):
             if not isinstance(sensor, dict) or sensor.get("id") != self._sensor_id:
                 continue
 
-            value = sensor.get("value")
-            if isinstance(value, bool):
-                value = "on" if value else "off"
-            elif isinstance(value, str):
-                value = value[:255]
-            elif value is not None and not isinstance(value, int | float):
-                return
-
-            attributes = sensor.get("attributes")
-            self._attr_extra_state_attributes = attributes if isinstance(attributes, dict) else {}
-            self._attr_native_value = value
-            self.async_write_ha_state()
+            self._apply(sensor)
             return
 
     @callback
@@ -629,18 +655,7 @@ class HassAgentCustomSensor(HassAgentAvailableEntity, SensorEntity):
             if not isinstance(sensor, dict) or sensor.get("id") != self._sensor_id:
                 continue
 
-            value = sensor.get("value")
-            if isinstance(value, bool):
-                value = "on" if value else "off"
-            elif isinstance(value, str):
-                value = value[:255]
-            elif value is not None and not isinstance(value, int | float):
-                return
-
-            attributes = sensor.get("attributes")
-            self._attr_extra_state_attributes = attributes if isinstance(attributes, dict) else {}
-            self._attr_native_value = value
-            self.async_write_ha_state()
+            self._apply(sensor)
             return
 
     async def async_added_to_hass(self) -> None:
