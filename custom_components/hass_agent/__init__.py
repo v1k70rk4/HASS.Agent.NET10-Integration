@@ -36,6 +36,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.event import async_call_later
 from homeassistant.helpers.issue_registry import async_delete_issue
+from homeassistant.helpers.start import async_at_started
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.loader import async_get_integration
 
@@ -72,6 +73,8 @@ CONF_APP = "app"
 CONF_VOLUME = "volume"
 CONF_MUTED = "muted"
 SERVICE_STATUS_STORAGE_KEY = "_service_status"
+# The latest hass_agent_device_update payload per serial number, as it came over the HA API.
+WS_DEVICES_STORAGE_KEY = "_ws_devices"
 
 # HA API (WebSocket) has no broker Last Will, so the device sends a heartbeat
 # every 30s; mark it offline if three in a row are missed.
@@ -123,6 +126,53 @@ def update_device_info(
         model=device_info.get("model"),
         sw_version=device_info.get("sw_version"),
     )
+
+
+@callback
+def _async_request_announce(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Ask a client on the HA API to send its device data, update state and status again.
+
+    The client sends them when it connects, and after a Home Assistant restart it is
+    connected before this integration listens: everything it said is lost, and the HA
+    API keeps nothing for latecomers the way a broker keeps retained messages. A client
+    10.9.0 or newer answers the request; an older one ignores it. Asked now, for a reload
+    while Home Assistant runs, and once more when the start has finished.
+    """
+
+    @callback
+    def _ask(_hass: HomeAssistant | None = None) -> None:
+        hass.bus.async_fire(
+            "hass_agent_command",
+            {"serial_number": entry.unique_id, "command_type": "announce"},
+        )
+
+    _ask()
+    if not hass.is_running:
+        entry.async_on_unload(async_at_started(hass, _ask))
+
+
+@callback
+def _async_store_device_data(hass: HomeAssistant, entry: ConfigEntry, payload: dict[str, Any]) -> None:
+    """Keep the latest device data of an HA API-only PC in its config entry.
+
+    Over MQTT the retained device message brings the current version and capabilities
+    back after every Home Assistant start. The HA API has nothing like it, and the entry
+    kept what the PC looked like on the day it was added: after a restart the device
+    showed that old version, and lost what it had gained since, until the client
+    happened to announce itself again.
+    """
+    if not entry.data.get(CONF_HA_API, False):
+        return
+
+    device = payload.get("device")
+    apis = payload.get("apis")
+    if not isinstance(device, dict) or not device.get("name") or not isinstance(apis, dict):
+        return
+
+    if entry.data.get("device") == device and entry.data.get("apis") == apis:
+        return
+
+    hass.config_entries.async_update_entry(entry, data={**entry.data, "device": device, "apis": apis})
 
 
 async def _async_forward_once(
@@ -767,6 +817,7 @@ def _register_ws_listeners(hass: HomeAssistant, entry: ConfigEntry) -> list:
         if not isinstance(apis, dict):
             return
         update_device_info(hass, entry, data)
+        _async_store_device_data(hass, entry, data)
         hass.data[DOMAIN][entry.entry_id]["apis"] = apis
         hass.async_create_background_task(
             handle_apis_changed(hass, entry, apis), "hass.agent-ws-device"
@@ -994,7 +1045,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     elif is_ha_api:
         # --- HA API standalone path ---
-        # Device was discovered via WebSocket event, no MQTT broker needed.
+        # Device was discovered via WebSocket event, no MQTT broker needed. There is no
+        # retained message to start from on this transport: the entry keeps the last
+        # device data it saw, and a device update that arrived before this setup wins.
+        latest = hass.data[DOMAIN].get(WS_DEVICES_STORAGE_KEY, {}).get(entry.unique_id)
+        if isinstance(latest, dict):
+            _async_store_device_data(hass, entry, latest)
+
         update_device_info(hass, entry, entry.data)
 
         apis = entry.data.get("apis", {})
@@ -1002,6 +1059,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         ws_unsubs = _register_ws_listeners(hass, entry)
         hass.data[DOMAIN][entry.entry_id]["ws_unsubs"] = ws_unsubs
+        _async_request_announce(hass, entry)
 
         await handle_apis_changed(hass, entry, apis)
 
@@ -1174,6 +1232,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         # WebSocket failover event listeners (alongside MQTT subscriptions).
         ws_unsubs = _register_ws_listeners(hass, entry)
         hass.data[DOMAIN][entry.entry_id]["ws_unsubs"] = ws_unsubs
+        _async_request_announce(hass, entry)
 
     # Clean up stale restart_required repair issues for this device.
     # These are created on device rename and resolved by any HA restart,
@@ -1278,6 +1337,11 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         serial_number = data.get("serial_number")
         if not isinstance(serial_number, str) or not serial_number:
             return
+
+        # Kept for the entry's own setup: at a Home Assistant start the client is often
+        # back on the WebSocket, and has sent this, before its entry is set up.
+        if isinstance(data.get("apis"), dict):
+            hass.data[DOMAIN].setdefault(WS_DEVICES_STORAGE_KEY, {})[serial_number] = dict(data)
 
         # Already configured?
         for entry in hass.config_entries.async_entries(DOMAIN):
