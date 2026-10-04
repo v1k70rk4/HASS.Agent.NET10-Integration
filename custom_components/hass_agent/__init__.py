@@ -125,6 +125,28 @@ def update_device_info(
     )
 
 
+async def _async_forward_once(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    platforms: list[Platform],
+    loaded: dict[str, bool],
+    loaded_key: str,
+) -> None:
+    """Set the platforms up and mark them loaded, in that order as seen from outside.
+
+    Two capability messages of one device can arrive back to back (at a Home Assistant
+    start: the retained one and the client's fresh one) and are handled as two tasks. The
+    mark is set before the first await, so the second task finds the platform loaded
+    instead of setting it up again, which Home Assistant refuses with an error.
+    """
+    loaded[loaded_key] = True
+    try:
+        await hass.config_entries.async_forward_entry_setups(entry, platforms)
+    except Exception:
+        loaded[loaded_key] = False
+        raise
+
+
 async def _async_update_platform(
     hass: HomeAssistant,
     entry: ConfigEntry,
@@ -139,8 +161,7 @@ async def _async_update_platform(
 
     if should_load and not is_loaded:
         _logger.debug("loading %s for device: %s [%s]", platform, device_name, entry.unique_id)
-        await hass.config_entries.async_forward_entry_setups(entry, [platform])
-        loaded[loaded_key] = True
+        await _async_forward_once(hass, entry, [platform], loaded, loaded_key)
         return
 
     if not should_load and is_loaded:
@@ -509,8 +530,7 @@ async def _async_update_button_platform(
             command_signature,
             custom_command_signature,
         )
-        await hass.config_entries.async_forward_entry_setups(entry, [Platform.BUTTON])
-        loaded["button"] = True
+        await _async_forward_once(hass, entry, [Platform.BUTTON], loaded, "button")
 
 
 async def _async_update_sensor_platform(
@@ -555,8 +575,7 @@ async def _async_update_sensor_platform(
 
     if should_load:
         _logger.debug("loading sensor for device: %s [%s]", device_name, entry.unique_id)
-        await hass.config_entries.async_forward_entry_setups(entry, SENSOR_PLATFORMS)
-        loaded["sensor"] = True
+        await _async_forward_once(hass, entry, list(SENSOR_PLATFORMS), loaded, "sensor")
 
 
 async def handle_apis_changed(
