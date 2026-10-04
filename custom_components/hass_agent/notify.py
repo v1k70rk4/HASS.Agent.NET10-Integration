@@ -43,10 +43,12 @@ def _prepare_image(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, Any]:
 
     `image` may be a camera or image entity, or a path on this Home Assistant
     (`/local/...`, `/api/camera_proxy/...`). Such a path needs a login the client does not
-    have, so it is signed for a few minutes. The client gets it twice: as `image_path`,
-    which it joins to the Home Assistant address it is itself connected to (HA API
-    transport), and as a full address in `image`, built from this instance's own URL, for a
-    client that only knows the broker. A full web address is passed on untouched.
+    have, so it is signed for a few minutes. The client gets it as `image_path`, which it
+    joins to the Home Assistant address it is itself connected to (HA API transport), and
+    as full addresses for a client that only knows the broker: the internal URL of this
+    instance in `image` (a PC that reaches the broker is as a rule on the same network)
+    and the external one in `image_alt`, tried when the first cannot be reached. A full
+    web address is passed on untouched.
     """
     image = data.get("image")
     if not isinstance(image, str):
@@ -62,11 +64,22 @@ def _prepare_image(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, Any]:
     signed = async_sign_path(hass, image, IMAGE_LINK_LIFETIME, use_content_user=True)
     prepared = dict(data)
     prepared["image_path"] = signed
-    try:
-        prepared["image"] = f"{get_url(hass)}{signed}"
-    except NoURLAvailableError:
-        # No address of its own to offer; a client on the HA API transport has one.
-        prepared.pop("image")
+
+    addresses: list[str] = []
+    for options in ({"allow_external": False}, {"allow_internal": False}, {}):
+        try:
+            address = f"{get_url(hass, **options)}{signed}"
+        except NoURLAvailableError:
+            continue
+        if address not in addresses:
+            addresses.append(address)
+
+    # With no address of its own to offer, a client on the HA API transport still has one.
+    prepared.pop("image")
+    if addresses:
+        prepared["image"] = addresses[0]
+    if len(addresses) > 1:
+        prepared["image_alt"] = addresses[1]
     return prepared
 
 

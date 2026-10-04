@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 from dataclasses import replace
 from datetime import datetime
 from typing import Any
@@ -598,8 +599,11 @@ class HassAgentCustomSensor(HassAgentAvailableEntity, SensorEntity):
             self.native_unit_of_measurement is not None or self.state_class is not None
         ):
             try:
-                float(value)
+                # "nan" and "inf" convert, and Home Assistant refuses them all the same.
+                numeric = math.isfinite(float(value))
             except ValueError:
+                numeric = False
+            if not numeric:
                 if not self._warned_not_numeric:
                     self._warned_not_numeric = True
                     _LOGGER.warning(
