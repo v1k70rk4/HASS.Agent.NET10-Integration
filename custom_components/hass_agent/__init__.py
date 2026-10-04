@@ -135,19 +135,21 @@ def _async_request_announce(hass: HomeAssistant, entry: ConfigEntry) -> None:
     The client sends them when it connects, and after a Home Assistant restart it is
     connected before this integration listens: everything it said is lost, and the HA
     API keeps nothing for latecomers the way a broker keeps retained messages. A client
-    10.9.0 or newer answers the request; an older one ignores it. Asked now, for a reload
-    while Home Assistant runs, and once more when the start has finished.
+    10.9.0 or newer answers the request; an older one ignores it. Asked when Home
+    Assistant has finished starting, or, for a reload while it runs, a moment after this
+    setup: the answer loads platforms, which must not start while the setup is under way.
     """
 
     @callback
-    def _ask(_hass: HomeAssistant | None = None) -> None:
+    def _ask(_arg: Any = None) -> None:
         hass.bus.async_fire(
             "hass_agent_command",
             {"serial_number": entry.unique_id, "command_type": "announce"},
         )
 
-    _ask()
-    if not hass.is_running:
+    if hass.is_running:
+        entry.async_on_unload(async_call_later(hass, 2, _ask))
+    else:
         entry.async_on_unload(async_at_started(hass, _ask))
 
 
@@ -629,6 +631,40 @@ async def _async_update_sensor_platform(
 
 
 async def handle_apis_changed(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    apis: dict[str, Any] | None,
+) -> None:
+    """Bring the platforms of a device in line with its capabilities, one change at a time.
+
+    Capability messages come in bursts (at a Home Assistant start: the retained MQTT
+    message, the service's status, the client's answer to the announce request), each
+    handled as a task of its own. Loading and unloading platforms awaits in between, and
+    two of these interleaving set a platform up twice or unloaded it mid-setup. While one
+    is at work, a later one only leaves its capabilities behind and returns; the one at
+    work applies them when it is done, the latest winning.
+    """
+    entry_data = hass.data.get(DOMAIN, {}).get(entry.entry_id)
+    if entry_data is None:
+        return
+
+    if entry_data.get("apis_busy"):
+        entry_data["apis_pending"] = (apis,)
+        return
+
+    entry_data["apis_busy"] = True
+    try:
+        while True:
+            await _async_apply_apis(hass, entry, apis)
+            pending = entry_data.pop("apis_pending", None)
+            if pending is None:
+                break
+            (apis,) = pending
+    finally:
+        entry_data["apis_busy"] = False
+
+
+async def _async_apply_apis(
     hass: HomeAssistant,
     entry: ConfigEntry,
     apis: dict[str, Any] | None,
