@@ -2,6 +2,11 @@
 
 Every release of the HASS.Agent .NET10 integration, newest first. The Windows client has its own [changelog](https://github.com/v1k70rk4/HASS.Agent.NET10/blob/main/CHANGELOG.md).
 
+## Unreleased
+
+- **Fixed: a PC that only uses the HA API showed old data after a Home Assistant restart.** Its device was set up from what the integration stored on the day the PC was added (the version and the capabilities of that day), and the client's fresh data, sent the moment it reconnected, arrived before the integration listened. The device page showed an old firmware version, the update entity was unavailable, and capabilities gained since could be missing until the client announced itself again. The integration now keeps the latest device data, and asks the client to announce itself once Home Assistant has started (the client answers from 10.9.0 on; the stored data alone already helps with older ones).
+- **Fixed for good: "has already been setup" errors.** Capability messages arriving in a burst were handled side by side and could set a platform up twice or unload it mid-setup. They are applied one at a time now, the latest winning.
+
 ## 10.9.0-beta.2
 
 > **Beta.** A pre-release: in HACS, open the integration, choose **Redownload**, turn on **Show beta versions**, then pick **10.9.0-beta.2** in the version list. It goes with the Windows client **10.9.0-beta.2**. The current stable release is **10.7.3**, below.
