@@ -4,7 +4,7 @@
     "step": {
       "user": {
         "title": "Add HASS.Agent device",
-        "description": "MQTT devices are discovered automatically. Choose a manual connection method below.",
+        "description": "PCs on MQTT are discovered automatically, and so are further PCs on the HA API once the integration has a device. Choose a manual connection method below.",
         "menu_options": {
           "ha_api_info": "HA API (WebSocket)",
           "local_api": "Local HTTP API (notifications only)"

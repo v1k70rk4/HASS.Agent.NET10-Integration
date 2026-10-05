@@ -4,7 +4,7 @@
     "step": {
       "user": {
         "title": "HASS.Agent eszköz hozzáadása",
-        "description": "Az MQTT eszközök automatikusan felderítésre kerülnek. Válasszon manuális kapcsolódási módot alább.",
+        "description": "Az MQTT-n kapcsolódó gépeket a rendszer magától felderíti, és a HA API-n kapcsolódó további gépeket is, ha az integrációnak már van eszköze. Válassz kézi kapcsolódási módot alább.",
         "menu_options": {
           "ha_api_info": "HA API (WebSocket)",
           "local_api": "Helyi HTTP API (csak értesítések)"
