@@ -144,6 +144,36 @@
         }
       }
     },
+    "execute_command": {
+      "name": "Run system command",
+      "description": "Runs a system command on the Windows PC (lock, sleep, shutdown and so on), or cancels a pending shutdown or restart.",
+      "fields": {
+        "device_name": {
+          "name": "Device name",
+          "description": "The Windows device, as named in the client."
+        },
+        "command": {
+          "name": "Command",
+          "description": "The command to run. It has to be enabled on the Capabilities page of the Windows client."
+        },
+        "comment": {
+          "name": "Comment",
+          "description": "For shutdown and restart: the text Windows shows to the logged-in user."
+        },
+        "force": {
+          "name": "Force",
+          "description": "For shutdown and restart: do not wait for apps to close."
+        },
+        "time": {
+          "name": "Delay",
+          "description": "For shutdown and restart: seconds before it starts."
+        },
+        "restart_cancel": {
+          "name": "Cancel shutdown or restart",
+          "description": "Cancels a pending shutdown or restart instead of running a command."
+        }
+      }
+    },
     "set_app_volume": {
       "name": "Set app volume",
       "description": "Sets the volume or mute of one app in the Windows volume mixer (client 10.9.0+, Audio sessions sensor enabled).",
@@ -172,6 +202,20 @@
       "options": {
         "toast": "Windows notification",
         "window": "Own window (always visible)"
+      }
+    },
+    "system_command": {
+      "options": {
+        "lock": "Lock",
+        "sleep": "Sleep",
+        "hibernate": "Hibernate",
+        "logoff": "Log off",
+        "monitor_off": "Turn off monitor",
+        "volume_up": "Volume up",
+        "volume_down": "Volume down",
+        "toggle_mute": "Toggle mute",
+        "shutdown": "Shutdown",
+        "restart": "Restart"
       }
     }
   }

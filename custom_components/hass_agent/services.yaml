@@ -72,6 +72,7 @@ execute_command:
     command:
       selector:
         select:
+          translation_key: system_command
           options:
             - lock
             - sleep

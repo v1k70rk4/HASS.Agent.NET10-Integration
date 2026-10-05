@@ -144,6 +144,36 @@
         }
       }
     },
+    "execute_command": {
+      "name": "Rendszerparancs futtatása",
+      "description": "Rendszerparancsot futtat a Windows gépen (zárolás, alvás, leállítás és így tovább), vagy megszakít egy folyamatban lévő leállítást vagy újraindítást.",
+      "fields": {
+        "device_name": {
+          "name": "Eszköznév",
+          "description": "A Windows-gép neve, ahogy a kliensben szerepel."
+        },
+        "command": {
+          "name": "Parancs",
+          "description": "A futtatandó parancs. A Windows kliens Képességek oldalán engedélyezve kell lennie."
+        },
+        "comment": {
+          "name": "Megjegyzés",
+          "description": "Leállításnál és újraindításnál: a szöveg, amit a Windows a bejelentkezett felhasználónak mutat."
+        },
+        "force": {
+          "name": "Kényszerítés",
+          "description": "Leállításnál és újraindításnál: ne várjon az alkalmazások bezárására."
+        },
+        "time": {
+          "name": "Késleltetés",
+          "description": "Leállításnál és újraindításnál: ennyi másodperc múlva indul."
+        },
+        "restart_cancel": {
+          "name": "Leállítás vagy újraindítás megszakítása",
+          "description": "Parancs futtatása helyett megszakítja a folyamatban lévő leállítást vagy újraindítást."
+        }
+      }
+    },
     "set_app_volume": {
       "name": "Alkalmazás hangereje",
       "description": "Egy alkalmazás hangerejét vagy némítását állítja a Windows hangerőkeverőjében (kliens 10.9.0+, bekapcsolt Hangmunkamenetek szenzorral).",
@@ -172,6 +202,20 @@
       "options": {
         "toast": "Windows-értesítés",
         "window": "Saját ablak (mindig látszik)"
+      }
+    },
+    "system_command": {
+      "options": {
+        "lock": "Zárolás",
+        "sleep": "Alvás",
+        "hibernate": "Hibernálás",
+        "logoff": "Kijelentkezés",
+        "monitor_off": "Monitor kikapcsolása",
+        "volume_up": "Hangerő fel",
+        "volume_down": "Hangerő le",
+        "toggle_mute": "Némítás váltása",
+        "shutdown": "Leállítás",
+        "restart": "Újraindítás"
       }
     }
   }
