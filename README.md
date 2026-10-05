@@ -166,7 +166,7 @@ When connected via MQTT or HA API, the integration creates the following entitie
 
 Entities are created and removed dynamically as the Windows client changes its configuration.
 
-<p align="center"><img src="https://raw.githubusercontent.com/v1k70rk4/HASS.Agent.NET10-Integration/main/images/ha-sensors.png" width="330" alt="Some of the sensors of a Windows PC in Home Assistant"></p>
+<p align="center"><img src="https://raw.githubusercontent.com/v1k70rk4/HASS.Agent.NET10-Integration/main/images/ha-sensors.png" width="330" alt="Some of the sensors of a Windows PC in Home Assistant"> <img src="https://raw.githubusercontent.com/v1k70rk4/HASS.Agent.NET10-Integration/main/images/ha-notify-events.png" width="330" alt="The notify entity, the notification actions event and the update entity of a Windows PC" valign="top"></p>
 
 ## Services
 
