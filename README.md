@@ -174,7 +174,11 @@ Entities are created and removed dynamically as the Windows client changes its c
 
 ### hass_agent.send_notification
 
-Sends a notification to a HASS.Agent notify entity. Supports actionable notifications with buttons:
+Sends a notification to a HASS.Agent notify entity, with an optional picture, buttons and text fields. The PC shows it as a Windows notification or in the client's own window:
+
+<p align="center"><img src="https://raw.githubusercontent.com/v1k70rk4/HASS.Agent.NET10-Integration/main/images/notify-toast.png" width="360" alt="A notification as a Windows notification, with a picture, a text field and two buttons"> <img src="https://raw.githubusercontent.com/v1k70rk4/HASS.Agent.NET10-Integration/main/images/notify-window.png" width="400" alt="The same notification in the client's own window"></p>
+
+With buttons only:
 
 ```yaml
 action: hass_agent.send_notification
