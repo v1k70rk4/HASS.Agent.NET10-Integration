@@ -106,6 +106,44 @@
     }
   },
   "services": {
+    "send_notification": {
+      "name": "Send notification",
+      "description": "Shows a notification on the Windows PC, with an optional picture, buttons and text fields.",
+      "fields": {
+        "message": {
+          "name": "Message",
+          "description": "The text of the notification."
+        },
+        "title": {
+          "name": "Title",
+          "description": "The title. Without it the default title from the integration's options is used."
+        },
+        "image": {
+          "name": "Picture",
+          "description": "A camera or image entity (camera.front_door), a path on this Home Assistant (/local/doorbell.jpg), or a web address. Client 10.9.0+."
+        },
+        "actions": {
+          "name": "Buttons",
+          "description": "Up to five buttons. The action of the pressed one comes back in the Notification actions event."
+        },
+        "inputs": {
+          "name": "Text fields",
+          "description": "Up to five text fields. What was typed comes back with the pressed button, in input, by id. Client 10.9.0+."
+        },
+        "style": {
+          "name": "Style",
+          "description": "How this notification is shown. Without it the setting in the Windows client decides. Client 10.9.0+."
+        },
+        "duration": {
+          "name": "Duration",
+          "description": "Seconds on screen, 1 to 60. A Windows notification knows a short and a long length; above 10 the long one is used."
+        },
+        "data": {
+          "name": "Data",
+          "description": "The fields above as one object, the way they were given before they became fields of their own. A field given on its own wins."
+        }
+      }
+    },
     "set_app_volume": {
       "name": "Set app volume",
       "description": "Sets the volume or mute of one app in the Windows volume mixer (client 10.9.0+, Audio sessions sensor enabled).",
@@ -126,6 +164,14 @@
           "name": "Muted",
           "description": "Mute or unmute the app."
         }
+      }
+    }
+  },
+  "selector": {
+    "notification_style": {
+      "options": {
+        "toast": "Windows notification",
+        "window": "Own window (always visible)"
       }
     }
   }

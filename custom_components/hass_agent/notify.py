@@ -30,6 +30,11 @@ from .const import (
 
 _logger = logging.getLogger(__name__)
 
+# What a notification can carry besides its message and title. Fields of the
+# send_notification action in their own right, and keys of its `data` for automations
+# written before they were.
+NOTIFICATION_FIELDS = ("image", "style", "duration", "actions", "inputs")
+
 # How long the client has to fetch a picture that lives on this Home Assistant. It does so
 # the moment the notification arrives and keeps its own copy.
 IMAGE_LINK_LIFETIME = timedelta(minutes=5)
@@ -140,9 +145,18 @@ class HassAgentNotifyEntity(NotifyEntity):
         message: str,
         title: str | None = None,
         data: dict[str, Any] | None = None,
+        **fields: Any,
     ) -> None:
-        """Send a HASS.Agent notification with integration-specific data."""
+        """Send a HASS.Agent notification with integration-specific data.
+
+        `fields` are the notification's own fields of the send_notification action (image,
+        style, duration, actions, inputs). They used to be given only inside `data`, which
+        still works; a field given on its own wins over the same key in `data`.
+        """
         _logger.debug("Preparing HASS.Agent notification for %s", self._device_name)
+
+        data = dict(data or {})
+        data.update({key: value for key, value in fields.items() if key in NOTIFICATION_FIELDS and value is not None})
 
         if title is None:
             title = self._entry.options.get(

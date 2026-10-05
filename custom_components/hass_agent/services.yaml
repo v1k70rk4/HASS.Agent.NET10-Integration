@@ -10,6 +10,55 @@ send_notification:
     title:
       selector:
         text:
+    image:
+      example: camera.front_door
+      selector:
+        text:
+    actions:
+      selector:
+        object:
+          multiple: true
+          label_field: title
+          description_field: action
+          fields:
+            action:
+              label: Action
+              required: true
+              selector:
+                text:
+            title:
+              label: Label
+              selector:
+                text:
+    inputs:
+      selector:
+        object:
+          multiple: true
+          label_field: title
+          description_field: id
+          fields:
+            id:
+              label: Id
+              selector:
+                text:
+            title:
+              label: Hint
+              selector:
+                text:
+    style:
+      selector:
+        select:
+          translation_key: notification_style
+          options:
+            - toast
+            - window
+    duration:
+      selector:
+        number:
+          min: 1
+          max: 60
+          unit_of_measurement: s
+          mode: box
     data:
       selector:
         object:

@@ -106,6 +106,44 @@
     }
   },
   "services": {
+    "send_notification": {
+      "name": "Értesítés küldése",
+      "description": "Értesítést jelenít meg a Windows gépen, tetszés szerint képpel, gombokkal és szövegmezőkkel.",
+      "fields": {
+        "message": {
+          "name": "Üzenet",
+          "description": "Az értesítés szövege."
+        },
+        "title": {
+          "name": "Cím",
+          "description": "Az értesítés címe. Ha nincs megadva, az integráció beállításaiban megadott alapértelmezett cím lesz."
+        },
+        "image": {
+          "name": "Kép",
+          "description": "Kamera vagy kép entitás (camera.front_door), útvonal ezen a Home Assistanton (/local/doorbell.jpg), vagy webcím. Kliens 10.9.0+."
+        },
+        "actions": {
+          "name": "Gombok",
+          "description": "Legfeljebb öt gomb. A megnyomott gomb művelete az Értesítési műveletek eseményben érkezik vissza."
+        },
+        "inputs": {
+          "name": "Szövegmezők",
+          "description": "Legfeljebb öt szövegmező. A beírt szöveg a megnyomott gombbal együtt érkezik vissza az input alatt, azonosító szerint. Kliens 10.9.0+."
+        },
+        "style": {
+          "name": "Stílus",
+          "description": "Hogyan jelenjen meg ez az értesítés. Ha nincs megadva, a Windows kliens beállítása dönt. Kliens 10.9.0+."
+        },
+        "duration": {
+          "name": "Időtartam",
+          "description": "Ennyi másodpercig látszik, 1 és 60 között. A Windows-értesítés egy rövid és egy hosszú időtartamot ismer; 10 fölött a hosszút használja."
+        },
+        "data": {
+          "name": "Adat",
+          "description": "A fenti mezők egy objektumként, ahogy korábban meg kellett adni őket. A külön megadott mező az erősebb."
+        }
+      }
+    },
     "set_app_volume": {
       "name": "Alkalmazás hangereje",
       "description": "Egy alkalmazás hangerejét vagy némítását állítja a Windows hangerőkeverőjében (kliens 10.9.0+, bekapcsolt Hangmunkamenetek szenzorral).",
@@ -126,6 +164,14 @@
           "name": "Némítva",
           "description": "Némítás vagy annak feloldása."
         }
+      }
+    }
+  },
+  "selector": {
+    "notification_style": {
+      "options": {
+        "toast": "Windows-értesítés",
+        "window": "Saját ablak (mindig látszik)"
       }
     }
   }

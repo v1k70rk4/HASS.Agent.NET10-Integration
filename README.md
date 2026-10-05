@@ -168,15 +168,14 @@ target:
 data:
   message: "Would you like to turn on the lights?"
   title: Home Assistant
-  data:
-    actions:
-      - action: lights_on
-        title: "Turn on"
-      - action: lights_off
-        title: "Turn off"
+  actions:
+    - action: lights_on
+      title: "Turn on"
+    - action: lights_off
+      title: "Turn off"
 ```
 
-What can go under the inner `data`:
+Besides `message` and `title`, the action has these fields; in the Home Assistant editor each has an input of its own:
 
 | Field | Description |
 |-------|-------------|
@@ -195,16 +194,17 @@ target:
 data:
   title: Doorbell
   message: "Somebody is at the front door."
-  data:
-    image: camera.front_door
-    style: window
-    inputs:
-      - id: answer
-        title: "Say something through the intercom"
-    actions:
-      - action: speak
-        title: "Speak"
+  image: camera.front_door
+  style: window
+  inputs:
+    - id: answer
+      title: "Say something through the intercom"
+  actions:
+    - action: speak
+      title: "Speak"
 ```
+
+Up to 10.9.0-beta.2 these fields had to be given inside a `data` object of the action (`data:` → `data:` → `actions:`). That still works, so existing automations need no change; a field given on its own wins over the same key in `data`.
 
 The press arrives on the device's *Notification actions* event entity and as a `hass_agent_notifications` event, with the typed text in `input`:
 
