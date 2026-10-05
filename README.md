@@ -22,6 +22,8 @@ It is the matching Home Assistant side for the modern **HASS.Agent .NET10** Wind
 
 > **Stable:** [10.7.3](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/releases/latest) &nbsp;·&nbsp; **Beta:** [10.9.0-beta.2](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/releases/tag/v10.9.0-beta.2) &nbsp;·&nbsp; [What changed](#changelog) &nbsp;·&nbsp; [Full changelog](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/blob/main/CHANGELOG.md)
 
+<p align="center"><img src="https://raw.githubusercontent.com/v1k70rk4/HASS.Agent.NET10-Integration/main/images/ha-device.png" width="800" alt="A Windows PC as a device in Home Assistant: media player, audio output select and command buttons"></p>
+
 ---
 
 ## Installation
@@ -60,6 +62,11 @@ If the integration isn't showing in your HACS yet, add it as a custom repository
 </details>
 
 If another HASS.Agent integration is already installed, remove it before installing this one, then restart Home Assistant.
+
+Every PC is a device of the integration. **Add device** is for the two ways that are not discovered on their own:
+
+<p align="center"><img src="https://raw.githubusercontent.com/v1k70rk4/HASS.Agent.NET10-Integration/main/images/ha-integration.png" width="700" alt="The integration page with three Windows PCs as devices"></p>
+<p align="center"><img src="https://raw.githubusercontent.com/v1k70rk4/HASS.Agent.NET10-Integration/main/images/ha-add-device.png" width="460" alt="The Add device dialog: HA API (WebSocket) or Local HTTP API"></p>
 
 ---
 
@@ -102,6 +109,10 @@ Enable MQTT in the HASS.Agent .NET10 Windows client. The device is discovered au
 ### HA API (WebSocket)
 
 The Windows client connects directly to Home Assistant's WebSocket API using a long-lived access token. Works remotely (e.g. via Nabu Casa) without an MQTT broker. Can be used standalone or as automatic failover when the MQTT broker is unreachable.
+
+A PC that connects over the HA API is discovered like one on MQTT. To add it by hand, choose **Add device → HA API (WebSocket)** and follow the dialog:
+
+<p align="center"><img src="https://raw.githubusercontent.com/v1k70rk4/HASS.Agent.NET10-Integration/main/images/ha-add-device-ha-api.png" width="460" alt="The Connect over the HA API dialog"></p>
 
 Nearly all features work — notifications, media player, sensors, commands — with some trade-offs compared to MQTT:
 
@@ -154,6 +165,8 @@ When connected via MQTT or HA API, the integration creates the following entitie
 | `update` | App update | Shows available HASS.Agent .NET10 updates |
 
 Entities are created and removed dynamically as the Windows client changes its configuration.
+
+<p align="center"><img src="https://raw.githubusercontent.com/v1k70rk4/HASS.Agent.NET10-Integration/main/images/ha-sensors.png" width="330" alt="Some of the sensors of a Windows PC in Home Assistant"></p>
 
 ## Services
 
