@@ -1547,6 +1547,20 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         schema={
             vol.Required(ATTR_MESSAGE): cv.string,
             vol.Optional(ATTR_TITLE): cv.string,
+            vol.Optional("image"): cv.string,
+            vol.Optional("style"): vol.In(["toast", "window"]),
+            vol.Optional("duration"): vol.All(vol.Coerce(int), vol.Range(min=1, max=60)),
+            vol.Optional("actions"): vol.All(
+                cv.ensure_list,
+                vol.Length(max=5),
+                [vol.Schema({vol.Required("action"): cv.string, vol.Optional("title"): cv.string}, extra=vol.ALLOW_EXTRA)],
+            ),
+            vol.Optional("inputs"): vol.All(
+                cv.ensure_list,
+                vol.Length(max=5),
+                [vol.Schema({vol.Optional("id"): cv.string, vol.Optional("title"): cv.string}, extra=vol.ALLOW_EXTRA)],
+            ),
+            # The older way of giving the fields above, kept for existing automations.
             vol.Optional(ATTR_DATA, default={}): dict,
         },
         func="async_send_hass_agent_notification",

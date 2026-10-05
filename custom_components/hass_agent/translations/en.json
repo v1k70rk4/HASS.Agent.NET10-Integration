@@ -106,6 +106,74 @@
     }
   },
   "services": {
+    "send_notification": {
+      "name": "Send notification",
+      "description": "Shows a notification on the Windows PC, with an optional picture, buttons and text fields.",
+      "fields": {
+        "message": {
+          "name": "Message",
+          "description": "The text of the notification."
+        },
+        "title": {
+          "name": "Title",
+          "description": "The title. Without it the default title from the integration's options is used."
+        },
+        "image": {
+          "name": "Picture",
+          "description": "A camera or image entity (camera.front_door), a path on this Home Assistant (/local/doorbell.jpg), or a web address. Client 10.9.0+."
+        },
+        "actions": {
+          "name": "Buttons",
+          "description": "Up to five buttons. The action of the pressed one comes back in the Notification actions event."
+        },
+        "inputs": {
+          "name": "Text fields",
+          "description": "Up to five text fields. What was typed comes back with the pressed button, in input, by id. Client 10.9.0+."
+        },
+        "style": {
+          "name": "Style",
+          "description": "How this notification is shown. Without it the setting in the Windows client decides. Client 10.9.0+."
+        },
+        "duration": {
+          "name": "Duration",
+          "description": "Seconds on screen, 1 to 60. A Windows notification knows a short and a long length; above 10 the long one is used."
+        },
+        "data": {
+          "name": "Data",
+          "description": "The fields above as one object, the way they were given before they became fields of their own. A field given on its own wins."
+        }
+      }
+    },
+    "execute_command": {
+      "name": "Run system command",
+      "description": "Runs a system command on the Windows PC (lock, sleep, shutdown and so on), or cancels a pending shutdown or restart.",
+      "fields": {
+        "device_name": {
+          "name": "Device name",
+          "description": "The Windows device, as named in the client."
+        },
+        "command": {
+          "name": "Command",
+          "description": "The command to run. It has to be enabled on the Capabilities page of the Windows client."
+        },
+        "comment": {
+          "name": "Comment",
+          "description": "For shutdown and restart: the text Windows shows to the logged-in user."
+        },
+        "force": {
+          "name": "Force",
+          "description": "For shutdown and restart: do not wait for apps to close."
+        },
+        "time": {
+          "name": "Delay",
+          "description": "For shutdown and restart: seconds before it starts."
+        },
+        "restart_cancel": {
+          "name": "Cancel shutdown or restart",
+          "description": "Cancels a pending shutdown or restart instead of running a command."
+        }
+      }
+    },
     "set_app_volume": {
       "name": "Set app volume",
       "description": "Sets the volume or mute of one app in the Windows volume mixer (client 10.9.0+, Audio sessions sensor enabled).",
@@ -126,6 +194,28 @@
           "name": "Muted",
           "description": "Mute or unmute the app."
         }
+      }
+    }
+  },
+  "selector": {
+    "notification_style": {
+      "options": {
+        "toast": "Windows notification",
+        "window": "Own window (always visible)"
+      }
+    },
+    "system_command": {
+      "options": {
+        "lock": "Lock",
+        "sleep": "Sleep",
+        "hibernate": "Hibernate",
+        "logoff": "Log off",
+        "monitor_off": "Turn off monitor",
+        "volume_up": "Volume up",
+        "volume_down": "Volume down",
+        "toggle_mute": "Toggle mute",
+        "shutdown": "Shutdown",
+        "restart": "Restart"
       }
     }
   }

@@ -4,6 +4,7 @@ Every release of the HASS.Agent .NET10 integration, newest first. The Windows cl
 
 ## Unreleased
 
+- **The notification action has fields of its own.** `image`, `actions`, `inputs`, `style` and `duration` of `hass_agent.send_notification` no longer have to be written as YAML inside its `data` object: each is a field with its own input in the Home Assistant editor (a list editor for buttons and text fields, a drop-down for the style), named and described in English and Hungarian. The old form keeps working.
 - **Fixed: a PC that only uses the HA API showed old data after a Home Assistant restart.** Its device was set up from what the integration stored on the day the PC was added (the version and the capabilities of that day), and the client's fresh data, sent the moment it reconnected, arrived before the integration listened. The device page showed an old firmware version, the update entity was unavailable, and capabilities gained since could be missing until the client announced itself again. The integration now keeps the latest device data, and asks the client to announce itself once Home Assistant has started (the client answers from 10.9.0 on; the stored data alone already helps with older ones).
 - **Fixed for good: "has already been setup" errors.** Capability messages arriving in a burst were handled side by side and could set a platform up twice or unload it mid-setup. They are applied one at a time now, the latest winning.
 
