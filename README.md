@@ -20,7 +20,7 @@ It is the matching Home Assistant side for the modern **HASS.Agent .NET10** Wind
 >
 > If you want to keep using the old HASS.Agent client, switch to the **[`legacy` branch](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/tree/legacy)** of this integration. The legacy branch works with Home Assistant 2026.6+ and the original pre-.NET10 HASS.Agent, but it is **no longer maintained**.
 
-> **Stable:** [10.7.3](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/releases/latest) &nbsp;·&nbsp; **Beta:** [10.9.0-beta.2](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/releases/tag/v10.9.0-beta.2) &nbsp;·&nbsp; [What changed](#changelog) &nbsp;·&nbsp; [Full changelog](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/blob/main/CHANGELOG.md)
+> **Stable:** [10.7.3](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/releases/latest) &nbsp;·&nbsp; **Beta:** [10.9.0-beta.3](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/releases/tag/v10.9.0-beta.3) &nbsp;·&nbsp; [What changed](#changelog) &nbsp;·&nbsp; [Full changelog](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/blob/main/CHANGELOG.md)
 
 <p align="center"><img src="https://raw.githubusercontent.com/v1k70rk4/HASS.Agent.NET10-Integration/main/images/ha-device.png" width="800" alt="A Windows PC as a device in Home Assistant: media player, audio output select and command buttons"></p>
 
@@ -340,11 +340,17 @@ A hotkey pressed on the PC (client 10.9.0+) reaches the device's *Hotkeys* event
 
 ## Changelog
 
-### 10.9.0-beta.2
+### 10.9.0-beta.3
 
-> **Beta.** A pre-release: in HACS, open the integration, choose **Redownload**, turn on **Show beta versions**, then pick **10.9.0-beta.2** in the version list. It goes with the Windows client **10.9.0-beta.2**. The current stable release is **10.7.3**, below.
+> **Beta.** A pre-release: in HACS, open the integration, choose **Redownload**, turn on **Show beta versions**, then pick **10.9.0-beta.3** in the version list. It goes with the Windows client **10.9.0-beta.3**. The current stable release is **10.7.3**, below.
 
-**New since beta.1**
+**New since beta.2**
+
+- **The notification action has fields of its own.** `image`, `actions`, `inputs`, `style` and `duration` of `hass_agent.send_notification` no longer have to be written as YAML inside its `data` object: each is a field with its own input in the Home Assistant editor (a list editor for buttons and text fields, a drop-down for the style), named and described in English and Hungarian. The old form keeps working.
+- **Fixed: a PC that only uses the HA API showed old data after a Home Assistant restart.** Its device was set up from what the integration stored on the day the PC was added (the version and the capabilities of that day), and the client's fresh data, sent the moment it reconnected, arrived before the integration listened. The device page showed an old firmware version, the update entity was unavailable, and capabilities gained since could be missing until the client announced itself again. The integration now keeps the latest device data, and asks the client to announce itself once Home Assistant has started (the client answers from 10.9.0 on; the stored data alone already helps with older ones).
+- **Fixed for good: "has already been setup" errors.** Capability messages arriving in a burst were handled side by side and could set a platform up twice or unload it mid-setup. They are applied one at a time now, the latest winning.
+
+**From beta.2**
 
 - **Pictures in notifications, straight from Home Assistant.** `image` in a notification's `data` can now be a path on this Home Assistant (`/local/doorbell.jpg`, `/api/camera_proxy/camera.front_door`) or simply a camera or image entity (`camera.front_door`). The integration signs the address for five minutes, so the PC can fetch the picture without a login of its own; it sends both the internal and the external address of this Home Assistant, and the PC uses the one it can reach. A full web address is passed on as it is. Showing the picture needs the Windows client **10.9.0-beta.2** or newer.
 - **Text typed into a notification comes back.** The client 10.9.0-beta.2 can show text fields (`inputs`) on a notification; what was typed arrives with the pressed button, as `input` in the data of the *Notification actions* event and of the `hass_agent_notifications` bus event.
