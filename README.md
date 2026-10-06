@@ -20,7 +20,7 @@ It is the matching Home Assistant side for the modern **HASS.Agent .NET10** Wind
 >
 > If you want to keep using the old HASS.Agent client, switch to the **[`legacy` branch](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/tree/legacy)** of this integration. The legacy branch works with Home Assistant 2026.6+ and the original pre-.NET10 HASS.Agent, but it is **no longer maintained**.
 
-> **Stable:** [10.7.3](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/releases/latest) &nbsp;·&nbsp; **Beta:** [10.9.0-beta.3](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/releases/tag/v10.9.0-beta.3) &nbsp;·&nbsp; [What changed](#changelog) &nbsp;·&nbsp; [Full changelog](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/blob/main/CHANGELOG.md)
+> **Stable:** [10.9.0](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/releases/latest) &nbsp;·&nbsp; [What changed](#changelog) &nbsp;·&nbsp; [Full changelog](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/blob/main/CHANGELOG.md)
 
 <p align="center"><img src="https://raw.githubusercontent.com/v1k70rk4/HASS.Agent.NET10-Integration/main/images/ha-device.png" width="800" alt="A Windows PC as a device in Home Assistant: media player, audio output select and command buttons"></p>
 
@@ -89,7 +89,7 @@ Every PC is a device of the integration. **Add device** is for the two ways that
 - HA API WebSocket failover transport for device, sensor, media, and notification action events
 - Serial-number based MQTT topic and HA API command routing
 - `hass_agent.execute_command` service for scripts and automations
-- In the 10.9.0 beta: the PC's display as a light, select entities for the default audio output and input device, a *Hotkeys* event entity, and the `hass_agent.set_app_volume` service
+- With the client 10.9.0 or newer: the PC's display as a light, select entities for the default audio output and input device, a *Hotkeys* event entity, and the `hass_agent.set_app_volume` service
 - Local HTTP API setup for notification-only use cases (with API key authentication)
 - Hungarian and English translations
 
@@ -204,7 +204,7 @@ Besides `message` and `title`, the action has these fields; in the Home Assistan
 | `duration` | Seconds on screen, 1 to 60 (default 10). |
 | `style` | `toast` (a Windows notification) or `window` (the client's own always-visible window), for this one notification. Without it the client's own setting decides. Client 10.9.0+. |
 
-> `image`, `inputs` and `style` are in the 10.9.0 beta (integration and client 10.9.0-beta.2 or newer). An older client shows the notification without them.
+> `image`, `inputs` and `style` need the integration and the client 10.9.0 or newer. An older client shows the notification without them.
 
 ```yaml
 action: hass_agent.send_notification
@@ -223,7 +223,7 @@ data:
       title: "Speak"
 ```
 
-Up to 10.9.0-beta.2 these fields had to be given inside a `data` object of the action (`data:` → `data:` → `actions:`). That still works, so existing automations need no change; a field given on its own wins over the same key in `data`.
+Before 10.9.0 these fields had to be given inside a `data` object of the action (`data:` → `data:` → `actions:`). That still works, so existing automations need no change; a field given on its own wins over the same key in `data`.
 
 The press arrives on the device's *Notification actions* event entity and as a `hass_agent_notifications` event, with the typed text in `input`:
 
@@ -274,7 +274,7 @@ When the Windows service is online and capable of handling the command, the inte
 
 ### hass_agent.set_app_volume
 
-> In the 10.9.0 beta. Needs the Windows client 10.9.0-beta.1 or newer with its *Audio sessions* sensor turned on.
+> Needs the Windows client 10.9.0 or newer with its *Audio sessions* sensor turned on.
 
 Sets the volume of one app in the Windows volume mixer, or mutes it. The *Audio sessions* sensor lists the apps with their volumes as attributes.
 
@@ -340,31 +340,37 @@ A hotkey pressed on the PC (client 10.9.0+) reaches the device's *Hotkeys* event
 
 ## Changelog
 
-### 10.9.0-beta.3
+### 10.9.0
 
-> **Beta.** A pre-release: in HACS, open the integration, choose **Redownload**, turn on **Show beta versions**, then pick **10.9.0-beta.3** in the version list. It goes with the Windows client **10.9.0-beta.3**. The current stable release is **10.7.3**, below.
+A bigger release, going with the Windows client [10.9.0](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.9.0): the PC's display as a light, audio device selects, hotkeys as events, per-app volume, notifications with pictures and text fields and with fields of their own in the editor, and the fixes of three betas. The new entities, services and notification fields need the client 10.9.0; the fixes help with every client.
 
-**New since beta.2**
+**New entities and services** (client 10.9.0+)
 
-- **The notification action has fields of its own.** `image`, `actions`, `inputs`, `style` and `duration` of `hass_agent.send_notification` no longer have to be written as YAML inside its `data` object: each is a field with its own input in the Home Assistant editor (a list editor for buttons and text fields, a drop-down for the style), named and described in English and Hungarian. The old form keeps working.
-- **Fixed: a PC that only uses the HA API showed old data after a Home Assistant restart.** Its device was set up from what the integration stored on the day the PC was added (the version and the capabilities of that day), and the client's fresh data, sent the moment it reconnected, arrived before the integration listened. The device page showed an old firmware version, the update entity was unavailable, and capabilities gained since could be missing until the client announced itself again. The integration now keeps the latest device data, and asks the client to announce itself once Home Assistant has started (the client answers from 10.9.0 on; the stored data alone already helps with older ones).
-- **Fixed for good: "has already been setup" errors.** Capability messages arriving in a burst were handled side by side and could set a platform up twice or unload it mid-setup. They are applied one at a time now, the latest winning.
-
-**From beta.2**
-
-- **Pictures in notifications, straight from Home Assistant.** `image` in a notification's `data` can now be a path on this Home Assistant (`/local/doorbell.jpg`, `/api/camera_proxy/camera.front_door`) or simply a camera or image entity (`camera.front_door`). The integration signs the address for five minutes, so the PC can fetch the picture without a login of its own; it sends both the internal and the external address of this Home Assistant, and the PC uses the one it can reach. A full web address is passed on as it is. Showing the picture needs the Windows client **10.9.0-beta.2** or newer.
-- **Text typed into a notification comes back.** The client 10.9.0-beta.2 can show text fields (`inputs`) on a notification; what was typed arrives with the pressed button, as `input` in the data of the *Notification actions* event and of the `hass_agent_notifications` bus event.
-- The integration now names `http` as a dependency, which the signed picture addresses need.
-- **Fixed: "has already been setup" errors at a Home Assistant start.** Two capability messages of one PC arriving back to back (the retained one and the client's fresh one) could both start setting up the same platform; Home Assistant refused the second with an error in the log, once per platform. The entities were there all the same.
-- **Fixed: a custom sensor with a unit and a value that is not a number no longer floods the log.** Home Assistant takes a sensor with a unit for a number and raised an error on every update when the value was a text such as `off`. Such a sensor now shows as unknown, and the log says once which sensor it is and what to change in the Windows client.
-
-**From beta.1**
-
+- **The PC's display as a light.** With the Windows client **10.9.0** or newer and its *Display brightness* sensor turned on (tray app), the device gets a *Display* light: the brightness slider sets the screen brightness, off switches the monitor off, on wakes it. The client adjusts the built-in panel of a laptop and external monitors that speak DDC/CI; with no adjustable display (many TVs) the light is a plain on/off one. Works over MQTT and the HA API. The light disappears again when the sensor is turned off.
 - **Audio device selects.** Two select entities choose the PC's default playback and recording device, from the list of devices Windows has active. The output one appears for every client **10.9.0** or newer whose *Audio output device* sensor is on (it is by default); the input one when the new *Audio input device* sensor is turned on.
 - **Hotkeys as events.** A client 10.9.0+ with hotkeys set up gets a *Hotkeys* event entity whose event types are the hotkey names, for automations that start from the keyboard. The press also fires `hass_agent_hotkey_pressed` on the event bus.
 - **`hass_agent.set_app_volume` service.** Sets the volume or mute of one app in the Windows volume mixer (client 10.9.0+ with its *Audio sessions* sensor on; the sensor lists the apps with their volumes as attributes).
 - **Hibernate and Log off buttons**, for clients 10.9.0+ that have the command enabled (both are off by default in the client).
-- **The PC's display as a light.** With the Windows client **10.9.0** or newer and its *Display brightness* sensor turned on (tray app), the device gets a *Display* light: the brightness slider sets the screen brightness, off switches the monitor off, on wakes it. The client adjusts the built-in panel of a laptop and external monitors that speak DDC/CI; with no adjustable display (many TVs) the light is a plain on/off one. Works over MQTT and the HA API. The light disappears again when the sensor is turned off.
+
+**Notifications**
+
+- **Pictures in notifications, straight from Home Assistant.** `image` in a notification's `data` can now be a path on this Home Assistant (`/local/doorbell.jpg`, `/api/camera_proxy/camera.front_door`) or simply a camera or image entity (`camera.front_door`). The integration signs the address for five minutes, so the PC can fetch the picture without a login of its own; it sends both the internal and the external address of this Home Assistant, and the PC uses the one it can reach. A full web address is passed on as it is. Showing the picture needs the Windows client **10.9.0** or newer.
+- **Text typed into a notification comes back.** The client 10.9.0 can show text fields (`inputs`) on a notification; what was typed arrives with the pressed button, as `input` in the data of the *Notification actions* event and of the `hass_agent_notifications` bus event.
+- **The notification action has fields of its own.** `image`, `actions`, `inputs`, `style` and `duration` of `hass_agent.send_notification` no longer have to be written as YAML inside its `data` object: each is a field with its own input in the Home Assistant editor (a list editor for buttons and text fields, a drop-down for the style), named and described in English and Hungarian. The old form keeps working.
+- The integration now names `http` as a dependency, which the signed picture addresses need.
+
+**Fixes**
+
+- **Fixed: a PC that only uses the HA API showed old data after a Home Assistant restart.** Its device was set up from what the integration stored on the day the PC was added (the version and the capabilities of that day), and the client's fresh data, sent the moment it reconnected, arrived before the integration listened. The device page showed an old firmware version, the update entity was unavailable, and capabilities gained since could be missing until the client announced itself again. The integration now keeps the latest device data, and asks the client to announce itself once Home Assistant has started (the client answers from 10.9.0 on; the stored data alone already helps with older ones).
+- **Fixed: "has already been setup" errors at a Home Assistant start.** Capability messages of one PC arriving in a burst (the retained one and the client's fresh one) were handled side by side and could set a platform up twice or unload it mid-setup; Home Assistant refused the second with an error in the log, once per platform. They are applied one at a time now, the latest winning.
+- **Fixed: a custom sensor with a unit and a value that is not a number no longer floods the log.** Home Assistant takes a sensor with a unit for a number and raised an error on every update when the value was a text such as `off`. Such a sensor now shows as unknown, and the log says once which sensor it is and what to change in the Windows client.
+
+**And**
+
+- **The README shows what it all looks like**, in Home Assistant and on the PC, says plainly that the first PC on the HA API is added by hand, and keeps only the latest release here; every release is in [CHANGELOG.md](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/blob/main/CHANGELOG.md).
+
+<details>
+<summary><b>10.7.3</b></summary>
 
 ### 10.7.3
 
@@ -372,6 +378,8 @@ A hotkey pressed on the PC (client 10.9.0+) reaches the device's *Hotkeys* event
 - **One update entity, on both transports.** Over MQTT the update entity came from Home Assistant's own MQTT discovery and over the HA API from this integration, so a PC that switched transports ended up with two, one of them always unavailable. The integration now builds the entity on MQTT as well and tells the client so (a retained message on `hass.agent/integration/{id}`); a client 10.7.3 or newer removes its discovered one in return. With an older client the discovered entity stays and the integration leaves it alone. The entity now follows the whole device rather than the tray app, so it stays available while only the service runs, and *Install* works with nobody logged in (client 10.7.3+).
 - The media player image is served with the right content type (the client sends JPEG covers since 10.7.2).
 - The issue templates link to the renamed client repository.
+
+</details>
 
 Older versions are in the [changelog](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/blob/main/CHANGELOG.md).
 
