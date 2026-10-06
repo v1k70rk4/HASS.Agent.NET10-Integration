@@ -342,7 +342,7 @@ A hotkey pressed on the PC (client 10.9.0+) reaches the device's *Hotkeys* event
 
 ### 10.9.0
 
-A bigger release, going with the Windows client [10.9.0](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.9.0): the PC's display as a light, audio device selects, hotkeys as events, per-app volume, notifications with pictures and text fields and with fields of their own in the editor, and the fixes of three betas. Everything new needs the client 10.9.0; with an older client nothing changes.
+A bigger release, going with the Windows client [10.9.0](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.9.0): the PC's display as a light, audio device selects, hotkeys as events, per-app volume, notifications with pictures and text fields and with fields of their own in the editor, and the fixes of three betas. The new entities, services and notification fields need the client 10.9.0; the fixes help with every client.
 
 **New entities and services** (client 10.9.0+)
 
