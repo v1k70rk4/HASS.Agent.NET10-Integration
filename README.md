@@ -38,6 +38,12 @@ It is the matching Home Assistant side for the modern **HASS.Agent .NET10** Wind
 
 HACS is required for installation. This integration is available in the **HACS default store**, so no custom repository needs to be added.
 
+The Windows client installs with winget, or with the signed installer from its [Releases](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/latest):
+
+```powershell
+winget install v1k70rk4.HASSAgentNET10
+```
+
 MQTT is recommended for full functionality. Alternatively, HA API (WebSocket) provides nearly the same features without requiring an MQTT broker. The Local HTTP API setup supports notifications only.
 
 ### Install from HACS
