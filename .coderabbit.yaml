@@ -2,6 +2,9 @@
 # Docstring coverage check disabled; docstrings are kept where Home Assistant
 # conventions expect them (setup functions, entity classes).
 reviews:
+  # Approve the pull request once every CodeRabbit comment on it is resolved (and request
+  # changes while some are open), so the review shows as an approval, not just comments.
+  request_changes_workflow: true
   pre_merge_checks:
     docstrings:
       mode: "off"
