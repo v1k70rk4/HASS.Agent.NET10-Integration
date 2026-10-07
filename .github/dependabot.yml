@@ -12,3 +12,11 @@ updates:
           - "*"
     commit-message:
       prefix: "ci"
+
+  # Home Assistant and its test helpers for the tests (requirements_test.txt).
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "test"
