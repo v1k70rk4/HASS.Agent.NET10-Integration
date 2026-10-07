@@ -9,7 +9,8 @@ a Home Assistant instance in memory, with a mocked MQTT client, no network and n
 | `test_notify.py` | the notification action: fields of their own winning over `data`, pictures on this Home Assistant signed and sent with the internal and the external address, MQTT and HA API delivery |
 | `test_sensor.py` | custom sensors: values of every kind, texts cut to the state limit, a text with a unit turning into unknown with a single log line |
 | `test_services.py` | the actions are registered and refuse bad input |
-| `test_init.py` | the announce request to HA API clients, after Home Assistant has started or a moment after a reload |
+| `test_init.py` | the announce request waits until Home Assistant has started |
+| `test_setup.py` | a PC on the HA API set up, reloaded and unloaded the way Home Assistant does it, and the announce request a moment after each setup |
 
 They need Linux (or WSL) and Python 3.14, like Home Assistant:
 
