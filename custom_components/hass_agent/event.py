@@ -37,6 +37,16 @@ EVENT_TYPE_ACTION = "action"
 EVENT_HOTKEY_PRESSED = "hass_agent_hotkey_pressed"
 
 
+def own_device(event_data: dict[str, Any], device_name: str, serial_number: str | None) -> None:
+    """Name the device the event came in for, whatever the payload says.
+
+    Automations match these events on the device name. A PC, or anything else that can
+    publish to the broker, must not be able to fire them in another PC's name.
+    """
+    event_data[CONF_DEVICE_NAME] = device_name
+    event_data["serial_number"] = serial_number
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
@@ -90,6 +100,10 @@ class HassAgentNotificationActionEventEntity(HassAgentAvailableEntity, EventEnti
         self._listeners: dict[str, Any] = {}
         self._setup_availability(entry.entry_id)
 
+    @callback
+    def _own_device(self, event_data: dict[str, Any]) -> None:
+        own_device(event_data, self._device_name, self._topic_id)
+
     def _provider_online(self, entry_data: dict) -> bool | None:
         """Notifications come from the tray app, so this follows the tray app alone."""
         return self._app_online(entry_data)
@@ -118,7 +132,7 @@ class HassAgentNotificationActionEventEntity(HassAgentAvailableEntity, EventEnti
 
         event_data = dict(payload)
         event_data[CONF_ACTION] = action
-        event_data.setdefault(CONF_DEVICE_NAME, self._device_name)
+        self._own_device(event_data)
 
         self.hass.bus.async_fire(EVENT_NOTIFICATION_ACTIONS, event_data)
         self._trigger_event(EVENT_TYPE_ACTION, event_data)
@@ -135,7 +149,7 @@ class HassAgentNotificationActionEventEntity(HassAgentAvailableEntity, EventEnti
             return
 
         event_data = dict(data)
-        event_data.setdefault(CONF_DEVICE_NAME, self._device_name)
+        self._own_device(event_data)
 
         self.hass.bus.async_fire(EVENT_NOTIFICATION_ACTIONS, event_data)
         self._trigger_event(EVENT_TYPE_ACTION, event_data)
@@ -223,7 +237,7 @@ class HassAgentHotkeyEventEntity(HassAgentAvailableEntity, EventEntity):
             self._attr_event_types = [*self._attr_event_types, name]
 
         event_data = dict(data)
-        event_data.setdefault(CONF_DEVICE_NAME, self._device_name)
+        own_device(event_data, self._device_name, self._topic_id)
         self.hass.bus.async_fire(EVENT_HOTKEY_PRESSED, event_data)
         self._trigger_event(name, event_data)
         self.async_write_ha_state()

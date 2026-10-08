@@ -37,6 +37,16 @@ _logger = logging.getLogger(__name__)
 
 _VERSION_PATTERN = re.compile(r"^\s*(\d+)\.(\d+)(?:\.(\d+))?")
 
+# What a serial number may look like. The client makes a GUID of it (32 hex digits, the
+# classic client one with dashes). It goes into MQTT topics and unique ids, where '+',
+# '#' and '/' are wildcards or separators and '_' joins the parts of an entity's id.
+_SERIAL_PATTERN = re.compile(r"^[A-Za-z0-9-]{1,64}$")
+
+
+def valid_serial(value: object) -> bool:
+    """Whether a serial number from a discovery message can be used."""
+    return isinstance(value, str) and _SERIAL_PATTERN.match(value) is not None
+
 
 def _parse_version(value: object) -> tuple[int, int, int] | None:
     """Return (major, minor, patch) from a version string, ignoring any suffix."""
@@ -140,6 +150,7 @@ class FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         self._data: dict[str, Any] = {}
         self._ha_api_unsub: Any = None
         self._ha_api_payload: dict[str, Any] | None = None
+        self._switch_entry: config_entries.ConfigEntry | None = None
 
     @staticmethod
     @callback
@@ -189,6 +200,15 @@ class FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             )
             return self.async_abort(reason="not_supported")
 
+        # The topic is the one a broker ACL can limit a PC to; the payload must not speak
+        # for another PC than the topic it came on.
+        if not valid_serial(serial_number) or discovery_info.topic != f"hass.agent/devices/{serial_number}":
+            _logger.warning(
+                "ignoring discovery payload on '%s': its serial number does not match the topic",
+                discovery_info.topic,
+            )
+            return self.async_abort(reason="not_supported")
+
         _logger.debug("found device. Name: %s, Serial Number: %s", device_name, serial_number)
 
         # The old client is refused outright rather than added as a device that cannot
@@ -202,26 +222,27 @@ class FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         if not entry or (CONF_ORIGINAL_DEVICE_NAME not in entry.data):
             self._data[CONF_ORIGINAL_DEVICE_NAME] = device_name
 
+        if entry and (CONF_URL in entry.data or entry.data.get(CONF_HA_API, False)):
+            # This PC is set up over the HA API or the local HTTP API, and now announces
+            # itself over MQTT. Anyone who can publish to the broker could send that, so
+            # the switch waits for the user: the PC shows up under Discovered.
+            self._switch_entry = entry
+            self._device_name = device_name
+            return await self.async_step_switch_to_mqtt()
+
         if entry:
             name_changed = device_name != entry.title
             old_title = entry.title
-            switching_from_local_api = CONF_URL in entry.data
-            switching_from_ha_api = entry.data.get(CONF_HA_API, False)
-            entry_data = {**entry.data, **self._data}
-            entry_data.pop(CONF_URL, None)
-            entry_data.pop(CONF_HA_API, None)
 
             self.hass.config_entries.async_update_entry(
                 entry,
-                title=payload["device"]["name"],
-                data=entry_data,
+                title=device_name,
+                data={**entry.data, **self._data},
             )
 
-            reload_required = name_changed or switching_from_local_api or switching_from_ha_api
-            if reload_required:
+            if name_changed:
                 self.hass.config_entries.async_schedule_reload(entry.entry_id)
 
-            if name_changed:
                 # Delete any stale issue from a previous rename before creating the new one
                 async_delete_issue(self.hass, DOMAIN, f"restart_required_{old_title}")
 
@@ -268,6 +289,10 @@ class FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             or not isinstance(apis, dict)
         ):
             _logger.warning("received malformed HA API discovery payload")
+            return self.async_abort(reason="not_supported")
+
+        if not valid_serial(serial_number):
+            _logger.warning("ignoring HA API discovery payload with an unusable serial number")
             return self.async_abort(reason="not_supported")
 
         _logger.debug("found device via HA API. Name: %s, Serial Number: %s", device_name, serial_number)
@@ -379,7 +404,7 @@ class FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 except (KeyError, TypeError):
                     errors["base"] = "cannot_connect"
                 else:
-                    if not isinstance(serial_number, str) or not isinstance(device_name, str):
+                    if not valid_serial(serial_number) or not isinstance(device_name, str):
                         errors["base"] = "cannot_connect"
                     else:
                         entry = await self.async_set_unique_id(serial_number)
@@ -414,6 +439,25 @@ class FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             ),
             errors=errors,
         )
+
+    async def async_step_switch_to_mqtt(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Move a PC set up on another transport to MQTT, once the user confirms it."""
+        entry = self._switch_entry
+        if entry is None:
+            return self.async_abort(reason="not_supported")
+
+        if user_input is not None:
+            entry_data = {**entry.data, **self._data}
+            entry_data.pop(CONF_URL, None)
+            entry_data.pop(CONF_HA_API, None)
+            self.hass.config_entries.async_update_entry(entry, title=self._device_name, data=entry_data)
+            self.hass.config_entries.async_schedule_reload(entry.entry_id)
+            return self.async_abort(reason="switched_to_mqtt")
+
+        placeholders = {CONF_NAME: self._device_name, "current": entry.title}
+        self.context["title_placeholders"] = placeholders
+        self._set_confirm_only()
+        return self.async_show_form(step_id="switch_to_mqtt", description_placeholders=placeholders)
 
     async def async_step_confirm(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Confirm the setup."""

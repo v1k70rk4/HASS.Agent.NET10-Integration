@@ -27,6 +27,10 @@
       "ha_api_info": {
         "title": "Csatlakozás HA API-n",
         "description": "Győződj meg róla, hogy a HASS.Agent .NET10 fut a gépen, és a **HA API** kapcsolat van beállítva.\n\nUtána nyisd meg az alkalmazást, menj a **Veszélyzónára**, és nyomd meg a **Felderítés újraküldése** gombot — vagy egyszerűen indítsd újra az alkalmazást.\n\nHa ezzel megvagy, nyomd meg itt a **Küldés** gombot, és a gép bekerül."
+      },
+      "switch_to_mqtt": {
+        "title": "Váltás MQTT-re",
+        "description": "A(z) **{current}** a HA API-n vagy a helyi HTTP API-n van beállítva, most viszont MQTT-n jelentkezett **{name}** néven. Átállítod MQTT-re?\n\nCsak akkor tedd, ha a Windows-alkalmazásban te kapcsoltad be az MQTT-t. Ilyen bejelentkezést bárki küldhet, aki írhat az MQTT-brokerre."
       }
     },
     "error": {
@@ -37,7 +41,8 @@
       "single_instance_allowed": "Csak egy példány engedélyezett.",
       "no_devices_found": "Nem található eszköz a hálózaton.",
       "already_configured": "Ez az eszköz már be van állítva.",
-      "legacy_client": "Ezen a gépen a régi HASS.Agent fut, amit ez az integráció nem támogat. Frissítsd a Windows klienst HASS.Agent .NET10-re."
+      "legacy_client": "Ezen a gépen a régi HASS.Agent fut, amit ez az integráció nem támogat. Frissítsd a Windows klienst HASS.Agent .NET10-re.",
+      "switched_to_mqtt": "A gép mostantól MQTT-t használ."
     }
   },
   "options": {

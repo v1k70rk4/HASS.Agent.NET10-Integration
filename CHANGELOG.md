@@ -2,6 +2,18 @@
 
 Every release of the HASS.Agent .NET10 integration, newest first. The Windows client has its own [changelog](https://github.com/v1k70rk4/HASS.Agent.NET10/blob/main/CHANGELOG.md).
 
+## Unreleased
+
+Hardening, from a security review of the integration. Works with every supported client; nothing to change on the PC.
+
+- **A PC set up over the HA API or the local HTTP API is switched to MQTT only when you confirm it.** When such a PC announced itself over MQTT, the integration moved it to MQTT on its own, with whatever name the message gave. Anything that can publish to the broker could send that message and receive the PC's notifications from then on. The PC now shows up under *Discovered*, and the switch happens when you confirm it there.
+- **A discovery message must come on its own PC's topic.** One whose serial number differs from the topic it came on (`hass.agent/devices/<serial>`) is ignored, so a broker that limits each PC to its own topics also keeps it from speaking for another PC. Serial numbers that could not work in MQTT topics and entity ids (`+`, `#`, `/`, `_`) are refused too.
+- **Notification actions and hotkey presses name the PC they came in for.** The `device_name` in their events, which device triggers match on, came from the message itself, so one PC could fire another PC's automations. It is now always the name of the device the message came in for, and the events also carry its `serial_number`.
+- **Only picture paths are signed for a notification.** A path given as `image` was signed whatever it was, `/api/states` included, and the signed link went to the PC and over MQTT to the broker. Now only `/local/`, `/media/` and the camera and image proxies are; anything else is left out of the notification, with a warning in the log.
+- **Actions refuse a device name that two PCs have.** `execute_command` and `set_app_volume` took the first PC with that name. They now say that the name is not unique, rather than shutting down the wrong PC.
+- **The local HTTP API checks that it talks to the same PC.** If another device answers at the address (a new IP from DHCP), the integration does not send it notifications or the API key, and tries again later.
+- The release notes link of the update entity has to lead to github.com.
+
 ## 10.9.0
 
 A bigger release, going with the Windows client [10.9.0](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.9.0): the PC's display as a light, audio device selects, hotkeys as events, per-app volume, notifications with pictures and text fields and with fields of their own in the editor, and the fixes of three betas. The new entities, services and notification fields need the client 10.9.0; the fixes help with every client.

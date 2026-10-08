@@ -42,6 +42,20 @@ IMAGE_LINK_LIFETIME = timedelta(minutes=5)
 # A camera or image entity given as the picture: its current frame is what is sent.
 _IMAGE_ENTITY = re.compile(r"^(camera|image)\.[a-z0-9_]+$")
 
+# The paths of this Home Assistant a picture may come from. Anything else (an API that
+# returns states or history) is not signed: the signed link goes to the PC, and over
+# MQTT to the broker.
+IMAGE_PATH_PREFIXES = ("/local/", "/media/", "/api/camera_proxy/", "/api/image_proxy/")
+
+
+def _is_picture_path(path: str) -> bool:
+    """Whether a path on this Home Assistant is one a picture may be signed for."""
+    route = path.split("?", 1)[0]
+    if not route.startswith(IMAGE_PATH_PREFIXES):
+        return False
+    segments = route.split("/")
+    return ".." not in segments and "." not in segments and "" not in segments[1:-1] and "\\" not in route
+
 
 def _prepare_image(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, Any]:
     """Make a picture that lives on this Home Assistant fetchable by the client.
@@ -65,6 +79,16 @@ def _prepare_image(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, Any]:
 
     if not image.startswith("/"):
         return data
+
+    if not _is_picture_path(image):
+        _logger.warning(
+            "notification picture %s is not under %s; it is left out",
+            image.split("?", 1)[0],
+            ", ".join(IMAGE_PATH_PREFIXES),
+        )
+        prepared = dict(data)
+        prepared.pop("image")
+        return prepared
 
     signed = async_sign_path(hass, image, IMAGE_LINK_LIFETIME, use_content_user=True)
     prepared = dict(data)
