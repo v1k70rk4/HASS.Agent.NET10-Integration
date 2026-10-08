@@ -20,6 +20,14 @@ CONF_ORIGINAL_DEVICE_NAME = "original_device_name"
 CONF_RESTART_CANCEL = "restart_cancel"
 CONF_TIME = "time"
 
+# The Home Assistant user a PC on the HA API speaks as, when that user is not an
+# administrator (see ws_commands). Set when an administrator approves the PC.
+CONF_USER_ID = "user_id"
+# The same user, carried in the data of a discovery the approval is asked in.
+DISCOVERY_USER_ID = "hass_agent_user_id"
+# A PC waiting for approval announced itself; the manual HA API step listens for it.
+SIGNAL_PENDING_DEVICE = "hass_agent_pending_device"
+
 EVENT_NOTIFICATION_ACTIONS = "hass_agent_notifications"
 
 SIGNAL_BUTTONS_UPDATED = "hass_agent_buttons_updated_{}"

@@ -31,6 +31,10 @@
       "switch_to_mqtt": {
         "title": "Switch to MQTT",
         "description": "**{current}** is set up over the HA API or the local HTTP API, and now announces itself over MQTT as **{name}**. Switch it to MQTT?\n\nOnly do this if you turned on MQTT in the Windows app yourself. Anything that can publish to your MQTT broker can send such an announcement."
+      },
+      "approve_user": {
+        "title": "Allow a Home Assistant user",
+        "description": "**{name}** wants to connect with the Home Assistant user **{user}**, who is not an administrator. Allow it?\n\nOnly do this if you created that user's token for this PC yourself. Anyone with a token can claim to be a PC."
       }
     },
     "error": {
@@ -41,7 +45,8 @@
       "already_configured": "Device is already configured.",
       "legacy_client": "This PC runs the original HASS.Agent, which this integration does not support. Update the Windows client to HASS.Agent .NET10.",
       "switched_to_mqtt": "The PC now uses MQTT.",
-      "not_supported": "This message did not come from a HASS.Agent .NET10 client, or it is incomplete."
+      "not_supported": "This message did not come from a HASS.Agent .NET10 client, or it is incomplete.",
+      "user_approved": "The PC can now connect as {user}."
     }
   },
   "options": {

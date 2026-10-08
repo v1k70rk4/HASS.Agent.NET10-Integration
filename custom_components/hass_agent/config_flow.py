@@ -15,6 +15,7 @@ from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PORT, CONF_SSL, CONF_URL
 from homeassistant.core import callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.issue_registry import (
     IssueSeverity,
     async_create_issue,
@@ -29,8 +30,11 @@ from .const import (
     CONF_DEVICE_NAME,
     CONF_HA_API,
     CONF_ORIGINAL_DEVICE_NAME,
+    CONF_USER_ID,
+    DISCOVERY_USER_ID,
     DOMAIN,
     MINIMUM_CLIENT_VERSION,
+    SIGNAL_PENDING_DEVICE,
 )
 
 _logger = logging.getLogger(__name__)
@@ -151,6 +155,9 @@ class FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         self._ha_api_unsub: Any = None
         self._ha_api_payload: dict[str, Any] | None = None
         self._switch_entry: config_entries.ConfigEntry | None = None
+        self._new_user_id: str | None = None
+        self._pending_unsub: Any = None
+        self._manual = False
 
     @staticmethod
     @callback
@@ -313,10 +320,26 @@ class FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             return self.async_abort(reason="legacy_client")
 
         self._data = {"device": device, "apis": apis, CONF_HA_API: True}
+        # Set only when the PC speaks as a user who is not an administrator (ws_commands).
+        user_id = discovery_info.get(DISCOVERY_USER_ID)
+        if isinstance(user_id, str) and user_id:
+            self._data[CONF_USER_ID] = user_id
+        else:
+            user_id = None
 
-        entry = await self.async_set_unique_id(serial_number)
+        # The manual step goes on even while the same PC waits under Discovered: the
+        # entry it creates closes that card.
+        entry = await self.async_set_unique_id(serial_number, raise_on_progress=not self._manual)
         if not entry or (CONF_ORIGINAL_DEVICE_NAME not in entry.data):
             self._data[CONF_ORIGINAL_DEVICE_NAME] = device_name
+
+        if entry and user_id is not None and entry.data.get(CONF_USER_ID) != user_id:
+            # A PC already set up now speaks as a Home Assistant user it was not
+            # approved for. Anyone with a token can claim a serial number, so the
+            # change waits for an administrator.
+            self._switch_entry = entry
+            self._new_user_id = user_id
+            return await self.async_step_approve_user()
 
         if entry:
             # Already configured — update with latest HA API data
@@ -353,13 +376,27 @@ class FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if self._ha_api_unsub is None:
+            # The commands a PC with a user of its own needs, which async_setup has not
+            # registered while the integration has no device yet.
+            from .ws_commands import async_register  # pylint: disable=import-outside-toplevel
+
+            async_register(self.hass)
+
             @callback
             def _capture(event) -> None:
                 data = event.data
                 if isinstance(data, dict) and isinstance(data.get("serial_number"), str):
                     self._ha_api_payload = data
 
+            @callback
+            def _capture_pending(data: dict[str, Any]) -> None:
+                # A PC with a user who is not an administrator: opening this step is
+                # the administrator's approval.
+                if isinstance(data.get("serial_number"), str):
+                    self._ha_api_payload = data
+
             self._ha_api_unsub = self.hass.bus.async_listen("hass_agent_device_update", _capture)
+            self._pending_unsub = async_dispatcher_connect(self.hass, SIGNAL_PENDING_DEVICE, _capture_pending)
 
         if user_input is not None:
             if self._ha_api_payload is None:
@@ -367,6 +404,7 @@ class FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             else:
                 payload = self._ha_api_payload
                 self._async_stop_ha_api_listener()
+                self._manual = True
                 return await self.async_step_ha_api(payload)
 
         return self.async_show_form(
@@ -381,6 +419,9 @@ class FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         if self._ha_api_unsub is not None:
             self._ha_api_unsub()
             self._ha_api_unsub = None
+        if self._pending_unsub is not None:
+            self._pending_unsub()
+            self._pending_unsub = None
 
     @callback
     def async_remove(self) -> None:
@@ -468,6 +509,26 @@ class FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             if flow["context"].get("unique_id") == unique_id and flow["flow_id"] != self.flow_id:
                 self.hass.config_entries.flow.async_abort(flow["flow_id"])
         return self.async_abort(reason="already_configured")
+
+    async def async_step_approve_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Let a PC already set up speak as a Home Assistant user, once an administrator agrees."""
+        entry = self._switch_entry
+        if entry is None or self._new_user_id is None:
+            return self.async_abort(reason="not_supported")
+
+        user = await self.hass.auth.async_get_user(self._new_user_id)
+        user_name = user.name if user is not None and user.name else self._new_user_id
+
+        if user_input is not None:
+            self.hass.config_entries.async_update_entry(
+                entry, data={**entry.data, CONF_USER_ID: self._new_user_id}
+            )
+            return self.async_abort(reason="user_approved", description_placeholders={"user": user_name})
+
+        placeholders = {CONF_NAME: entry.title, "user": user_name}
+        self.context["title_placeholders"] = placeholders
+        self._set_confirm_only()
+        return self.async_show_form(step_id="approve_user", description_placeholders=placeholders)
 
     async def async_step_switch_to_mqtt(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Move a PC set up on another transport to MQTT, once the user confirms it."""

@@ -53,6 +53,7 @@ from .const import (
     SIGNAL_SENSORS_UPDATED,
     SIGNAL_UPDATE_STATE,
 )
+from . import ws_commands
 from .entity import async_get_agent_device, availability_signal
 
 PLATFORMS: list[Platform] = [
@@ -1412,6 +1413,9 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         )
 
     hass.bus.async_listen("hass_agent_device_update", _ws_auto_discover)
+
+    # The HA API commands for a PC with a user of its own (not an administrator).
+    ws_commands.async_register(hass)
 
     def should_route_to_system_service(device_name: str, command: str | None, restart_cancel: bool) -> bool:
         command_name = "restart_cancel" if restart_cancel else command
