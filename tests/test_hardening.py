@@ -134,6 +134,37 @@ async def test_pc_on_the_ha_api_is_switched_to_mqtt_only_when_confirmed(hass: Ho
     reload.assert_called_once_with(entry.entry_id)
 
 
+async def test_ignoring_the_switch_keeps_the_pc(hass: HomeAssistant, mqtt_mock) -> None:
+    entry = MockConfigEntry(
+        domain=DOMAIN, unique_id=SERIAL, title="MY-PC", data={CONF_HA_API: True, "device": DEVICE, "apis": {}}
+    )
+    entry.add_to_hass(hass)
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": "mqtt"}, data=_discovery(SERIAL)
+    )
+    assert result["step_id"] == "switch_to_mqtt"
+
+    # What the Ignore button of a discovered card does.
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": "ignore"}, data={"unique_id": SERIAL, "title": "MY-PC"}
+    )
+
+    assert result["type"] is FlowResultType.ABORT
+    assert hass.config_entries.async_get_entry(entry.entry_id) is entry
+    assert entry.data[CONF_HA_API] is True
+    assert [e.entry_id for e in hass.config_entries.async_entries(DOMAIN, include_ignore=True)] == [entry.entry_id]
+    assert hass.config_entries.flow.async_progress_by_handler(DOMAIN) == []
+
+
+async def test_ignoring_a_new_pc_works_as_before(hass: HomeAssistant, mqtt_mock) -> None:
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": "ignore"}, data={"unique_id": SERIAL, "title": "MY-PC"}
+    )
+
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert result["result"].source == "ignore"
+
+
 async def test_pc_on_mqtt_is_updated_as_before(hass: HomeAssistant, mqtt_mock) -> None:
     entry = MockConfigEntry(domain=DOMAIN, unique_id=SERIAL, title="MY-PC", data={"device": DEVICE, "apis": {}})
     entry.add_to_hass(hass)

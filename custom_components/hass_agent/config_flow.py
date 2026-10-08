@@ -440,6 +440,23 @@ class FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
+    async def async_step_ignore(self, user_input: dict[str, Any]) -> ConfigFlowResult:
+        """Ignore a discovered PC.
+
+        For a PC that is already set up (a switch to MQTT waiting for the user), Home
+        Assistant's own ignore would replace its entry with an empty, ignored one. Here
+        it only drops the question.
+        """
+        unique_id = user_input["unique_id"]
+        entry = self.hass.config_entries.async_entry_for_domain_unique_id(DOMAIN, unique_id)
+        if entry is None or entry.source == config_entries.SOURCE_IGNORE:
+            return await super().async_step_ignore(user_input)
+
+        for flow in self._async_in_progress():
+            if flow["context"].get("unique_id") == unique_id and flow["flow_id"] != self.flow_id:
+                self.hass.config_entries.flow.async_abort(flow["flow_id"])
+        return self.async_abort(reason="already_configured")
+
     async def async_step_switch_to_mqtt(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Move a PC set up on another transport to MQTT, once the user confirms it."""
         entry = self._switch_entry
