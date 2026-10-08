@@ -40,6 +40,7 @@ from homeassistant.helpers.start import async_at_started
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.loader import async_get_integration
 
+from . import ws_commands
 from .const import (
     CONF_COMMAND,
     CONF_COMMENT,
@@ -53,7 +54,6 @@ from .const import (
     SIGNAL_SENSORS_UPDATED,
     SIGNAL_UPDATE_STATE,
 )
-from . import ws_commands
 from .entity import async_get_agent_device, availability_signal
 
 PLATFORMS: list[Platform] = [

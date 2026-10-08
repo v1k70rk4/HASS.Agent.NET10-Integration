@@ -378,7 +378,7 @@ class FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         if self._ha_api_unsub is None:
             # The commands a PC with a user of its own needs, which async_setup has not
             # registered while the integration has no device yet.
-            from .ws_commands import async_register  # pylint: disable=import-outside-toplevel
+            from .ws_commands import async_register
 
             async_register(self.hass)
 
