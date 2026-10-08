@@ -92,7 +92,8 @@ class HassAgentUpdate(HassAgentAvailableEntity, UpdateEntity):
     def release_url(self) -> str | None:
         """Return a link to the release notes."""
         value = self._state().get("release_url")
-        return value if isinstance(value, str) and value else None
+        # The PC sends it and the update dialog shows it as a link: GitHub pages only.
+        return value if isinstance(value, str) and value.startswith("https://github.com/") else None
 
     async def async_added_to_hass(self) -> None:
         """Subscribe to state and availability updates."""

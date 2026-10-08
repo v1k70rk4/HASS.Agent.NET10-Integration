@@ -1078,6 +1078,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         if not isinstance(response_json, dict):
             raise ConfigEntryNotReady(f"Received invalid HASS.Agent info response from {url}")
 
+        # Another PC (or anything else) may have the address by now: the notifications and
+        # the API key go only to the PC this entry was set up for.
+        if response_json.get("serial_number") != entry.unique_id:
+            raise ConfigEntryNotReady(
+                f"Another device answers at {url}, not the HASS.Agent this entry was set up for"
+            )
+
         update_device_info(hass, entry, response_json)
 
         apis = {
@@ -1421,27 +1428,31 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
             for command in commands
         ) if isinstance(commands, list) else False
 
+    def _entry_for_device_name(device_name: str) -> ConfigEntry | None:
+        """The one entry with this device name.
+
+        A PC names itself, so two of them can end up with the same name; a command that
+        should go to one of them then goes to neither, rather than to the wrong one.
+        """
+        matches = [
+            entry
+            for entry in hass.config_entries.async_entries(DOMAIN)
+            if isinstance(entry.data.get("device"), dict) and entry.data["device"].get("name") == device_name
+        ]
+        if len(matches) > 1:
+            raise HomeAssistantError(
+                f"more than one HASS.Agent device is called {device_name}; rename one of them in the Windows app"
+            )
+        return matches[0] if matches else None
+
     def serial_number_for_device_name(device_name: str) -> str | None:
-        for entry in hass.config_entries.async_entries(DOMAIN):
-            device = entry.data.get("device", {})
-            if not isinstance(device, dict):
-                continue
-
-            entry_device_name = device.get("name")
-            if isinstance(entry_device_name, str) and entry_device_name == device_name:
-                return entry.unique_id
-
-        return None
+        entry = _entry_for_device_name(device_name)
+        return entry.unique_id if entry else None
 
     def _is_ha_api_only_entry(device_name: str) -> bool:
         """Check if the device is configured as HA API only (no MQTT)."""
-        for entry in hass.config_entries.async_entries(DOMAIN):
-            device = entry.data.get("device", {})
-            if not isinstance(device, dict):
-                continue
-            if device.get("name") == device_name:
-                return entry.data.get(CONF_HA_API, False)
-        return False
+        entry = _entry_for_device_name(device_name)
+        return bool(entry and entry.data.get(CONF_HA_API, False))
 
     async def async_execute_command(call) -> None:
         device_name = call.data[CONF_DEVICE_NAME]

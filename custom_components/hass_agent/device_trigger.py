@@ -29,7 +29,7 @@ from homeassistant.helpers.trigger import (
 )
 from homeassistant.helpers.typing import ConfigType
 
-from .const import CONF_ACTION, CONF_DEVICE_NAME, DOMAIN, EVENT_NOTIFICATION_ACTIONS
+from .const import CONF_ACTION, DOMAIN, EVENT_NOTIFICATION_ACTIONS
 
 TRIGGER_TYPES = {"notifications_mqtt", "notifications_event"}
 
@@ -100,8 +100,9 @@ async def async_attach_trigger(
         {
             event_trigger.CONF_PLATFORM: CONF_EVENT,
             event_trigger.CONF_EVENT_TYPE: EVENT_NOTIFICATION_ACTIONS,
+            # By serial number, which a PC cannot change, rather than by its name.
             event_trigger.CONF_EVENT_DATA: {
-                CONF_DEVICE_NAME: device_name,
+                "serial_number": topic_id,
                 CONF_ACTION: config[CONF_ACTION],
             },
         }

@@ -42,6 +42,20 @@ IMAGE_LINK_LIFETIME = timedelta(minutes=5)
 # A camera or image entity given as the picture: its current frame is what is sent.
 _IMAGE_ENTITY = re.compile(r"^(camera|image)\.[a-z0-9_]+$")
 
+# The paths of this Home Assistant a picture may come from. Anything else (an API that
+# returns states or history) is not signed: the signed link goes to the PC, and over
+# MQTT to the broker.
+IMAGE_PATH_PREFIXES = ("/local/", "/media/", "/api/camera_proxy/", "/api/image_proxy/")
+
+
+def _is_picture_path(path: str) -> bool:
+    """Whether a path on this Home Assistant is one a picture may be signed for."""
+    route = path.split("?", 1)[0]
+    if not route.startswith(IMAGE_PATH_PREFIXES):
+        return False
+    segments = route.split("/")
+    return ".." not in segments and "." not in segments and "" not in segments[1:-1] and "\\" not in route
+
 
 def _prepare_image(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, Any]:
     """Make a picture that lives on this Home Assistant fetchable by the client.
@@ -65,6 +79,16 @@ def _prepare_image(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, Any]:
 
     if not image.startswith("/"):
         return data
+
+    if not _is_picture_path(image):
+        _logger.warning(
+            "notification picture %s is not under %s; it is left out",
+            image.split("?", 1)[0],
+            ", ".join(IMAGE_PATH_PREFIXES),
+        )
+        prepared = dict(data)
+        prepared.pop("image")
+        return prepared
 
     signed = async_sign_path(hass, image, IMAGE_LINK_LIFETIME, use_content_user=True)
     prepared = dict(data)
@@ -193,13 +217,23 @@ class HassAgentNotifyEntity(NotifyEntity):
             if api_key:
                 headers["Authorization"] = f"Bearer {api_key}"
             try:
+                # The address may belong to another device by now (DHCP): the notification
+                # and the API key go only to the PC this entry was set up for.
+                # No redirects: the answer must come from the address the notification goes to.
+                async with session.get(f"{url}/info", timeout=ClientTimeout(total=5), allow_redirects=False) as info:
+                    info_json = await info.json() if info.status == 200 else None
+                if not isinstance(info_json, dict) or info_json.get("serial_number") != self._entry.unique_id:
+                    _logger.error("Another device answers at %s; the notification is not sent", url)
+                    return
+
                 async with session.post(
                     f"{url}/notify",
                     json=payload,
                     headers=headers,
                     timeout=ClientTimeout(total=10),
+                    allow_redirects=False,
                 ) as response:
-                    if response.ok:
+                    if response.status < 400:
                         _logger.debug(
                             "Notification sent successfully (status %d)",
                             response.status,
@@ -210,5 +244,5 @@ class HassAgentNotifyEntity(NotifyEntity):
                             response.status,
                             response.reason,
                         )
-            except (ClientError, TimeoutError) as ex:
+            except (ClientError, TimeoutError, ValueError) as ex:
                 _logger.error("Error sending notification to %s: %s", url, ex)
