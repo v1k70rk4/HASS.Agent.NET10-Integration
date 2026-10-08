@@ -14,13 +14,20 @@ of its own who is not an administrator. What such a user may do through them is 
 A user who is not an administrator speaks for a PC once an administrator has approved
 it: a new PC through the usual discovery confirmation, a PC already set up through a
 confirmation of its own. Administrators are let through, as `fire_event` lets them.
+
+- `hass_agent/provision`, for an administrator only, is the easy way there: a PC that
+  connects with an administrator's token asks for a user of its own, and gets one with
+  a token, already approved for it.
 """
 
 from __future__ import annotations
 
+from datetime import timedelta
 from typing import Any
 
 import voluptuous as vol
+from homeassistant.auth.const import GROUP_ID_USER
+from homeassistant.auth.models import TOKEN_TYPE_LONG_LIVED_ACCESS_TOKEN
 from homeassistant.components import websocket_api
 from homeassistant.config_entries import SOURCE_IGNORE, ConfigEntry
 from homeassistant.core import Event, HomeAssistant, callback
@@ -51,12 +58,16 @@ CLIENT_COMMANDS = frozenset({"install_update"})
 
 COMMAND_EVENT = "hass_agent_command"
 
+# As long as the profile page of Home Assistant offers for a long-lived token.
+PROVISIONED_TOKEN_LIFETIME = timedelta(days=3650)
+
 
 @callback
 def async_register(hass: HomeAssistant) -> None:
     """Register the commands."""
     websocket_api.async_register_command(hass, ws_fire)
     websocket_api.async_register_command(hass, ws_subscribe)
+    websocket_api.async_register_command(hass, ws_provision)
 
 
 @callback
@@ -156,3 +167,53 @@ def ws_subscribe(hass: HomeAssistant, connection: websocket_api.ActiveConnection
 
     connection.subscriptions[msg["id"]] = hass.bus.async_listen(COMMAND_EVENT, forward)
     connection.send_result(msg["id"])
+
+
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): "hass_agent/provision",
+        vol.Required("serial_number"): str,
+    }
+)
+@websocket_api.require_admin
+@websocket_api.async_response
+async def ws_provision(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
+    """Give a PC a Home Assistant user of its own, not an administrator, and a token for it.
+
+    Asked by the PC itself while it is connected with an administrator's token, after
+    its user said yes. The user has no password, so nobody can log in with it; it is
+    approved for the PC at once. A PC that has such a user already gets a new token for
+    the same one.
+    """
+    serial_number = msg["serial_number"]
+    entry = _entry_for(hass, serial_number) if valid_serial(serial_number) else None
+    if entry is None:
+        connection.send_error(msg["id"], websocket_api.ERR_NOT_FOUND, "no HASS.Agent device with this serial number")
+        return
+
+    user = None
+    if (user_id := entry.data.get(CONF_USER_ID)) is not None:
+        user = await hass.auth.async_get_user(user_id)
+        if user is not None and (user.is_admin or not user.is_active or user.system_generated):
+            user = None
+    if user is None:
+        user = await hass.auth.async_create_user(f"HASS.Agent {entry.title}", group_ids=[GROUP_ID_USER])
+
+    # The PC's earlier token goes: the PC switches to the new one, and Home Assistant
+    # wants the name of a long-lived token to be unique for its user anyway.
+    client_name = f"HASS.Agent {entry.title}"
+    for old in list(user.refresh_tokens.values()):
+        if old.token_type == TOKEN_TYPE_LONG_LIVED_ACCESS_TOKEN and old.client_name == client_name:
+            hass.auth.async_remove_refresh_token(old)
+
+    refresh_token = await hass.auth.async_create_refresh_token(
+        user,
+        client_name=client_name,
+        token_type=TOKEN_TYPE_LONG_LIVED_ACCESS_TOKEN,
+        access_token_expiration=PROVISIONED_TOKEN_LIFETIME,
+    )
+    hass.config_entries.async_update_entry(entry, data={**entry.data, CONF_USER_ID: user.id})
+    connection.send_result(
+        msg["id"],
+        {"access_token": hass.auth.async_create_access_token(refresh_token), "user": user.name},
+    )

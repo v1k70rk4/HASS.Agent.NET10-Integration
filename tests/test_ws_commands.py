@@ -191,3 +191,50 @@ async def test_no_commands_before_the_approval(hass, integration, hass_ws_client
     message = await client.receive_json()
     assert message["event"]["data"]["command_type"] == "update_install"
 
+
+
+async def test_an_administrator_gives_the_pc_a_user_of_its_own(hass, integration, hass_ws_client) -> None:
+    admin, _ = await _user_client(hass, hass_ws_client, "admin", admin=True)
+    entry = _entry(hass, None)
+
+    await admin.send_json_auto_id({"type": "hass_agent/provision", "serial_number": SERIAL})
+    result = await admin.receive_json()
+
+    assert result["success"] is True
+    token = result["result"]["access_token"]
+    user = await hass.auth.async_get_user(entry.data[CONF_USER_ID])
+    assert user.name == "HASS.Agent MY-PC"
+    assert not user.is_admin
+    assert not user.credentials  # nobody can log in with it
+
+    # The token works at once, without an approval.
+    pc = await hass_ws_client(hass, access_token=token)
+    events = async_capture_events(hass, "hass_agent_sensor_update")
+    assert (await _fire(pc, "hass_agent_sensor_update", {"serial_number": SERIAL, "sensors": []}))["success"] is True
+    await hass.async_block_till_done()
+    assert len(events) == 1
+
+
+async def test_asking_again_keeps_the_same_user(hass, integration, hass_ws_client) -> None:
+    admin, _ = await _user_client(hass, hass_ws_client, "admin", admin=True)
+    entry = _entry(hass, None)
+    for _ in range(2):
+        await admin.send_json_auto_id({"type": "hass_agent/provision", "serial_number": SERIAL})
+        assert (await admin.receive_json())["success"] is True
+
+    names = [user.name for user in await hass.auth.async_get_users()]
+    assert names.count("HASS.Agent MY-PC") == 1
+    # Only the newest token lives: the earlier one was revoked.
+    user = await hass.auth.async_get_user(entry.data[CONF_USER_ID])
+    assert len([t for t in user.refresh_tokens.values() if t.token_type == "long_lived_access_token"]) == 1
+
+
+async def test_only_an_administrator_can_ask_for_a_user(hass, integration, hass_ws_client) -> None:
+    client, user = await _user_client(hass, hass_ws_client, "pc-user")
+    _entry(hass, user.id)
+
+    await client.send_json_auto_id({"type": "hass_agent/provision", "serial_number": SERIAL})
+    result = await client.receive_json()
+
+    assert result["success"] is False
+    assert result["error"]["code"] == "unauthorized"
