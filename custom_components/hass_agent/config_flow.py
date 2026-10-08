@@ -222,6 +222,18 @@ class FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         if not entry or (CONF_ORIGINAL_DEVICE_NAME not in entry.data):
             self._data[CONF_ORIGINAL_DEVICE_NAME] = device_name
 
+        if entry and device_name != entry.title and any(
+            other.entry_id != entry.entry_id and other.data.get("device", {}).get("name") == device_name
+            for other in self._async_current_entries(include_ignore=False)
+        ):
+            # Another PC has this name. Taking it would make this PC's events and actions
+            # look like that one's; the PC keeps the name it had.
+            _logger.warning(
+                "%s announced itself as %s, the name of another PC; it keeps its name", entry.title, device_name
+            )
+            device_name = entry.title
+            self._data["device"] = {**device, "name": entry.title}
+
         if entry and (CONF_URL in entry.data or entry.data.get(CONF_HA_API, False)):
             # This PC is set up over the HA API or the local HTTP API, and now announces
             # itself over MQTT. Anyone who can publish to the broker could send that, so
@@ -233,19 +245,6 @@ class FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         if entry:
             name_changed = device_name != entry.title
             old_title = entry.title
-
-            if name_changed and any(
-                other.entry_id != entry.entry_id and other.data.get("device", {}).get("name") == device_name
-                for other in self._async_current_entries(include_ignore=False)
-            ):
-                # Another PC has this name. Taking it would make this PC's events and
-                # actions look like that one's; the PC keeps the name it had.
-                _logger.warning(
-                    "%s announced itself as %s, the name of another PC; it keeps its name", old_title, device_name
-                )
-                device_name = old_title
-                self._data["device"] = {**device, "name": old_title}
-                name_changed = False
 
             self.hass.config_entries.async_update_entry(
                 entry,
