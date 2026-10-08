@@ -23,6 +23,8 @@ CONF_TIME = "time"
 # The Home Assistant user a PC on the HA API speaks as, when that user is not an
 # administrator (see ws_commands). Set when an administrator approves the PC.
 CONF_USER_ID = "user_id"
+# The user hass_agent/provision made for the PC: the only one it ever gives a token again.
+CONF_PROVISIONED_USER_ID = "provisioned_user_id"
 # The same user, carried in the data of a discovery the approval is asked in.
 DISCOVERY_USER_ID = "hass_agent_user_id"
 # A PC waiting for approval announced itself; the manual HA API step listens for it.

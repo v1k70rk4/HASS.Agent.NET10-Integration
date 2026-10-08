@@ -35,6 +35,10 @@
       "approve_user": {
         "title": "Home Assistant-felhasználó engedélyezése",
         "description": "A(z) **{name}** a(z) **{user}** Home Assistant-felhasználóval szeretne csatlakozni, aki nem rendszergazda. Engedélyezed?\n\nCsak akkor tedd, ha ennek a felhasználónak a tokenjét te adtad meg ezen a gépen. Tokennel bárki kiadhatja magát egy gépnek."
+      },
+      "confirm_user": {
+        "title": "Gép hozzáadása saját Home Assistant-felhasználóval",
+        "description": "A(z) **{name}** szeretne csatlakozni a(z) **{user}** Home Assistant-felhasználóval, aki nem rendszergazda. Hozzáadod?\n\nCsak akkor tedd, ha ennek a felhasználónak a tokenjét te adtad meg ezen a gépen. Tokennel bárki kiadhatja magát egy gépnek."
       }
     },
     "error": {

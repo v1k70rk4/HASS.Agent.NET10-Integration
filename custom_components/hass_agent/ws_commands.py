@@ -34,7 +34,13 @@ from homeassistant.core import Event, HomeAssistant, callback
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 
 from .config_flow import valid_serial
-from .const import CONF_USER_ID, DISCOVERY_USER_ID, DOMAIN, SIGNAL_PENDING_DEVICE
+from .const import (
+    CONF_PROVISIONED_USER_ID,
+    CONF_USER_ID,
+    DISCOVERY_USER_ID,
+    DOMAIN,
+    SIGNAL_PENDING_DEVICE,
+)
 
 # The events the client sends, the ones the integration listens to.
 CLIENT_EVENTS = frozenset(
@@ -169,6 +175,14 @@ def ws_subscribe(hass: HomeAssistant, connection: websocket_api.ActiveConnection
     connection.send_result(msg["id"])
 
 
+@callback
+def _used_by_another_pc(hass: HomeAssistant, entry: ConfigEntry, user_id: str) -> bool:
+    return any(
+        other.entry_id != entry.entry_id and other.data.get(CONF_USER_ID) == user_id
+        for other in hass.config_entries.async_entries(DOMAIN)
+    )
+
+
 @websocket_api.websocket_command(
     {
         vol.Required("type"): "hass_agent/provision",
@@ -191,20 +205,30 @@ async def ws_provision(hass: HomeAssistant, connection: websocket_api.ActiveConn
         connection.send_error(msg["id"], websocket_api.ERR_NOT_FOUND, "no HASS.Agent device with this serial number")
         return
 
+    # Only a user this command made for this very PC is used again, and only while it is
+    # still what it was made as: never a person's own account an administrator approved
+    # for the PC, whose token would carry that person's rights.
     user = None
-    if (user_id := entry.data.get(CONF_USER_ID)) is not None:
+    if (user_id := entry.data.get(CONF_PROVISIONED_USER_ID)) is not None:
         user = await hass.auth.async_get_user(user_id)
-        if user is not None and (user.is_admin or not user.is_active or user.system_generated):
+        if user is not None and (
+            user.is_admin
+            or not user.is_active
+            or user.system_generated
+            or user.credentials
+            or _used_by_another_pc(hass, entry, user.id)
+        ):
             user = None
     if user is None:
         user = await hass.auth.async_create_user(f"HASS.Agent {entry.title}", group_ids=[GROUP_ID_USER])
 
-    # The PC's earlier token goes: the PC switches to the new one, and Home Assistant
-    # wants the name of a long-lived token to be unique for its user anyway.
-    client_name = f"HASS.Agent {entry.title}"
+    # The user is the PC's alone: every earlier token of it goes, whatever name the PC had
+    # when it was made, so asking again also replaces a token that got out.
     for old in list(user.refresh_tokens.values()):
-        if old.token_type == TOKEN_TYPE_LONG_LIVED_ACCESS_TOKEN and old.client_name == client_name:
+        if old.token_type == TOKEN_TYPE_LONG_LIVED_ACCESS_TOKEN:
             hass.auth.async_remove_refresh_token(old)
+
+    client_name = f"HASS.Agent {entry.title}"
 
     refresh_token = await hass.auth.async_create_refresh_token(
         user,
@@ -212,7 +236,9 @@ async def ws_provision(hass: HomeAssistant, connection: websocket_api.ActiveConn
         token_type=TOKEN_TYPE_LONG_LIVED_ACCESS_TOKEN,
         access_token_expiration=PROVISIONED_TOKEN_LIFETIME,
     )
-    hass.config_entries.async_update_entry(entry, data={**entry.data, CONF_USER_ID: user.id})
+    hass.config_entries.async_update_entry(
+        entry, data={**entry.data, CONF_USER_ID: user.id, CONF_PROVISIONED_USER_ID: user.id}
+    )
     connection.send_result(
         msg["id"],
         {"access_token": hass.auth.async_create_access_token(refresh_token), "user": user.name},

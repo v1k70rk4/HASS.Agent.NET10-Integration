@@ -35,6 +35,10 @@
       "approve_user": {
         "title": "Allow a Home Assistant user",
         "description": "**{name}** wants to connect with the Home Assistant user **{user}**, who is not an administrator. Allow it?\n\nOnly do this if you created that user's token for this PC yourself. Anyone with a token can claim to be a PC."
+      },
+      "confirm_user": {
+        "title": "Add a PC with its own Home Assistant user",
+        "description": "**{name}** wants to be added, connecting with the Home Assistant user **{user}**, who is not an administrator. Add it?\n\nOnly do this if you created that user's token for this PC yourself. Anyone with a token can claim to be a PC."
       }
     },
     "error": {

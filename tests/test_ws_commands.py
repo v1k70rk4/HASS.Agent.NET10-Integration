@@ -62,7 +62,7 @@ async def test_new_pc_of_a_plain_user_waits_for_an_administrator(hass, integrati
     assert result["error"]["code"] == "unauthorized"
     assert events == []  # nothing reaches the listeners before the approval
     flows = hass.config_entries.flow.async_progress_by_handler(DOMAIN)
-    assert [flow["step_id"] for flow in flows] == ["confirm"]
+    assert [flow["step_id"] for flow in flows] == ["confirm_user"]  # names the user it approves
 
     # The administrator confirms it under Discovered: the PC is bound to its user.
     result = await hass.config_entries.flow.async_configure(flows[0]["flow_id"], {})
@@ -238,3 +238,29 @@ async def test_only_an_administrator_can_ask_for_a_user(hass, integration, hass_
 
     assert result["success"] is False
     assert result["error"]["code"] == "unauthorized"
+
+
+async def test_a_persons_own_account_is_never_given_a_token(hass, integration, hass_ws_client) -> None:
+    admin, _ = await _user_client(hass, hass_ws_client, "admin", admin=True)
+    person = await hass.auth.async_create_user("Somebody", group_ids=["system-users"])
+    entry = _entry(hass, person.id)  # approved for the PC by an administrator earlier
+
+    await admin.send_json_auto_id({"type": "hass_agent/provision", "serial_number": SERIAL})
+    assert (await admin.receive_json())["success"] is True
+
+    assert entry.data[CONF_USER_ID] != person.id
+    assert (await hass.auth.async_get_user(entry.data[CONF_USER_ID])).name == "HASS.Agent MY-PC"
+
+
+async def test_a_renamed_pc_does_not_keep_its_old_token(hass, integration, hass_ws_client) -> None:
+    admin, _ = await _user_client(hass, hass_ws_client, "admin", admin=True)
+    entry = _entry(hass, None)
+    await admin.send_json_auto_id({"type": "hass_agent/provision", "serial_number": SERIAL})
+    assert (await admin.receive_json())["success"] is True
+
+    hass.config_entries.async_update_entry(entry, title="RENAMED-PC")
+    await admin.send_json_auto_id({"type": "hass_agent/provision", "serial_number": SERIAL})
+    assert (await admin.receive_json())["success"] is True
+
+    user = await hass.auth.async_get_user(entry.data[CONF_USER_ID])
+    assert len([t for t in user.refresh_tokens.values() if t.token_type == "long_lived_access_token"]) == 1

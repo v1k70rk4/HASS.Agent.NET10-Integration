@@ -351,7 +351,32 @@ class FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
         self._device_name = device_name
 
+        if user_id is not None:
+            # A new PC that speaks as a user who is not an administrator: the confirmation
+            # names that user, since approving the PC approves the user for it.
+            return await self.async_step_confirm_user()
+
         return await self.async_step_confirm()
+
+    async def async_step_confirm_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Add a new PC together with the Home Assistant user it speaks as."""
+        user_id = self._data.get(CONF_USER_ID)
+        user = await self.hass.auth.async_get_user(user_id) if user_id else None
+        user_name = user.name if user is not None and user.name else str(user_id)
+
+        if user_input is not None:
+            return self.async_create_entry(
+                title=self._device_name,
+                data=self._data,
+                options={CONF_DEFAULT_NOTIFICATION_TITLE: ATTR_TITLE_DEFAULT},
+            )
+
+        self.context["title_placeholders"] = {CONF_NAME: self._device_name}
+        self._set_confirm_only()
+        return self.async_show_form(
+            step_id="confirm_user",
+            description_placeholders={CONF_NAME: self._device_name, "user": user_name},
+        )
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Handle manual device addition."""
