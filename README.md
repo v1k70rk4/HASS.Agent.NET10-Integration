@@ -20,7 +20,7 @@ It is the matching Home Assistant side for the modern **HASS.Agent .NET10** Wind
 >
 > If you want to keep using the old HASS.Agent client, switch to the **[`legacy` branch](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/tree/legacy)** of this integration. The legacy branch works with Home Assistant 2026.6+ and the original pre-.NET10 HASS.Agent, but it is **no longer maintained**.
 
-> **Stable:** [10.9.0](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/releases/latest) &nbsp;·&nbsp; [What changed](#changelog) &nbsp;·&nbsp; [Full changelog](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/blob/main/CHANGELOG.md)
+> **Stable:** [10.9.0](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/releases/latest) &nbsp;·&nbsp; **Beta:** [10.9.1-beta.2](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/releases/tag/v10.9.1-beta.2) &nbsp;·&nbsp; [What changed](#changelog) &nbsp;·&nbsp; [Full changelog](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/blob/main/CHANGELOG.md)
 
 <p align="center"><img src="https://raw.githubusercontent.com/v1k70rk4/HASS.Agent.NET10-Integration/main/images/ha-device.png" width="800" alt="A Windows PC as a device in Home Assistant: media player, audio output select and command buttons"></p>
 
@@ -205,7 +205,7 @@ Besides `message` and `title`, the action has these fields; in the Home Assistan
 | Field | Description |
 |-------|-------------|
 | `actions` | Buttons, each with an `action` (what comes back) and a `title`. Up to five. |
-| `image` | A picture: a web address, a path on this Home Assistant (`/local/doorbell.jpg`, `/api/camera_proxy/camera.front_door`), or a camera or image entity (`camera.front_door`). A path or an entity is signed for five minutes so the PC can fetch it. Client 10.9.0+. |
+| `image` | A picture: a web address, a path on this Home Assistant (`/local/doorbell.jpg`, `/api/camera_proxy/camera.front_door`), or a camera or image entity (`camera.front_door`). A path or an entity is signed for five minutes so the PC can fetch it; only paths under `/local/`, `/media/` and the camera and image proxies are (10.9.1+), anything else is left out. Client 10.9.0+. |
 | `inputs` | Text fields, each with an `id` and a `title` (the hint in the empty field). Up to five. What was typed comes back with the pressed button, in `input`, by id. Client 10.9.0+. |
 | `duration` | Seconds on screen, 1 to 60 (default 10). |
 | `style` | `toast` (a Windows notification) or `window` (the client's own always-visible window), for this one notification. Without it the client's own setting decides. Client 10.9.0+. |
@@ -345,6 +345,18 @@ A hotkey pressed on the PC (client 10.9.0+) reaches the device's *Hotkeys* event
 ---
 
 ## Changelog
+
+### 10.9.1-beta.2
+
+> **Beta.** Hardening, from a security review of the integration. It goes with the Windows client [10.9.1-beta.2](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.9.1-beta.2), but works with every supported client; nothing to change on the PC. In HACS: open the integration, choose **Redownload**, turn on **Show beta versions**, then pick **10.9.1-beta.2**. Restart Home Assistant afterwards.
+
+- **A PC set up over the HA API or the local HTTP API is switched to MQTT only when you confirm it.** When such a PC announced itself over MQTT, the integration moved it to MQTT on its own, with whatever name the message gave. Anything that can publish to the broker could send that message and receive the PC's notifications from then on. The PC now shows up under *Discovered*, and the switch happens when you confirm it there.
+- **A discovery message must come on its own PC's topic.** One whose serial number differs from the topic it came on (`hass.agent/devices/<serial>`) is ignored, so a broker that limits each PC to its own topics also keeps it from speaking for another PC. Serial numbers that could not work in MQTT topics and entity ids (`+`, `#`, `/`, `_`) are refused too.
+- **Notification actions and hotkey presses name the PC they came in for.** The `device_name` in their events, which device triggers match on, came from the message itself, so one PC could fire another PC's automations. It is now always the name of the device the message came in for, and the events also carry its `serial_number`.
+- **Only picture paths are signed for a notification.** A path given as `image` was signed whatever it was, `/api/states` included, and the signed link went to the PC and over MQTT to the broker. Now only `/local/`, `/media/` and the camera and image proxies are; anything else is left out of the notification, with a warning in the log.
+- **Actions refuse a device name that two PCs have.** `execute_command` and `set_app_volume` took the first PC with that name. They now say that the name is not unique, rather than shutting down the wrong PC.
+- **The local HTTP API checks that it talks to the same PC.** If another device answers at the address (a new IP from DHCP), the integration does not send it notifications or the API key, and tries again later.
+- The release notes link of the update entity has to lead to github.com.
 
 ### 10.9.0
 
