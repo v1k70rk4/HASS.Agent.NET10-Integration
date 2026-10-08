@@ -77,6 +77,7 @@ async def test_picture_paths_are_signed(hass: HomeAssistant, image: str) -> None
         ("a/b", False),
         (f"{SERIAL}_cpu", False),
         ("", False),
+        (f"{SERIAL}\n", False),
         ("x" * 65, False),
         (42, False),
     ],
@@ -177,6 +178,22 @@ async def test_pc_on_mqtt_is_updated_as_before(hass: HomeAssistant, mqtt_mock) -
     assert result["reason"] == "already_configured"
 
 
+async def test_pc_cannot_take_another_pcs_name(hass: HomeAssistant, mqtt_mock) -> None:
+    other = MockConfigEntry(domain=DOMAIN, unique_id="ffffffffffffffffffffffffffffffff", title="OFFICE-PC",
+                            data={"device": {**DEVICE, "name": "OFFICE-PC"}, "apis": {}})
+    other.add_to_hass(hass)
+    entry = MockConfigEntry(domain=DOMAIN, unique_id=SERIAL, title="MY-PC", data={"device": DEVICE, "apis": {}})
+    entry.add_to_hass(hass)
+
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": "mqtt"}, data=_discovery(SERIAL, name="OFFICE-PC")
+    )
+
+    assert result["reason"] == "already_configured"
+    assert entry.title == "MY-PC"
+    assert entry.data["device"]["name"] == "MY-PC"
+
+
 # --- events carry the device they came in for --------------------------------------------------
 
 def test_event_names_its_own_device() -> None:
@@ -206,6 +223,38 @@ def test_release_link_only_to_github(url, shown: bool) -> None:
 
 
 # --- the local HTTP API -----------------------------------------------------------------------------
+
+async def test_notification_is_not_sent_to_another_device(hass: HomeAssistant, aioclient_mock) -> None:
+    from custom_components.hass_agent.notify import HassAgentNotifyEntity
+
+    url = "http://192.168.1.20:5115"
+    aioclient_mock.get(f"{url}/info", json={"serial_number": "ffffffffffffffffffffffffffffffff"})
+    aioclient_mock.post(f"{url}/notify", json={})
+    entry = MockConfigEntry(domain=DOMAIN, unique_id=SERIAL, title="MY-PC", data={CONF_URL: url, "api_key": "secret"})
+    entry.add_to_hass(hass)
+    entity = HassAgentNotifyEntity(hass, entry, "MY-PC", "MY-PC")
+    entity.hass = hass
+
+    await entity.async_send_hass_agent_notification("Hello")
+
+    assert [(method, str(called)) for method, called, *_ in aioclient_mock.mock_calls] == [("GET", f"{url}/info")]
+
+
+async def test_notification_goes_to_its_own_pc(hass: HomeAssistant, aioclient_mock) -> None:
+    from custom_components.hass_agent.notify import HassAgentNotifyEntity
+
+    url = "http://192.168.1.20:5115"
+    aioclient_mock.get(f"{url}/info", json={"serial_number": SERIAL})
+    aioclient_mock.post(f"{url}/notify", json={})
+    entry = MockConfigEntry(domain=DOMAIN, unique_id=SERIAL, title="MY-PC", data={CONF_URL: url, "api_key": "secret"})
+    entry.add_to_hass(hass)
+    entity = HassAgentNotifyEntity(hass, entry, "MY-PC", "MY-PC")
+    entity.hass = hass
+
+    await entity.async_send_hass_agent_notification("Hello")
+
+    assert [method for method, *_ in aioclient_mock.mock_calls] == ["GET", "POST"]
+
 
 async def test_local_api_entry_refuses_another_device(hass: HomeAssistant, mqtt_mock, aioclient_mock) -> None:
     assert await async_setup_component(hass, "http", {})

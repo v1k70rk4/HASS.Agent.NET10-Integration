@@ -217,13 +217,22 @@ class HassAgentNotifyEntity(NotifyEntity):
             if api_key:
                 headers["Authorization"] = f"Bearer {api_key}"
             try:
+                # The address may belong to another device by now (DHCP): the notification
+                # and the API key go only to the PC this entry was set up for.
+                async with session.get(f"{url}/info", timeout=ClientTimeout(total=5)) as info:
+                    info.raise_for_status()
+                    info_json = await info.json()
+                if not isinstance(info_json, dict) or info_json.get("serial_number") != self._entry.unique_id:
+                    _logger.error("Another device answers at %s; the notification is not sent", url)
+                    return
+
                 async with session.post(
                     f"{url}/notify",
                     json=payload,
                     headers=headers,
                     timeout=ClientTimeout(total=10),
                 ) as response:
-                    if response.ok:
+                    if response.status < 400:
                         _logger.debug(
                             "Notification sent successfully (status %d)",
                             response.status,
@@ -234,5 +243,5 @@ class HassAgentNotifyEntity(NotifyEntity):
                             response.status,
                             response.reason,
                         )
-            except (ClientError, TimeoutError) as ex:
+            except (ClientError, TimeoutError, ValueError) as ex:
                 _logger.error("Error sending notification to %s: %s", url, ex)

@@ -45,7 +45,7 @@ _SERIAL_PATTERN = re.compile(r"^[A-Za-z0-9-]{1,64}$")
 
 def valid_serial(value: object) -> bool:
     """Whether a serial number from a discovery message can be used."""
-    return isinstance(value, str) and _SERIAL_PATTERN.match(value) is not None
+    return isinstance(value, str) and _SERIAL_PATTERN.fullmatch(value) is not None
 
 
 def _parse_version(value: object) -> tuple[int, int, int] | None:
@@ -233,6 +233,19 @@ class FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         if entry:
             name_changed = device_name != entry.title
             old_title = entry.title
+
+            if name_changed and any(
+                other.entry_id != entry.entry_id and other.data.get("device", {}).get("name") == device_name
+                for other in self._async_current_entries(include_ignore=False)
+            ):
+                # Another PC has this name. Taking it would make this PC's events and
+                # actions look like that one's; the PC keeps the name it had.
+                _logger.warning(
+                    "%s announced itself as %s, the name of another PC; it keeps its name", old_title, device_name
+                )
+                device_name = old_title
+                self._data["device"] = {**device, "name": old_title}
+                name_changed = False
 
             self.hass.config_entries.async_update_entry(
                 entry,
