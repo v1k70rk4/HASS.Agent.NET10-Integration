@@ -31,6 +31,14 @@
       "switch_to_mqtt": {
         "title": "Váltás MQTT-re",
         "description": "A(z) **{current}** a HA API-n vagy a helyi HTTP API-n van beállítva, most viszont MQTT-n jelentkezett **{name}** néven. Átállítod MQTT-re?\n\nCsak akkor tedd, ha a Windows-alkalmazásban te kapcsoltad be az MQTT-t. Ilyen bejelentkezést bárki küldhet, aki írhat az MQTT-brokerre."
+      },
+      "approve_user": {
+        "title": "Home Assistant-felhasználó engedélyezése",
+        "description": "A(z) **{name}** a(z) **{user}** Home Assistant-felhasználóval szeretne csatlakozni, aki nem rendszergazda. Engedélyezed?\n\nCsak akkor tedd, ha ennek a felhasználónak a tokenjét te adtad meg ezen a gépen. Tokennel bárki kiadhatja magát egy gépnek."
+      },
+      "confirm_user": {
+        "title": "Gép hozzáadása saját Home Assistant-felhasználóval",
+        "description": "A(z) **{name}** szeretne csatlakozni a(z) **{user}** Home Assistant-felhasználóval, aki nem rendszergazda. Hozzáadod?\n\nCsak akkor tedd, ha ennek a felhasználónak a tokenjét te adtad meg ezen a gépen. Tokennel bárki kiadhatja magát egy gépnek."
       }
     },
     "error": {
@@ -41,7 +49,8 @@
       "already_configured": "Ez az eszköz már be van állítva.",
       "legacy_client": "Ezen a gépen a régi HASS.Agent fut, amit ez az integráció nem támogat. Frissítsd a Windows klienst HASS.Agent .NET10-re.",
       "switched_to_mqtt": "A gép mostantól MQTT-t használ.",
-      "not_supported": "Ez az üzenet nem egy HASS.Agent .NET10 klienstől jött, vagy hiányos."
+      "not_supported": "Ez az üzenet nem egy HASS.Agent .NET10 klienstől jött, vagy hiányos.",
+      "user_approved": "A gép mostantól {user} felhasználóként csatlakozhat."
     }
   },
   "options": {

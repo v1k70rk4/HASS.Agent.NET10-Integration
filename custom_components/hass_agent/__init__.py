@@ -40,6 +40,7 @@ from homeassistant.helpers.start import async_at_started
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.loader import async_get_integration
 
+from . import ws_commands
 from .const import (
     CONF_COMMAND,
     CONF_COMMENT,
@@ -1412,6 +1413,9 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         )
 
     hass.bus.async_listen("hass_agent_device_update", _ws_auto_discover)
+
+    # The HA API commands for a PC with a user of its own (not an administrator).
+    ws_commands.async_register(hass)
 
     def should_route_to_system_service(device_name: str, command: str | None, restart_cancel: bool) -> bool:
         command_name = "restart_cancel" if restart_cancel else command
