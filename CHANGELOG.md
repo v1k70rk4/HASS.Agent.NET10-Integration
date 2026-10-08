@@ -2,6 +2,12 @@
 
 Every release of the HASS.Agent .NET10 integration, newest first. The Windows client has its own [changelog](https://github.com/v1k70rk4/HASS.Agent.NET10/blob/main/CHANGELOG.md).
 
+## 10.9.1-beta.3
+
+> **Beta.** A small one, going with the Windows client [10.9.1-beta.3](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.9.1-beta.3); works with every supported client. In HACS: open the integration, choose **Redownload**, turn on **Show beta versions**, then pick **10.9.1-beta.3**. Restart Home Assistant afterwards.
+
+- The setup dialog says why it stopped when a message is not from a HASS.Agent .NET10 client, instead of showing a bare key.
+
 ## 10.9.1-beta.2
 
 > **Beta.** Hardening, from a security review of the integration. It goes with the Windows client [10.9.1-beta.2](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.9.1-beta.2), but works with every supported client; nothing to change on the PC. In HACS: open the integration, choose **Redownload**, turn on **Show beta versions**, then pick **10.9.1-beta.2**. Restart Home Assistant afterwards.

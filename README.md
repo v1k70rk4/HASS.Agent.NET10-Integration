@@ -20,7 +20,7 @@ It is the matching Home Assistant side for the modern **HASS.Agent .NET10** Wind
 >
 > If you want to keep using the old HASS.Agent client, switch to the **[`legacy` branch](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/tree/legacy)** of this integration. The legacy branch works with Home Assistant 2026.6+ and the original pre-.NET10 HASS.Agent, but it is **no longer maintained**.
 
-> **Stable:** [10.9.0](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/releases/latest) &nbsp;·&nbsp; **Beta:** [10.9.1-beta.2](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/releases/tag/v10.9.1-beta.2) &nbsp;·&nbsp; [What changed](#changelog) &nbsp;·&nbsp; [Full changelog](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/blob/main/CHANGELOG.md)
+> **Stable:** [10.9.0](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/releases/latest) &nbsp;·&nbsp; **Beta:** [10.9.1-beta.3](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/releases/tag/v10.9.1-beta.3) &nbsp;·&nbsp; [What changed](#changelog) &nbsp;·&nbsp; [Full changelog](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/blob/main/CHANGELOG.md)
 
 <p align="center"><img src="https://raw.githubusercontent.com/v1k70rk4/HASS.Agent.NET10-Integration/main/images/ha-device.png" width="800" alt="A Windows PC as a device in Home Assistant: media player, audio output select and command buttons"></p>
 
@@ -346,9 +346,15 @@ A hotkey pressed on the PC (client 10.9.0+) reaches the device's *Hotkeys* event
 
 ## Changelog
 
-### 10.9.1-beta.2
+### 10.9.1-beta.3
 
-> **Beta.** Hardening, from a security review of the integration. It goes with the Windows client [10.9.1-beta.2](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.9.1-beta.2), but works with every supported client; nothing to change on the PC. In HACS: open the integration, choose **Redownload**, turn on **Show beta versions**, then pick **10.9.1-beta.2**. Restart Home Assistant afterwards.
+> **Beta.** A small one, going with the Windows client [10.9.1-beta.3](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.9.1-beta.3); works with every supported client. In HACS: open the integration, choose **Redownload**, turn on **Show beta versions**, then pick **10.9.1-beta.3**. Restart Home Assistant afterwards.
+
+**New since beta.2**
+
+- The setup dialog says why it stopped when a message is not from a HASS.Agent .NET10 client, instead of showing a bare key.
+
+**From beta.2:** hardening from a security review of the integration.
 
 - **A PC set up over the HA API or the local HTTP API is switched to MQTT only when you confirm it.** When such a PC announced itself over MQTT, the integration moved it to MQTT on its own, with whatever name the message gave. Anything that can publish to the broker could send that message and receive the PC's notifications from then on. The PC now shows up under *Discovered*, and the switch happens when you confirm it there.
 - **A discovery message must come on its own PC's topic.** One whose serial number differs from the topic it came on (`hass.agent/devices/<serial>`) is ignored, so a broker that limits each PC to its own topics also keeps it from speaking for another PC. Serial numbers that could not work in MQTT topics and entity ids (`+`, `#`, `/`, `_`) are refused too.

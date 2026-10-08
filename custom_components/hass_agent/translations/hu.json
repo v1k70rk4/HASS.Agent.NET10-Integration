@@ -38,11 +38,10 @@
       "no_discovery": "Még nem jelentkezett be gép. Nyomd meg a **Felderítés újraküldése** gombot a Windows alkalmazásban (Veszélyzóna), majd próbáld újra."
     },
     "abort": {
-      "single_instance_allowed": "Csak egy példány engedélyezett.",
-      "no_devices_found": "Nem található eszköz a hálózaton.",
       "already_configured": "Ez az eszköz már be van állítva.",
       "legacy_client": "Ezen a gépen a régi HASS.Agent fut, amit ez az integráció nem támogat. Frissítsd a Windows klienst HASS.Agent .NET10-re.",
-      "switched_to_mqtt": "A gép mostantól MQTT-t használ."
+      "switched_to_mqtt": "A gép mostantól MQTT-t használ.",
+      "not_supported": "Ez az üzenet nem egy HASS.Agent .NET10 klienstől jött, vagy hiányos."
     }
   },
   "options": {
