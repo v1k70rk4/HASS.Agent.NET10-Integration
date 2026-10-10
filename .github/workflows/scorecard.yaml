@@ -18,6 +18,8 @@ jobs:
     name: Scorecard analysis
     runs-on: ubuntu-latest
     permissions:
+      # A job's own list replaces read-all; checkout still reads the repository.
+      contents: read
       # Upload the results to code scanning.
       security-events: write
       # Publish the results (OIDC token for the Scorecard API).
