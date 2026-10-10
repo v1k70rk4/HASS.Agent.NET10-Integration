@@ -7,9 +7,17 @@ on:
 #  schedule:
 #    - cron: "0 0 * * *"
 
+permissions:
+  contents: read
+
 jobs:
   validate:
     runs-on: "ubuntu-latest"
     steps:
-      - uses: "actions/checkout@v7"
-      - uses: home-assistant/actions/hassfest@master
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # Home Assistant publishes hassfest on its master branch only (its one release, 1.0.0, is
+      # years old), so this is pinned to a master commit; Dependabot cannot follow a branch,
+      # move it by hand now and then.
+      - uses: home-assistant/actions/hassfest@06749dd8c0b54f350bc69c8752456cee498808a3 # master 2026-09-27
