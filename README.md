@@ -20,7 +20,7 @@ It is the matching Home Assistant side for the modern **HASS.Agent .NET10** Wind
 >
 > If you want to keep using the old HASS.Agent client, switch to the **[`legacy` branch](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/tree/legacy)** of this integration. The legacy branch works with Home Assistant 2026.6+ and the original pre-.NET10 HASS.Agent, but it is **no longer maintained**.
 
-> **Stable:** [10.9.0](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/releases/latest) &nbsp;·&nbsp; **Beta:** [10.9.1-beta.4](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/releases/tag/v10.9.1-beta.4) &nbsp;·&nbsp; [What changed](#changelog) &nbsp;·&nbsp; [Full changelog](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/blob/main/CHANGELOG.md)
+> **Stable:** [10.9.1](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/releases/latest) &nbsp;·&nbsp; [What changed](#changelog) &nbsp;·&nbsp; [Full changelog](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/blob/main/CHANGELOG.md)
 
 <p align="center"><img src="https://raw.githubusercontent.com/v1k70rk4/HASS.Agent.NET10-Integration/main/images/ha-device.png" width="800" alt="A Windows PC as a device in Home Assistant: media player, audio output select and command buttons"></p>
 
@@ -33,7 +33,7 @@ It is the matching Home Assistant side for the modern **HASS.Agent .NET10** Wind
 | Component | Minimum version |
 |-----------|----------------|
 | Home Assistant | 2026.6.0 |
-| HASS.Agent .NET10 (Windows client) | 10.2.0 (10.9.0+ recommended) |
+| HASS.Agent .NET10 (Windows client) | 10.2.0 (10.9.1+ recommended) |
 | MQTT broker (recommended) | Mosquitto or any MQTT 3.1.1+ broker |
 
 HACS is required for installation. This integration is available in the **HACS default store**, so no custom repository needs to be added.
@@ -348,19 +348,15 @@ A hotkey pressed on the PC (client 10.9.0+) reaches the device's *Hotkeys* event
 
 ## Changelog
 
-### 10.9.1-beta.4
+### 10.9.1 — security pack
 
-> **Beta.** A PC on the HA API no longer needs an administrator's token. Goes with the Windows client [10.9.1-beta.4](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.9.1-beta.4), which offers to create a Home Assistant user of the PC's own; older clients keep working as before. In HACS: open the integration, choose **Redownload**, turn on **Show beta versions**, then pick **10.9.1-beta.4**. Restart Home Assistant afterwards.
+The security release, going with the Windows client [10.9.1](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.9.1): 10.9.0 brought new entities and services, 10.9.1 is about what a PC, or anything else on the broker, may do in Home Assistant. It comes from a security review of the integration. The hardening helps with every supported client; a PC on the HA API without an administrator's token needs the client 10.9.1. Update in HACS and restart Home Assistant afterwards.
 
-**New since beta.3**
+**A PC on the HA API without an administrator's token**
 
-- **A PC on the HA API can use a Home Assistant user who is not an administrator.** Two WebSocket commands of the integration, `hass_agent/fire` and `hass_agent/subscribe`, take the place of Home Assistant's `fire_event` and `subscribe_events`, which need an administrator's token. Through them a PC can only send its own kind of messages for its own serial number, and only gets its own commands. A PC with such a user is approved once by an administrator: a new one under *Discovered*, one already set up through a confirmation of its own; ignoring that confirmation keeps the PC as it was. A third command, `hass_agent/provision` (administrators only), lets a PC that connects with an administrator's token ask for a user of its own: the integration makes a Home Assistant user named after the PC, not an administrator and without a password, gives it a token and approves it for the PC; asked again, it keeps the user and replaces the token. Needs the Windows client 10.9.1-beta.4 or newer; older clients keep using an administrator's token as before. Setting up the user: [A Home Assistant user for the PC](https://github.com/v1k70rk4/HASS.Agent.NET10/blob/main/docs/connection.md#a-home-assistant-user-for-the-pc).
+- **A PC on the HA API can use a Home Assistant user who is not an administrator.** Two WebSocket commands of the integration, `hass_agent/fire` and `hass_agent/subscribe`, take the place of Home Assistant's `fire_event` and `subscribe_events`, which need an administrator's token. Through them a PC can only send its own kind of messages for its own serial number, and only gets its own commands. A PC with such a user is approved once by an administrator: a new one under *Discovered*, one already set up through a confirmation of its own; ignoring that confirmation keeps the PC as it was. A third command, `hass_agent/provision` (administrators only), lets a PC that connects with an administrator's token ask for a user of its own: the integration makes a Home Assistant user named after the PC, not an administrator and without a password, gives it a token and approves it for the PC; asked again, it keeps the user and replaces the token. The client 10.9.1 offers this by itself; older clients keep using an administrator's token as before. Setting up the user: [A Home Assistant user for the PC](https://github.com/v1k70rk4/HASS.Agent.NET10/blob/main/docs/connection.md#a-home-assistant-user-for-the-pc).
 
-**From beta.3**
-
-- The setup dialog says why it stopped when a message is not from a HASS.Agent .NET10 client, instead of showing a bare key.
-
-**From beta.2:** hardening from a security review of the integration.
+**What a PC, or anything on the broker, can no longer do**
 
 - **A PC set up over the HA API or the local HTTP API is switched to MQTT only when you confirm it.** When such a PC announced itself over MQTT, the integration moved it to MQTT on its own, with whatever name the message gave. Anything that can publish to the broker could send that message and receive the PC's notifications from then on. The PC now shows up under *Discovered*, and the switch happens when you confirm it there.
 - **A discovery message must come on its own PC's topic.** One whose serial number differs from the topic it came on (`hass.agent/devices/<serial>`) is ignored, so a broker that limits each PC to its own topics also keeps it from speaking for another PC. Serial numbers that could not work in MQTT topics and entity ids (`+`, `#`, `/`, `_`) are refused too.
@@ -370,7 +366,12 @@ A hotkey pressed on the PC (client 10.9.0+) reaches the device's *Hotkeys* event
 - **The local HTTP API checks that it talks to the same PC.** Before each notification, and when the entry is set up, the integration asks the address who it is. If another device answers (a new IP from DHCP), it gets neither the notification nor the API key.
 - The release notes link of the update entity has to lead to github.com.
 
-### 10.9.0
+**Also in this release**
+
+- The setup dialog says why it stopped when a message is not from a HASS.Agent .NET10 client, instead of showing a bare key.
+- The GitHub workflows are pinned to commits and checked by OpenSSF Scorecard, and there is a [contributing guide](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/blob/main/CONTRIBUTING.md).
+
+### 10.9.0 — feature pack
 
 A bigger release, going with the Windows client [10.9.0](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.9.0): the PC's display as a light, audio device selects, hotkeys as events, per-app volume, notifications with pictures and text fields and with fields of their own in the editor, and the fixes of three betas. The new entities, services and notification fields need the client 10.9.0; the fixes help with every client.
 
@@ -398,18 +399,6 @@ A bigger release, going with the Windows client [10.9.0](https://github.com/v1k7
 **And**
 
 - **The README shows what it all looks like**, in Home Assistant and on the PC, says plainly that the first PC on the HA API is added by hand, and keeps only the latest release here; every release is in [CHANGELOG.md](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/blob/main/CHANGELOG.md).
-
-<details>
-<summary><b>10.7.3</b></summary>
-
-### 10.7.3
-
-- **A *Check for updates* button next to the update entity.** It makes the Windows client ask GitHub right away instead of waiting for its six-hourly check, so a fresh release shows up in Home Assistant at once. Needs HASS.Agent .NET10 **10.7.3** or newer (an older client ignores the command). Thanks to [@Taomyn](https://github.com/Taomyn) for the idea.
-- **One update entity, on both transports.** Over MQTT the update entity came from Home Assistant's own MQTT discovery and over the HA API from this integration, so a PC that switched transports ended up with two, one of them always unavailable. The integration now builds the entity on MQTT as well and tells the client so (a retained message on `hass.agent/integration/{id}`); a client 10.7.3 or newer removes its discovered one in return. With an older client the discovered entity stays and the integration leaves it alone. The entity now follows the whole device rather than the tray app, so it stays available while only the service runs, and *Install* works with nobody logged in (client 10.7.3+).
-- The media player image is served with the right content type (the client sends JPEG covers since 10.7.2).
-- The issue templates link to the renamed client repository.
-
-</details>
 
 Older versions are in the [changelog](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/blob/main/CHANGELOG.md).
 
