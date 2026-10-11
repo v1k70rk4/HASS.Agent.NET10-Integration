@@ -2,6 +2,17 @@
   <img src="https://raw.githubusercontent.com/v1k70rk4/HASS.Agent.NET10-Integration/refs/heads/main/custom_components/hass_agent/brand/logo%402x.png" alt="HASS.Agent Logo">
 </p>
 
+<p align="center">
+  <a href="https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/releases/latest"><img src="https://img.shields.io/github/v/release/v1k70rk4/HASS.Agent.NET10-Integration?label=version&color=41bdf5" alt="Version"></a>
+  <a href="https://hacs.xyz"><img src="https://img.shields.io/badge/HACS-Default-41BDF5" alt="HACS Default"></a>
+  <img src="https://img.shields.io/badge/Home%20Assistant-2026.6%2B-41BDF5?logo=homeassistant&logoColor=white" alt="Home Assistant 2026.6+">
+  <a href="https://github.com/v1k70rk4/HASS.Agent.NET10"><img src="https://img.shields.io/badge/Windows%20client-HASS.Agent%20.NET10-0078D4?logo=windows&logoColor=white" alt="Windows client: HASS.Agent .NET10"></a>
+  <img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT license">
+  <a href="https://www.bestpractices.dev/projects/15364"><img src="https://www.bestpractices.dev/projects/15364/badge" alt="OpenSSF Best Practices"></a>
+  <a href="https://scorecard.dev/viewer/?uri=github.com/v1k70rk4/HASS.Agent.NET10-Integration"><img src="https://img.shields.io/ossf-scorecard/github.com/v1k70rk4/HASS.Agent.NET10-Integration?label=openssf%20scorecard&style=flat" alt="OpenSSF Scorecard"></a>
+  <a href="https://ko-fi.com/v1k70rk4"><img src="https://img.shields.io/badge/Ko--fi-support%20the%20project-FF5E5B?logo=kofi&logoColor=white" alt="Ko-fi"></a>
+</p>
+
 Custom Home Assistant integration for HASS.Agent devices.
 
 This integration exposes a Windows HASS.Agent device as Home Assistant entities. Devices can connect through MQTT or Home Assistant's WebSocket API (HA API). Notification actions are exposed both as device automation triggers and as a modern Home Assistant event entity.
