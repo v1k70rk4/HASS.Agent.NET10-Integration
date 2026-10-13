@@ -22,6 +22,8 @@ from homeassistant.helpers.issue_registry import (
     async_delete_issue,
 )
 from homeassistant.helpers.selector import (
+    EntitySelector,
+    EntitySelectorConfig,
     SelectSelector,
     SelectSelectorConfig,
     SelectSelectorMode,
@@ -35,7 +37,10 @@ from .const import (
     CONF_DEVICE_NAME,
     CONF_HA_API,
     CONF_MEDIA_PLAYER_POWER,
+    CONF_MEDIA_PLAYER_SERVICE_STATE,
     CONF_MEDIA_PLAYER_TURN_OFF,
+    CONF_MEDIA_PLAYER_TURN_OFF_SCRIPT,
+    CONF_MEDIA_PLAYER_TURN_ON_SCRIPT,
     CONF_ORIGINAL_DEVICE_NAME,
     CONF_USER_ID,
     DISCOVERY_USER_ID,
@@ -153,6 +158,15 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                         default=options.get(CONF_MEDIA_PLAYER_POWER, False),
                     ): bool,
                     vol.Optional(
+                        CONF_MEDIA_PLAYER_SERVICE_STATE,
+                        default=options.get(CONF_MEDIA_PLAYER_SERVICE_STATE, True),
+                    ): bool,
+                    # A suggested value, not a default, so that a script can be cleared.
+                    vol.Optional(
+                        CONF_MEDIA_PLAYER_TURN_ON_SCRIPT,
+                        description={"suggested_value": options.get(CONF_MEDIA_PLAYER_TURN_ON_SCRIPT)},
+                    ): EntitySelector(EntitySelectorConfig(domain="script")),
+                    vol.Optional(
                         CONF_MEDIA_PLAYER_TURN_OFF,
                         default=options.get(CONF_MEDIA_PLAYER_TURN_OFF, MEDIA_PLAYER_TURN_OFF_NONE),
                     ): SelectSelector(
@@ -162,6 +176,10 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                             mode=SelectSelectorMode.DROPDOWN,
                         )
                     ),
+                    vol.Optional(
+                        CONF_MEDIA_PLAYER_TURN_OFF_SCRIPT,
+                        description={"suggested_value": options.get(CONF_MEDIA_PLAYER_TURN_OFF_SCRIPT)},
+                    ): EntitySelector(EntitySelectorConfig(domain="script")),
                 }
             ),
         )

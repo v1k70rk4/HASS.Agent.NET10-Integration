@@ -59,11 +59,17 @@
         "data": {
           "default_notification_title": "Default notification title. Space to disable.",
           "media_player_power": "Media player: turn on and off",
-          "media_player_turn_off": "Media player: turn off does"
+          "media_player_service_state": "Media player: unavailable while the Windows service still reports",
+          "media_player_turn_on_script": "Media player: script to run on turn on",
+          "media_player_turn_off": "Media player: turn off does",
+          "media_player_turn_off_script": "Media player: script to run on turn off"
         },
         "data_description": {
-          "media_player_power": "The media player shows the PC as off instead of unavailable when the app is not running, and offers turn on. Turn on fires the device trigger \"Turn on was requested\": wake the PC from an automation on it (Wake on LAN, a smart plug, ...).",
-          "media_player_turn_off": "What turning the media player off does on the PC. Shutdown waits 60 seconds, like the button. The command has to be switched on in the Windows app."
+          "media_player_power": "The media player shows the PC as off instead of unavailable when the app is not running, and can be turned on and off. Both fire a device trigger (\"Turn on was requested\", \"Turn off was requested\") for your automations, and run the script chosen below, if any. Wake the PC from there: Wake on LAN, a smart plug, ...",
+          "media_player_service_state": "When the Windows service still reports, the PC is on and only the app is closed: the player is unavailable then, not off. Without the service the PC cannot tell the two apart and the player is off.",
+          "media_player_turn_on_script": "Gets serial_number, device_id and entity_id as variables.",
+          "media_player_turn_off": "A command the PC runs on turn off. Shutdown waits 60 seconds, like the button. The command has to be switched on in the Windows app.",
+          "media_player_turn_off_script": "Runs before the command, with the same variables as the turn on script."
         },
         "title": "Configure HASS.Agent .NET10"
       }
@@ -73,7 +79,8 @@
     "trigger_type": {
       "notifications_mqtt": "When a notification with a specific action has been pressed (MQTT)",
       "notifications_event": "When a notification with a specific action has been pressed (Event)",
-      "turn_on": "Turn on was requested (media player)"
+      "turn_on": "Turn on was requested (media player)",
+      "turn_off": "Turn off was requested (media player)"
     }
   },
   "entity": {

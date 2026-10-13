@@ -4,6 +4,7 @@ import hashlib
 import json
 import logging
 import time
+from collections.abc import Mapping
 from datetime import UTC, datetime
 from typing import Any
 
@@ -40,9 +41,13 @@ from homeassistant.helpers.event import async_call_later
 from .button import async_send_system_command
 from .const import (
     CONF_MEDIA_PLAYER_POWER,
+    CONF_MEDIA_PLAYER_SERVICE_STATE,
     CONF_MEDIA_PLAYER_TURN_OFF,
+    CONF_MEDIA_PLAYER_TURN_OFF_SCRIPT,
+    CONF_MEDIA_PLAYER_TURN_ON_SCRIPT,
     CONF_ORIGINAL_DEVICE_NAME,
     DOMAIN,
+    EVENT_TURN_OFF_REQUESTED,
     EVENT_TURN_ON_REQUESTED,
     MEDIA_PLAYER_TURN_OFF_COMMANDS,
 )
@@ -369,15 +374,12 @@ class HassAgentMediaPlayerDevice(MediaPlayerEntity):
         """Return the name of the device"""
         return self._name
 
-    def _power_options(self) -> tuple[bool, str | None]:
-        """Whether power control is on, and the command that turns the PC off (or None)."""
+    def _options(self) -> Mapping[str, Any]:
         entry = self.hass.config_entries.async_get_entry(self._entry_id) if self.hass else None
-        options = entry.options if entry is not None else {}
-        turn_off = options.get(CONF_MEDIA_PLAYER_TURN_OFF)
-        return (
-            bool(options.get(CONF_MEDIA_PLAYER_POWER, False)),
-            turn_off if turn_off in MEDIA_PLAYER_TURN_OFF_COMMANDS else None,
-        )
+        return entry.options if entry is not None else {}
+
+    def _power_control(self) -> bool:
+        return bool(self._options().get(CONF_MEDIA_PLAYER_POWER, False))
 
     def _is_live(self) -> bool:
         """Whether the tray app is connected and reporting."""
@@ -388,12 +390,19 @@ class HassAgentMediaPlayerDevice(MediaPlayerEntity):
         diff = round(time.monotonic() - self._last_updated)
         return diff < MEDIA_PLAYER_AVAILABLE_TIMEOUT
 
+    def _pc_is_on_without_the_app(self) -> bool:
+        """The Windows service still reports, so the PC is on and only the app is closed."""
+        if not self._options().get(CONF_MEDIA_PLAYER_SERVICE_STATE, True):
+            return False
+        service = self.hass.data.get(DOMAIN, {}).get(self._entry_id, {}).get("service", {})
+        return isinstance(service, dict) and service.get("online") is True
+
     @property
     def state(self):
         """Return the state of the device"""
         # With power control a PC that is not reporting is off rather than unavailable,
         # so that turn on can be called on it.
-        if self._power_options()[0] and not self._is_live():
+        if self._power_control() and not self._is_live():
             return MediaPlayerState.OFF
         if self._state is None:
             return MediaPlayerState.OFF
@@ -409,7 +418,11 @@ class HassAgentMediaPlayerDevice(MediaPlayerEntity):
     @property
     def available(self):
         """Return if we're available"""
-        return self._power_options()[0] or self._is_live()
+        if self._is_live():
+            return True
+        # Off (and able to be turned on) only when the whole PC is off, not when just the
+        # app is closed on a PC whose service still reports.
+        return self._power_control() and not self._pc_is_on_without_the_app()
 
     # @property
     # def media_title(self):
@@ -434,38 +447,48 @@ class HassAgentMediaPlayerDevice(MediaPlayerEntity):
     @property
     def supported_features(self):
         """Flag media player features that are supported"""
-        power, turn_off = self._power_options()
-        if not power:
+        if not self._power_control():
             return SUPPORT_HAMP
-
-        features = SUPPORT_HAMP | MediaPlayerEntityFeature.TURN_ON
-        if turn_off is not None:
-            features |= MediaPlayerEntityFeature.TURN_OFF
-        return features
+        return SUPPORT_HAMP | MediaPlayerEntityFeature.TURN_ON | MediaPlayerEntityFeature.TURN_OFF
 
     async def async_turn_on(self) -> None:
-        """Ask the automations on the device's 'turn on requested' trigger to wake the PC.
+        """Wake the PC: the 'turn on was requested' trigger and the chosen script.
 
         A PC that is off cannot be reached, so the waking is left to the user: Wake on
-        LAN, a smart plug, anything an automation can do.
+        LAN, a smart plug, anything an automation or a script can do.
         """
-        device_id = self.device_entry.id if self.device_entry else None
-        self.hass.bus.async_fire(EVENT_TURN_ON_REQUESTED, {
-            "serial_number": self._serial_number,
-            "device_id": device_id,
-            "entity_id": self.entity_id,
-        })
+        await self._power_request(EVENT_TURN_ON_REQUESTED, CONF_MEDIA_PLAYER_TURN_ON_SCRIPT)
 
     async def async_turn_off(self) -> None:
-        """Run the command chosen in the options (sleep, shutdown, ...)."""
-        _power, command = self._power_options()
-        if command is None or not self._is_live():
+        """The 'turn off was requested' trigger, the chosen script and the chosen command."""
+        await self._power_request(EVENT_TURN_OFF_REQUESTED, CONF_MEDIA_PLAYER_TURN_OFF_SCRIPT)
+
+        command = self._options().get(CONF_MEDIA_PLAYER_TURN_OFF)
+        if command not in MEDIA_PLAYER_TURN_OFF_COMMANDS or not self._is_live():
             return
 
         if not await async_send_system_command(self.hass, self._entry_id, self._serial_number, command):
             raise HomeAssistantError(
                 f"{self._name} does not offer the '{command}' command right now; "
                 "check that it is switched on in the Windows app"
+            )
+
+    async def _power_request(self, event_type: str, script_option: str) -> None:
+        data = {
+            "serial_number": self._serial_number,
+            "device_id": self.device_entry.id if self.device_entry else None,
+            "entity_id": self.entity_id,
+        }
+        self.hass.bus.async_fire(event_type, data)
+
+        # Started, not awaited: a script that waits for the PC must not hold the call.
+        script = self._options().get(script_option)
+        if isinstance(script, str) and script.startswith("script."):
+            await self.hass.services.async_call(
+                "script",
+                "turn_on",
+                {"entity_id": script, "variables": data},
+                blocking=False,
             )
 
     @property

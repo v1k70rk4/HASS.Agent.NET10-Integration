@@ -34,19 +34,24 @@ from .const import (
     CONF_MEDIA_PLAYER_POWER,
     DOMAIN,
     EVENT_NOTIFICATION_ACTIONS,
+    EVENT_TURN_OFF_REQUESTED,
     EVENT_TURN_ON_REQUESTED,
 )
 
 NOTIFICATION_TRIGGER_TYPES = {"notifications_mqtt", "notifications_event"}
-# The media player's turn on was called: the automation wakes the PC (Wake on LAN, a
-# smart plug, ...). Offered when power control is on in the options.
-TRIGGER_TURN_ON = "turn_on"
+# The media player's turn on or turn off was called: an automation wakes the PC (Wake on
+# LAN, a smart plug, ...) or does whatever else belongs to turning it off. Offered when
+# power control is on in the options.
+POWER_TRIGGER_EVENTS = {
+    "turn_on": EVENT_TURN_ON_REQUESTED,
+    "turn_off": EVENT_TURN_OFF_REQUESTED,
+}
 
 TRIGGER_SCHEMA = vol.Any(
     DEVICE_TRIGGER_BASE_SCHEMA.extend(
         {vol.Required(CONF_TYPE): vol.In(NOTIFICATION_TRIGGER_TYPES), vol.Required(CONF_ACTION): str}
     ),
-    DEVICE_TRIGGER_BASE_SCHEMA.extend({vol.Required(CONF_TYPE): TRIGGER_TURN_ON}),
+    DEVICE_TRIGGER_BASE_SCHEMA.extend({vol.Required(CONF_TYPE): vol.In(POWER_TRIGGER_EVENTS)}),
 )
 
 
@@ -57,7 +62,7 @@ async def async_get_triggers(
 
     types = sorted(NOTIFICATION_TRIGGER_TYPES)
     if _power_control_on(hass, device_id):
-        types.append(TRIGGER_TURN_ON)
+        types.extend(POWER_TRIGGER_EVENTS)
 
     triggers = [
         {
@@ -106,16 +111,16 @@ async def async_attach_trigger(
         device_name,
     )
 
-    if config[CONF_TYPE] == TRIGGER_TURN_ON:
-        turn_on_config = event_trigger.TRIGGER_SCHEMA(
+    if config[CONF_TYPE] in POWER_TRIGGER_EVENTS:
+        power_config = event_trigger.TRIGGER_SCHEMA(
             {
                 event_trigger.CONF_PLATFORM: CONF_EVENT,
-                event_trigger.CONF_EVENT_TYPE: EVENT_TURN_ON_REQUESTED,
+                event_trigger.CONF_EVENT_TYPE: POWER_TRIGGER_EVENTS[config[CONF_TYPE]],
                 event_trigger.CONF_EVENT_DATA: {"serial_number": topic_id},
             }
         )
         return await event_trigger.async_attach_trigger(
-            hass, turn_on_config, action, trigger_info, platform_type="device"
+            hass, power_config, action, trigger_info, platform_type="device"
         )
 
     if config[CONF_TYPE] == "notifications_mqtt":
@@ -158,6 +163,6 @@ async def async_get_trigger_capabilities(
     hass: HomeAssistant, config: ConfigType
 ) -> dict[str, vol.Schema]:
     """List trigger capabilities."""
-    if config.get(CONF_TYPE) == TRIGGER_TURN_ON:
+    if config.get(CONF_TYPE) in POWER_TRIGGER_EVENTS:
         return {}
     return {"extra_fields": vol.Schema({vol.Required(CONF_ACTION): str})}

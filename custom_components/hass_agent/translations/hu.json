@@ -59,11 +59,17 @@
         "data": {
           "default_notification_title": "Alapértelmezett értesítési cím. Szóközzel kikapcsolható.",
           "media_player_power": "Médialejátszó: be- és kikapcsolás",
-          "media_player_turn_off": "Médialejátszó kikapcsolása ezt teszi"
+          "media_player_service_state": "Médialejátszó: nem elérhető, amíg a Windows-szolgáltatás még jelez",
+          "media_player_turn_on_script": "Médialejátszó: bekapcsoláskor futó script",
+          "media_player_turn_off": "Médialejátszó kikapcsolása ezt teszi",
+          "media_player_turn_off_script": "Médialejátszó: kikapcsoláskor futó script"
         },
         "data_description": {
-          "media_player_power": "Ha az app nem fut, a médialejátszó nem elérhetetlen lesz, hanem kikapcsolt, és be lehet kapcsolni. A bekapcsolás a „Bekapcsolást kértek” eszköz-triggert indítja: egy erre épülő automatizálás ébreszti fel a gépet (Wake on LAN, okoskonnektor, ...).",
-          "media_player_turn_off": "Mit tegyen a gép, ha a médialejátszót kikapcsolják. A leállítás 60 másodpercet vár, mint a gomb. A parancsnak bekapcsolva kell lennie a Windows-appban."
+          "media_player_power": "Ha az app nem fut, a médialejátszó nem elérhetetlen lesz, hanem kikapcsolt, és be- és ki lehet kapcsolni. Mindkettő egy eszköz-triggert indít („Bekapcsolást kértek”, „Kikapcsolást kértek”) az automatizálásaidnak, és lefuttatja a lent választott scriptet, ha van. Innen ébresztheted a gépet: Wake on LAN, okoskonnektor, ...",
+          "media_player_service_state": "Ha a Windows-szolgáltatás még jelez, a gép be van kapcsolva, csak az app nem fut: a lejátszó ilyenkor nem elérhető, nem kikapcsolt. Szolgáltatás nélkül a kettő nem különböztethető meg, és a lejátszó kikapcsolt.",
+          "media_player_turn_on_script": "Változóként megkapja a serial_number, device_id és entity_id értékét.",
+          "media_player_turn_off": "Egy parancs, amit a gép kikapcsoláskor lefuttat. A leállítás 60 másodpercet vár, mint a gomb. A parancsnak bekapcsolva kell lennie a Windows-appban.",
+          "media_player_turn_off_script": "A parancs előtt fut, ugyanazokkal a változókkal, mint a bekapcsolási script."
         },
         "title": "HASS.Agent .NET10 beállítása"
       }
@@ -73,7 +79,8 @@
     "trigger_type": {
       "notifications_mqtt": "Amikor egy adott műveletet tartalmazó értesítésre rányomtak (MQTT)",
       "notifications_event": "Amikor egy adott műveletet tartalmazó értesítésre rányomtak (Esemény)",
-      "turn_on": "Bekapcsolást kértek (médialejátszó)"
+      "turn_on": "Bekapcsolást kértek (médialejátszó)",
+      "turn_off": "Kikapcsolást kértek (médialejátszó)"
     }
   },
   "entity": {

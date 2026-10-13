@@ -30,8 +30,12 @@ from pytest_homeassistant_custom_component.common import (
 from custom_components.hass_agent.const import (
     CONF_HA_API,
     CONF_MEDIA_PLAYER_POWER,
+    CONF_MEDIA_PLAYER_SERVICE_STATE,
     CONF_MEDIA_PLAYER_TURN_OFF,
+    CONF_MEDIA_PLAYER_TURN_OFF_SCRIPT,
+    CONF_MEDIA_PLAYER_TURN_ON_SCRIPT,
     DOMAIN,
+    EVENT_TURN_OFF_REQUESTED,
     EVENT_TURN_ON_REQUESTED,
 )
 
@@ -111,11 +115,49 @@ async def test_a_silent_pc_is_off_and_can_be_turned_on(hass: HomeAssistant, pc: 
     state = hass.states.get(ENTITY_ID)
     assert state.state == MediaPlayerState.OFF
     assert state.attributes[ATTR_SUPPORTED_FEATURES] & MediaPlayerEntityFeature.TURN_ON
-    assert not state.attributes[ATTR_SUPPORTED_FEATURES] & MediaPlayerEntityFeature.TURN_OFF  # "none" by default
+    assert state.attributes[ATTR_SUPPORTED_FEATURES] & MediaPlayerEntityFeature.TURN_OFF
 
     events = async_capture_events(hass, EVENT_TURN_ON_REQUESTED)
     await hass.services.async_call("media_player", "turn_on", {ATTR_ENTITY_ID: ENTITY_ID}, blocking=True)
     assert [event.data["serial_number"] for event in events] == [SERIAL]
+
+
+async def test_closed_app_on_a_running_pc_is_unavailable(hass: HomeAssistant, pc: MockConfigEntry) -> None:
+    await _set_options(hass, pc, **{CONF_MEDIA_PLAYER_POWER: True})
+    hass.bus.async_fire("hass_agent_service_update", {"serial_number": SERIAL, "status": {"online": True}})
+    await hass.async_block_till_done()
+    assert hass.states.get(ENTITY_ID).state == STATE_UNAVAILABLE
+
+    # Switched off in the options: off whatever the service says.
+    await _set_options(hass, pc, **{CONF_MEDIA_PLAYER_SERVICE_STATE: False})
+    assert hass.states.get(ENTITY_ID).state == MediaPlayerState.OFF
+
+
+async def test_turn_on_and_off_run_their_scripts(hass: HomeAssistant, pc: MockConfigEntry) -> None:
+    assert await async_setup_component(hass, "script", {
+        "script": {
+            "wake_pc": {"sequence": [{"event": "wake_pc_ran", "event_data": {"serial": "{{ serial_number }}"}}]},
+            "pc_off": {"sequence": [{"event": "pc_off_ran"}]},
+        }
+    })
+    await _set_options(hass, pc, **{
+        CONF_MEDIA_PLAYER_POWER: True,
+        CONF_MEDIA_PLAYER_TURN_ON_SCRIPT: "script.wake_pc",
+        CONF_MEDIA_PLAYER_TURN_OFF_SCRIPT: "script.pc_off",
+    })
+    woken = async_capture_events(hass, "wake_pc_ran")
+    off = async_capture_events(hass, "pc_off_ran")
+    off_requested = async_capture_events(hass, EVENT_TURN_OFF_REQUESTED)
+
+    await hass.services.async_call("media_player", "turn_on", {ATTR_ENTITY_ID: ENTITY_ID}, blocking=True)
+    await hass.async_block_till_done()
+    assert [event.data["serial"] for event in woken] == [SERIAL]
+
+    await _report(hass, pc, ["sleep"])
+    await hass.services.async_call("media_player", "turn_off", {ATTR_ENTITY_ID: ENTITY_ID}, blocking=True)
+    await hass.async_block_till_done()
+    assert len(off) == 1
+    assert len(off_requested) == 1  # no command chosen: the trigger and the script only
 
 
 async def test_turn_off_runs_the_chosen_command(hass: HomeAssistant, pc: MockConfigEntry) -> None:
@@ -150,10 +192,12 @@ async def test_the_turn_on_trigger_comes_with_the_option(hass: HomeAssistant, pc
     def types(triggers) -> set[str]:
         return {trigger["type"] for trigger in triggers}
 
-    assert "turn_on" not in types(await async_get_device_automations(hass, DeviceAutomationType.TRIGGER, device.id))
+    triggers = types(await async_get_device_automations(hass, DeviceAutomationType.TRIGGER, device.id))
+    assert not {"turn_on", "turn_off"} & triggers
 
     await _set_options(hass, pc, **{CONF_MEDIA_PLAYER_POWER: True})
-    assert "turn_on" in types(await async_get_device_automations(hass, DeviceAutomationType.TRIGGER, device.id))
+    triggers = types(await async_get_device_automations(hass, DeviceAutomationType.TRIGGER, device.id))
+    assert {"turn_on", "turn_off"} <= triggers
 
     assert await async_setup_component(hass, "automation", {
         "automation": {
