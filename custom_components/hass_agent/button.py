@@ -176,6 +176,87 @@ def _command_list_contains(commands: object, command: str) -> bool:
     return False
 
 
+def can_use_service(hass: HomeAssistant, entry_id: str, command: str) -> bool:
+    """Whether the Windows service is up and offers this system command."""
+    if command not in SYSTEM_SERVICE_COMMANDS:
+        return False
+
+    service_status = hass.data.get(DOMAIN, {}).get(entry_id, {}).get("service", {})
+    if not isinstance(service_status, dict) or service_status.get("online") is not True:
+        return False
+
+    return _command_list_contains(service_status.get("commands"), command)
+
+
+def can_use_tray_app(hass: HomeAssistant, entry_id: str, command: str) -> bool:
+    """Whether the tray app is up and offers this system command."""
+    entry_data = hass.data.get(DOMAIN, {}).get(entry_id, {})
+    # The tray app's discovery is retained, so it still lists commands after the
+    # app closes — only the live connection tells us it can actually run them.
+    if not entry_data.get("app_online", True):
+        return False
+
+    apis = entry_data.get("apis", {})
+    if not isinstance(apis, dict) or apis.get("buttons") is not True:
+        return False
+
+    return _command_list_contains(apis.get("commands"), command)
+
+
+def command_payload(command: str, comment: str | None = None) -> dict[str, object]:
+    """The payload a system command button sends."""
+    if command == "restart_cancel":
+        return {"restart_cancel": True}
+
+    if command in {"shutdown", "restart"}:
+        return {
+            "command": command,
+            "force": False,
+            "time": SHUTDOWN_BUTTON_DELAY_SECONDS,
+            "comment": comment or "Stopped from Home Assistant",
+        }
+
+    return {"command": command}
+
+
+async def async_send_system_command(
+    hass: HomeAssistant,
+    entry_id: str,
+    serial_number: str,
+    command: str,
+    comment: str | None = None,
+) -> bool:
+    """Send a system command to whichever side of the agent can run it.
+
+    False when neither the service nor the tray app offers it right now (switched off
+    on the PC, or the PC is offline); nothing is sent then.
+    """
+    use_service = can_use_service(hass, entry_id, command)
+    if not use_service and not can_use_tray_app(hass, entry_id, command):
+        return False
+
+    payload = command_payload(command, comment)
+
+    if not hass.data.get(DOMAIN, {}).get(entry_id, {}).get("ha_api_only", False):
+        topic = (
+            f"hass.agent/system/{serial_number}/cmd"
+            if use_service
+            else f"hass.agent/buttons/{serial_number}/cmd"
+        )
+        await mqtt.async_publish(hass, topic, json.dumps(payload), qos=0, retain=False)
+
+    # Also fire on the event bus for WebSocket transport. MQTT picks a side by topic;
+    # over the WebSocket both the app and the service see the same event, so name the
+    # one that should act on it.
+    hass.bus.async_fire("hass_agent_command", {
+        "serial_number": serial_number,
+        "command_type": "button_command",
+        "target": "service" if use_service else "app",
+        "payload": payload,
+    })
+    return True
+
+
 class HassAgentUpdateCheckButton(ButtonEntity):
     """Makes the agent check GitHub for a new release right away (agent 10.7.3+).
 
@@ -264,8 +345,6 @@ class HassAgentCommandButton(ButtonEntity):
         display_name, comment = command_info
         self._attr_name = display_name
         self._comment = comment
-        self._command_topic = f"hass.agent/buttons/{unique_id}/cmd"
-        self._service_command_topic = f"hass.agent/system/{unique_id}/cmd"
         self._attr_unique_id = f"button_{unique_id}_{description.key}"
         self._attr_device_info = DeviceInfo(
             identifiers=device.identifiers,
@@ -281,7 +360,9 @@ class HassAgentCommandButton(ButtonEntity):
         if not self.hass.data.get(DOMAIN, {}).get(self._entry_id, {}).get("available", True):
             return False
         command = self.entity_description.key
-        return self._can_use_service(command) or self._can_use_tray_app(command)
+        return can_use_service(self.hass, self._entry_id, command) or can_use_tray_app(
+            self.hass, self._entry_id, command
+        )
 
     async def async_added_to_hass(self) -> None:
         """Subscribe to command availability changes."""
@@ -315,70 +396,13 @@ class HassAgentCommandButton(ButtonEntity):
         if not self.available:
             return
 
-        payload = self._build_payload()
-
-        use_service = self._can_use_service(self.entity_description.key)
-
-        if not self.hass.data.get(DOMAIN, {}).get(self._entry_id, {}).get("ha_api_only", False):
-            topic = self._service_command_topic if use_service else self._command_topic
-
-            await mqtt.async_publish(
-                self.hass,
-                topic,
-                json.dumps(payload),
-                qos=0,
-                retain=False,
-            )
-        # Also fire on the event bus for WebSocket transport. MQTT picks a side by topic;
-        # over the WebSocket both the app and the service see the same event, so name the
-        # one that should act on it.
-        self.hass.bus.async_fire("hass_agent_command", {
-            "serial_number": self._serial_number,
-            "command_type": "button_command",
-            "target": "service" if use_service else "app",
-            "payload": payload,
-        })
-
-    def _build_payload(self) -> dict[str, object]:
-        command = self.entity_description.key
-
-        if command == "restart_cancel":
-            return {"restart_cancel": True}
-
-        if command in {"shutdown", "restart"}:
-            return {
-                "command": command,
-                "force": False,
-                "time": SHUTDOWN_BUTTON_DELAY_SECONDS,
-                "comment": self._comment or "Stopped from Home Assistant",
-            }
-
-        return {"command": command}
-
-    def _can_use_service(self, command: str) -> bool:
-        if command not in SYSTEM_SERVICE_COMMANDS:
-            return False
-
-        service_status = self.hass.data.get(DOMAIN, {}).get(self._entry_id, {}).get("service", {})
-        if not isinstance(service_status, dict) or service_status.get("online") is not True:
-            return False
-
-        commands = service_status.get("commands")
-        return _command_list_contains(commands, command)
-
-    def _can_use_tray_app(self, command: str) -> bool:
-        entry_data = self.hass.data.get(DOMAIN, {}).get(self._entry_id, {})
-        # The tray app's discovery is retained, so it still lists commands after the
-        # app closes — only the live connection tells us it can actually run them.
-        if not entry_data.get("app_online", True):
-            return False
-
-        apis = entry_data.get("apis", {})
-        if not isinstance(apis, dict) or apis.get("buttons") is not True:
-            return False
-
-        commands = apis.get("commands")
-        return _command_list_contains(commands, command)
+        await async_send_system_command(
+            self.hass,
+            self._entry_id,
+            self._serial_number,
+            self.entity_description.key,
+            self._comment,
+        )
 
 
 class HassAgentCustomCommandButton(ButtonEntity):
@@ -467,7 +491,7 @@ class HassAgentCustomCommandButton(ButtonEntity):
                 retain=False,
             )
 
-        # See the note on the built-in button: the WebSocket needs the target named.
+        # See async_send_system_command: the WebSocket needs the target named.
         self.hass.bus.async_fire("hass_agent_command", {
             "serial_number": self._serial_number,
             "command_type": "button_command",

@@ -17,6 +17,13 @@ CONF_DEVICE_NAME = "device_name"
 CONF_DEFAULT_NOTIFICATION_TITLE = "default_notification_title"
 CONF_FORCE = "force"
 CONF_ORIGINAL_DEVICE_NAME = "original_device_name"
+# Options: the media player shows the PC as off instead of unavailable, offers turn on
+# (a device trigger does the waking) and turns the PC off with the chosen command.
+CONF_MEDIA_PLAYER_POWER = "media_player_power"
+CONF_MEDIA_PLAYER_TURN_OFF = "media_player_turn_off"
+MEDIA_PLAYER_TURN_OFF_NONE = "none"
+MEDIA_PLAYER_TURN_OFF_COMMANDS = ("sleep", "hibernate", "shutdown")
+EVENT_TURN_ON_REQUESTED = "hass_agent_turn_on_requested"
 CONF_RESTART_CANCEL = "restart_cancel"
 CONF_TIME = "time"
 

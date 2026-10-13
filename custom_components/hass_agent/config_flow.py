@@ -21,6 +21,11 @@ from homeassistant.helpers.issue_registry import (
     async_create_issue,
     async_delete_issue,
 )
+from homeassistant.helpers.selector import (
+    SelectSelector,
+    SelectSelectorConfig,
+    SelectSelectorMode,
+)
 from homeassistant.helpers.service_info.mqtt import MqttServiceInfo
 
 from .const import (
@@ -29,10 +34,14 @@ from .const import (
     CONF_DEFAULT_NOTIFICATION_TITLE,
     CONF_DEVICE_NAME,
     CONF_HA_API,
+    CONF_MEDIA_PLAYER_POWER,
+    CONF_MEDIA_PLAYER_TURN_OFF,
     CONF_ORIGINAL_DEVICE_NAME,
     CONF_USER_ID,
     DISCOVERY_USER_ID,
     DOMAIN,
+    MEDIA_PLAYER_TURN_OFF_COMMANDS,
+    MEDIA_PLAYER_TURN_OFF_NONE,
     MINIMUM_CLIENT_VERSION,
     SIGNAL_PENDING_DEVICE,
 )
@@ -130,14 +139,29 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
             return self.async_create_entry(title="", data=user_input)
 
+        options = self.config_entry.options
         return self.async_show_form(
             step_id="init",
             data_schema=vol.Schema(
                 {
                     vol.Optional(
                         CONF_DEFAULT_NOTIFICATION_TITLE,
-                        default=self.config_entry.options.get(CONF_DEFAULT_NOTIFICATION_TITLE, ATTR_TITLE_DEFAULT),
-                    ): str
+                        default=options.get(CONF_DEFAULT_NOTIFICATION_TITLE, ATTR_TITLE_DEFAULT),
+                    ): str,
+                    vol.Optional(
+                        CONF_MEDIA_PLAYER_POWER,
+                        default=options.get(CONF_MEDIA_PLAYER_POWER, False),
+                    ): bool,
+                    vol.Optional(
+                        CONF_MEDIA_PLAYER_TURN_OFF,
+                        default=options.get(CONF_MEDIA_PLAYER_TURN_OFF, MEDIA_PLAYER_TURN_OFF_NONE),
+                    ): SelectSelector(
+                        SelectSelectorConfig(
+                            options=[MEDIA_PLAYER_TURN_OFF_NONE, *MEDIA_PLAYER_TURN_OFF_COMMANDS],
+                            translation_key=CONF_MEDIA_PLAYER_TURN_OFF,
+                            mode=SelectSelectorMode.DROPDOWN,
+                        )
+                    ),
                 }
             ),
         )

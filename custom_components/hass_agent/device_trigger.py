@@ -29,12 +29,24 @@ from homeassistant.helpers.trigger import (
 )
 from homeassistant.helpers.typing import ConfigType
 
-from .const import CONF_ACTION, DOMAIN, EVENT_NOTIFICATION_ACTIONS
+from .const import (
+    CONF_ACTION,
+    CONF_MEDIA_PLAYER_POWER,
+    DOMAIN,
+    EVENT_NOTIFICATION_ACTIONS,
+    EVENT_TURN_ON_REQUESTED,
+)
 
-TRIGGER_TYPES = {"notifications_mqtt", "notifications_event"}
+NOTIFICATION_TRIGGER_TYPES = {"notifications_mqtt", "notifications_event"}
+# The media player's turn on was called: the automation wakes the PC (Wake on LAN, a
+# smart plug, ...). Offered when power control is on in the options.
+TRIGGER_TURN_ON = "turn_on"
 
-TRIGGER_SCHEMA = DEVICE_TRIGGER_BASE_SCHEMA.extend(
-    {vol.Required(CONF_TYPE): vol.In(TRIGGER_TYPES), vol.Required(CONF_ACTION): str}
+TRIGGER_SCHEMA = vol.Any(
+    DEVICE_TRIGGER_BASE_SCHEMA.extend(
+        {vol.Required(CONF_TYPE): vol.In(NOTIFICATION_TRIGGER_TYPES), vol.Required(CONF_ACTION): str}
+    ),
+    DEVICE_TRIGGER_BASE_SCHEMA.extend({vol.Required(CONF_TYPE): TRIGGER_TURN_ON}),
 )
 
 
@@ -43,6 +55,10 @@ async def async_get_triggers(
 ) -> list[dict[str, Any]]:
     """List device triggers for HASS.Agent devices."""
 
+    types = sorted(NOTIFICATION_TRIGGER_TYPES)
+    if _power_control_on(hass, device_id):
+        types.append(TRIGGER_TURN_ON)
+
     triggers = [
         {
             CONF_PLATFORM: "device",
@@ -50,10 +66,23 @@ async def async_get_triggers(
             CONF_DEVICE_ID: device_id,
             CONF_TYPE: t,
         }
-        for t in TRIGGER_TYPES
+        for t in types
     ]
 
     return triggers
+
+
+def _power_control_on(hass: HomeAssistant, device_id: str) -> bool:
+    """Whether the media player power option is on for this device's entry."""
+    device = dr.async_get(hass).async_get(device_id)
+    if device is None:
+        return False
+
+    for entry_id in device.config_entries:
+        entry = hass.config_entries.async_get_entry(entry_id)
+        if entry is not None and entry.domain == DOMAIN and entry.options.get(CONF_MEDIA_PLAYER_POWER, False):
+            return True
+    return False
 
 
 async def async_attach_trigger(
@@ -76,6 +105,18 @@ async def async_attach_trigger(
         (identifier for domain, identifier in device.identifiers if domain == DOMAIN),
         device_name,
     )
+
+    if config[CONF_TYPE] == TRIGGER_TURN_ON:
+        turn_on_config = event_trigger.TRIGGER_SCHEMA(
+            {
+                event_trigger.CONF_PLATFORM: CONF_EVENT,
+                event_trigger.CONF_EVENT_TYPE: EVENT_TURN_ON_REQUESTED,
+                event_trigger.CONF_EVENT_DATA: {"serial_number": topic_id},
+            }
+        )
+        return await event_trigger.async_attach_trigger(
+            hass, turn_on_config, action, trigger_info, platform_type="device"
+        )
 
     if config[CONF_TYPE] == "notifications_mqtt":
         mqtt_config = {
@@ -117,4 +158,6 @@ async def async_get_trigger_capabilities(
     hass: HomeAssistant, config: ConfigType
 ) -> dict[str, vol.Schema]:
     """List trigger capabilities."""
+    if config.get(CONF_TYPE) == TRIGGER_TURN_ON:
+        return {}
     return {"extra_fields": vol.Schema({vol.Required(CONF_ACTION): str})}

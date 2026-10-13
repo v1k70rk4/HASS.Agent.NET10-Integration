@@ -57,7 +57,13 @@
     "step": {
       "init": {
         "data": {
-          "default_notification_title": "Default notification title. Space to disable."
+          "default_notification_title": "Default notification title. Space to disable.",
+          "media_player_power": "Media player: turn on and off",
+          "media_player_turn_off": "Media player: turn off does"
+        },
+        "data_description": {
+          "media_player_power": "The media player shows the PC as off instead of unavailable when the app is not running, and offers turn on. Turn on fires the device trigger \"Turn on was requested\": wake the PC from an automation on it (Wake on LAN, a smart plug, ...).",
+          "media_player_turn_off": "What turning the media player off does on the PC. Shutdown waits 60 seconds, like the button. The command has to be switched on in the Windows app."
         },
         "title": "Configure HASS.Agent .NET10"
       }
@@ -66,7 +72,8 @@
   "device_automation": {
     "trigger_type": {
       "notifications_mqtt": "When a notification with a specific action has been pressed (MQTT)",
-      "notifications_event": "When a notification with a specific action has been pressed (Event)"
+      "notifications_event": "When a notification with a specific action has been pressed (Event)",
+      "turn_on": "Turn on was requested (media player)"
     }
   },
   "entity": {
@@ -211,6 +218,14 @@
     }
   },
   "selector": {
+    "media_player_turn_off": {
+      "options": {
+        "none": "Nothing",
+        "sleep": "Sleep",
+        "hibernate": "Hibernate",
+        "shutdown": "Shutdown"
+      }
+    },
     "notification_style": {
       "options": {
         "toast": "Windows notification",

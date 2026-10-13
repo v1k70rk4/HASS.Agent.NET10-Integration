@@ -30,13 +30,22 @@ from homeassistant.components.mqtt.subscription import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.event import async_call_later
 
-from .const import CONF_ORIGINAL_DEVICE_NAME, DOMAIN
+from .button import async_send_system_command
+from .const import (
+    CONF_MEDIA_PLAYER_POWER,
+    CONF_MEDIA_PLAYER_TURN_OFF,
+    CONF_ORIGINAL_DEVICE_NAME,
+    DOMAIN,
+    EVENT_TURN_ON_REQUESTED,
+    MEDIA_PLAYER_TURN_OFF_COMMANDS,
+)
 from .entity import async_get_agent_device, availability_signal
 
 _logger = logging.getLogger(__name__)
@@ -257,6 +266,15 @@ class HassAgentMediaPlayerDevice(MediaPlayerEntity):
             )
         )
 
+        # The power options apply at once: features, state and availability are read from
+        # the entry's options each time, so a changed option only needs a state write.
+        entry = self.hass.config_entries.async_get_entry(self._entry_id)
+        if entry is not None:
+            self.async_on_remove(entry.add_update_listener(self._on_options_updated))
+
+    async def _on_options_updated(self, _hass: HomeAssistant, _entry: ConfigEntry) -> None:
+        self.async_write_ha_state()
+
     @callback
     def _on_device_availability(self, online: bool) -> None:
         """Re-evaluate availability when the device goes online/offline."""
@@ -351,9 +369,32 @@ class HassAgentMediaPlayerDevice(MediaPlayerEntity):
         """Return the name of the device"""
         return self._name
 
+    def _power_options(self) -> tuple[bool, str | None]:
+        """Whether power control is on, and the command that turns the PC off (or None)."""
+        entry = self.hass.config_entries.async_get_entry(self._entry_id) if self.hass else None
+        options = entry.options if entry is not None else {}
+        turn_off = options.get(CONF_MEDIA_PLAYER_TURN_OFF)
+        return (
+            bool(options.get(CONF_MEDIA_PLAYER_POWER, False)),
+            turn_off if turn_off in MEDIA_PLAYER_TURN_OFF_COMMANDS else None,
+        )
+
+    def _is_live(self) -> bool:
+        """Whether the tray app is connected and reporting."""
+        # Playback lives in the tray app, so this follows the tray app rather than the
+        # device: the service staying up does not make a media player available.
+        if not self.hass.data.get(DOMAIN, {}).get(self._entry_id, {}).get("app_online", True):
+            return False
+        diff = round(time.monotonic() - self._last_updated)
+        return diff < MEDIA_PLAYER_AVAILABLE_TIMEOUT
+
     @property
     def state(self):
         """Return the state of the device"""
+        # With power control a PC that is not reporting is off rather than unavailable,
+        # so that turn on can be called on it.
+        if self._power_options()[0] and not self._is_live():
+            return MediaPlayerState.OFF
         if self._state is None:
             return MediaPlayerState.OFF
         if self._state == "idle":
@@ -368,13 +409,7 @@ class HassAgentMediaPlayerDevice(MediaPlayerEntity):
     @property
     def available(self):
         """Return if we're available"""
-
-        # Playback lives in the tray app, so this follows the tray app rather than the
-        # device: the service staying up does not make a media player available.
-        if not self.hass.data.get(DOMAIN, {}).get(self._entry_id, {}).get("app_online", True):
-            return False
-        diff = round(time.monotonic() - self._last_updated)
-        return diff < MEDIA_PLAYER_AVAILABLE_TIMEOUT
+        return self._power_options()[0] or self._is_live()
 
     # @property
     # def media_title(self):
@@ -399,7 +434,39 @@ class HassAgentMediaPlayerDevice(MediaPlayerEntity):
     @property
     def supported_features(self):
         """Flag media player features that are supported"""
-        return SUPPORT_HAMP
+        power, turn_off = self._power_options()
+        if not power:
+            return SUPPORT_HAMP
+
+        features = SUPPORT_HAMP | MediaPlayerEntityFeature.TURN_ON
+        if turn_off is not None:
+            features |= MediaPlayerEntityFeature.TURN_OFF
+        return features
+
+    async def async_turn_on(self) -> None:
+        """Ask the automations on the device's 'turn on requested' trigger to wake the PC.
+
+        A PC that is off cannot be reached, so the waking is left to the user: Wake on
+        LAN, a smart plug, anything an automation can do.
+        """
+        device_id = self.device_entry.id if self.device_entry else None
+        self.hass.bus.async_fire(EVENT_TURN_ON_REQUESTED, {
+            "serial_number": self._serial_number,
+            "device_id": device_id,
+            "entity_id": self.entity_id,
+        })
+
+    async def async_turn_off(self) -> None:
+        """Run the command chosen in the options (sleep, shutdown, ...)."""
+        _power, command = self._power_options()
+        if command is None or not self._is_live():
+            return
+
+        if not await async_send_system_command(self.hass, self._entry_id, self._serial_number, command):
+            raise HomeAssistantError(
+                f"{self._name} does not offer the '{command}' command right now; "
+                "check that it is switched on in the Windows app"
+            )
 
     @property
     def device_class(self):
