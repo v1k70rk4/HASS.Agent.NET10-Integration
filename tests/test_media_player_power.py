@@ -161,6 +161,37 @@ async def test_turn_on_and_off_run_their_scripts(hass: HomeAssistant, pc: MockCo
     assert len(off_requested) == 1
 
 
+async def test_the_service_shuts_down_a_pc_whose_app_is_closed(hass: HomeAssistant, pc: MockConfigEntry) -> None:
+    await _set_options(hass, pc, **{
+        CONF_MEDIA_PLAYER_POWER: True,
+        CONF_MEDIA_PLAYER_SERVICE_STATE: False,  # the player stays available with the app closed
+        CONF_MEDIA_PLAYER_TURN_OFF: "shutdown",
+    })
+    hass.data[DOMAIN][pc.entry_id]["app_online"] = False
+    hass.bus.async_fire("hass_agent_service_update", {
+        "serial_number": SERIAL,
+        "status": {"online": True, "commands": [{"name": "shutdown"}]},
+    })
+    await hass.async_block_till_done()
+
+    commands = async_capture_events(hass, "hass_agent_command")
+    await hass.services.async_call("media_player", "turn_off", {ATTR_ENTITY_ID: ENTITY_ID}, blocking=True)
+    sent = [event.data for event in commands if event.data.get("command_type") == "button_command"]
+    assert [(event["target"], event["payload"]["command"]) for event in sent] == [("service", "shutdown")]
+
+
+async def test_options_refuse_script_turn_off_without_a_script(hass: HomeAssistant, pc: MockConfigEntry) -> None:
+    flow = await hass.config_entries.options.async_init(pc.entry_id)
+    result = await hass.config_entries.options.async_configure(flow["flow_id"], {
+        "default_notification_title": "Home Assistant",
+        CONF_MEDIA_PLAYER_POWER: True,
+        CONF_MEDIA_PLAYER_TURN_OFF: "script",
+    })
+    assert result["type"] == "form"
+    assert result["errors"] == {CONF_MEDIA_PLAYER_TURN_OFF_SCRIPT: "turn_off_script_required"}
+    assert CONF_MEDIA_PLAYER_POWER not in pc.options  # nothing saved
+
+
 async def test_a_script_is_not_run_unless_chosen(hass: HomeAssistant, pc: MockConfigEntry) -> None:
     assert await async_setup_component(hass, "script", {"script": {"pc_off": {"sequence": [{"event": "pc_off_ran"}]}}})
     await _set_options(hass, pc, **{

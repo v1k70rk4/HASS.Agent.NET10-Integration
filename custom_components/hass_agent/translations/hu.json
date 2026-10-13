@@ -73,6 +73,9 @@
         },
         "title": "HASS.Agent .NET10 beállítása"
       }
+    },
+    "error": {
+      "turn_off_script_required": "Válaszd ki a scriptet, amit a kikapcsolás futtasson."
     }
   },
   "device_automation": {

@@ -140,13 +140,22 @@ def _async_report_client_version(
 class OptionsFlowHandler(config_entries.OptionsFlow):
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Manage the options."""
+        errors: dict[str, str] = {}
         if user_input is not None:
             user_input[CONF_DEFAULT_NOTIFICATION_TITLE] = user_input[CONF_DEFAULT_NOTIFICATION_TITLE].strip()
 
-            return self.async_create_entry(title="", data=user_input)
+            # Turn off set to Script with no script would do nothing without a word.
+            if user_input.get(CONF_MEDIA_PLAYER_TURN_OFF) == MEDIA_PLAYER_TURN_OFF_SCRIPT and not user_input.get(
+                CONF_MEDIA_PLAYER_TURN_OFF_SCRIPT
+            ):
+                errors[CONF_MEDIA_PLAYER_TURN_OFF_SCRIPT] = "turn_off_script_required"
+            else:
+                return self.async_create_entry(title="", data=user_input)
 
-        options = self.config_entry.options
+        # Shown again after an error with what was entered, otherwise with the saved options.
+        options = user_input if user_input is not None else self.config_entry.options
         return self.async_show_form(
+            errors=errors,
             step_id="init",
             data_schema=vol.Schema(
                 {

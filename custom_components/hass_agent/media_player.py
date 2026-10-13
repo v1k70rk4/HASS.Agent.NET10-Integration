@@ -468,7 +468,14 @@ class HassAgentMediaPlayerDevice(MediaPlayerEntity):
             CONF_MEDIA_PLAYER_TURN_OFF_SCRIPT if choice == MEDIA_PLAYER_TURN_OFF_SCRIPT else None,
         )
 
-        if choice not in MEDIA_PLAYER_TURN_OFF_COMMANDS or not self._is_live():
+        if choice not in MEDIA_PLAYER_TURN_OFF_COMMANDS:
+            return
+
+        # Neither the app nor the service reports: the PC is already off. Otherwise either
+        # side may run the command (the service runs shutdown even with the app closed).
+        service = self.hass.data.get(DOMAIN, {}).get(self._entry_id, {}).get("service", {})
+        service_online = isinstance(service, dict) and service.get("online") is True
+        if not self._is_live() and not service_online:
             return
 
         if not await async_send_system_command(self.hass, self._entry_id, self._serial_number, choice):

@@ -73,6 +73,9 @@
         },
         "title": "Configure HASS.Agent .NET10"
       }
+    },
+    "error": {
+      "turn_off_script_required": "Pick the script that turn off should run."
     }
   },
   "device_automation": {
