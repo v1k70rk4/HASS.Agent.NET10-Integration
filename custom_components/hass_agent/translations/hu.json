@@ -68,8 +68,8 @@
           "media_player_power": "Ha az app nem fut, a médialejátszó nem elérhetetlen lesz, hanem kikapcsolt, és be- és ki lehet kapcsolni. Mindkettő egy eszköz-triggert indít („Bekapcsolást kértek”, „Kikapcsolást kértek”) az automatizálásaidnak, és lefuttatja a lent választott scriptet, ha van. Innen ébresztheted a gépet: Wake on LAN, okoskonnektor, ...",
           "media_player_service_state": "Ha a Windows-szolgáltatás még jelez, a gép be van kapcsolva, csak az app nem fut: a lejátszó ilyenkor nem elérhető, nem kikapcsolt. Szolgáltatás nélkül a kettő nem különböztethető meg, és a lejátszó kikapcsolt.",
           "media_player_turn_on_script": "Változóként megkapja a serial_number, device_id és entity_id értékét.",
-          "media_player_turn_off": "Egy parancs, amit a gép kikapcsoláskor lefuttat. A leállítás 60 másodpercet vár, mint a gomb. A parancsnak bekapcsolva kell lennie a Windows-appban.",
-          "media_player_turn_off_script": "A parancs előtt fut, ugyanazokkal a változókkal, mint a bekapcsolási script."
+          "media_player_turn_off": "A lenti script, vagy egy parancs, amit a gép lefuttat. A leállítás 60 másodpercet vár, mint a gomb. A parancsnak bekapcsolva kell lennie a Windows-appban.",
+          "media_player_turn_off_script": "Akkor fut, ha a kikapcsolásnál a Script van kiválasztva, ugyanazokkal a változókkal, mint a bekapcsolási script."
         },
         "title": "HASS.Agent .NET10 beállítása"
       }
@@ -228,6 +228,7 @@
     "media_player_turn_off": {
       "options": {
         "none": "Semmit",
+        "script": "Script",
         "sleep": "Alvó állapot",
         "hibernate": "Hibernálás",
         "shutdown": "Leállítás"

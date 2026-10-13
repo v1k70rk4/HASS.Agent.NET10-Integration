@@ -28,6 +28,8 @@ CONF_MEDIA_PLAYER_TURN_OFF_SCRIPT = "media_player_turn_off_script"
 # player is unavailable then, not off.
 CONF_MEDIA_PLAYER_SERVICE_STATE = "media_player_service_state"
 MEDIA_PLAYER_TURN_OFF_NONE = "none"
+# Turn off runs one of these: the script from CONF_MEDIA_PLAYER_TURN_OFF_SCRIPT, or a command.
+MEDIA_PLAYER_TURN_OFF_SCRIPT = "script"
 MEDIA_PLAYER_TURN_OFF_COMMANDS = ("sleep", "hibernate", "shutdown")
 EVENT_TURN_ON_REQUESTED = "hass_agent_turn_on_requested"
 EVENT_TURN_OFF_REQUESTED = "hass_agent_turn_off_requested"

@@ -68,8 +68,8 @@
           "media_player_power": "The media player shows the PC as off instead of unavailable when the app is not running, and can be turned on and off. Both fire a device trigger (\"Turn on was requested\", \"Turn off was requested\") for your automations, and run the script chosen below, if any. Wake the PC from there: Wake on LAN, a smart plug, ...",
           "media_player_service_state": "When the Windows service still reports, the PC is on and only the app is closed: the player is unavailable then, not off. Without the service the PC cannot tell the two apart and the player is off.",
           "media_player_turn_on_script": "Gets serial_number, device_id and entity_id as variables.",
-          "media_player_turn_off": "A command the PC runs on turn off. Shutdown waits 60 seconds, like the button. The command has to be switched on in the Windows app.",
-          "media_player_turn_off_script": "Runs before the command, with the same variables as the turn on script."
+          "media_player_turn_off": "The script below, or a command the PC runs. Shutdown waits 60 seconds, like the button. A command has to be switched on in the Windows app.",
+          "media_player_turn_off_script": "Runs when turn off is set to Script, with the same variables as the turn on script."
         },
         "title": "Configure HASS.Agent .NET10"
       }
@@ -228,6 +228,7 @@
     "media_player_turn_off": {
       "options": {
         "none": "Nothing",
+        "script": "Script",
         "sleep": "Sleep",
         "hibernate": "Hibernate",
         "shutdown": "Shutdown"

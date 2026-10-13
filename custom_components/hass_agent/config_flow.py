@@ -47,6 +47,7 @@ from .const import (
     DOMAIN,
     MEDIA_PLAYER_TURN_OFF_COMMANDS,
     MEDIA_PLAYER_TURN_OFF_NONE,
+    MEDIA_PLAYER_TURN_OFF_SCRIPT,
     MINIMUM_CLIENT_VERSION,
     SIGNAL_PENDING_DEVICE,
 )
@@ -171,7 +172,11 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                         default=options.get(CONF_MEDIA_PLAYER_TURN_OFF, MEDIA_PLAYER_TURN_OFF_NONE),
                     ): SelectSelector(
                         SelectSelectorConfig(
-                            options=[MEDIA_PLAYER_TURN_OFF_NONE, *MEDIA_PLAYER_TURN_OFF_COMMANDS],
+                            options=[
+                                MEDIA_PLAYER_TURN_OFF_NONE,
+                                MEDIA_PLAYER_TURN_OFF_SCRIPT,
+                                *MEDIA_PLAYER_TURN_OFF_COMMANDS,
+                            ],
                             translation_key=CONF_MEDIA_PLAYER_TURN_OFF,
                             mode=SelectSelectorMode.DROPDOWN,
                         )

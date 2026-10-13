@@ -50,6 +50,7 @@ from .const import (
     EVENT_TURN_OFF_REQUESTED,
     EVENT_TURN_ON_REQUESTED,
     MEDIA_PLAYER_TURN_OFF_COMMANDS,
+    MEDIA_PLAYER_TURN_OFF_SCRIPT,
 )
 from .entity import async_get_agent_device, availability_signal
 
@@ -460,20 +461,23 @@ class HassAgentMediaPlayerDevice(MediaPlayerEntity):
         await self._power_request(EVENT_TURN_ON_REQUESTED, CONF_MEDIA_PLAYER_TURN_ON_SCRIPT)
 
     async def async_turn_off(self) -> None:
-        """The 'turn off was requested' trigger, the chosen script and the chosen command."""
-        await self._power_request(EVENT_TURN_OFF_REQUESTED, CONF_MEDIA_PLAYER_TURN_OFF_SCRIPT)
+        """The 'turn off was requested' trigger, then the script or the command chosen."""
+        choice = self._options().get(CONF_MEDIA_PLAYER_TURN_OFF)
+        await self._power_request(
+            EVENT_TURN_OFF_REQUESTED,
+            CONF_MEDIA_PLAYER_TURN_OFF_SCRIPT if choice == MEDIA_PLAYER_TURN_OFF_SCRIPT else None,
+        )
 
-        command = self._options().get(CONF_MEDIA_PLAYER_TURN_OFF)
-        if command not in MEDIA_PLAYER_TURN_OFF_COMMANDS or not self._is_live():
+        if choice not in MEDIA_PLAYER_TURN_OFF_COMMANDS or not self._is_live():
             return
 
-        if not await async_send_system_command(self.hass, self._entry_id, self._serial_number, command):
+        if not await async_send_system_command(self.hass, self._entry_id, self._serial_number, choice):
             raise HomeAssistantError(
-                f"{self._name} does not offer the '{command}' command right now; "
+                f"{self._name} does not offer the '{choice}' command right now; "
                 "check that it is switched on in the Windows app"
             )
 
-    async def _power_request(self, event_type: str, script_option: str) -> None:
+    async def _power_request(self, event_type: str, script_option: str | None) -> None:
         data = {
             "serial_number": self._serial_number,
             "device_id": self.device_entry.id if self.device_entry else None,
@@ -482,7 +486,7 @@ class HassAgentMediaPlayerDevice(MediaPlayerEntity):
         self.hass.bus.async_fire(event_type, data)
 
         # Started, not awaited: a script that waits for the PC must not hold the call.
-        script = self._options().get(script_option)
+        script = self._options().get(script_option) if script_option else None
         if isinstance(script, str) and script.startswith("script."):
             await self.hass.services.async_call(
                 "script",

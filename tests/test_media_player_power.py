@@ -143,6 +143,7 @@ async def test_turn_on_and_off_run_their_scripts(hass: HomeAssistant, pc: MockCo
     await _set_options(hass, pc, **{
         CONF_MEDIA_PLAYER_POWER: True,
         CONF_MEDIA_PLAYER_TURN_ON_SCRIPT: "script.wake_pc",
+        CONF_MEDIA_PLAYER_TURN_OFF: "script",
         CONF_MEDIA_PLAYER_TURN_OFF_SCRIPT: "script.pc_off",
     })
     woken = async_capture_events(hass, "wake_pc_ran")
@@ -157,7 +158,22 @@ async def test_turn_on_and_off_run_their_scripts(hass: HomeAssistant, pc: MockCo
     await hass.services.async_call("media_player", "turn_off", {ATTR_ENTITY_ID: ENTITY_ID}, blocking=True)
     await hass.async_block_till_done()
     assert len(off) == 1
-    assert len(off_requested) == 1  # no command chosen: the trigger and the script only
+    assert len(off_requested) == 1
+
+
+async def test_a_script_is_not_run_unless_chosen(hass: HomeAssistant, pc: MockConfigEntry) -> None:
+    assert await async_setup_component(hass, "script", {"script": {"pc_off": {"sequence": [{"event": "pc_off_ran"}]}}})
+    await _set_options(hass, pc, **{
+        CONF_MEDIA_PLAYER_POWER: True,
+        CONF_MEDIA_PLAYER_TURN_OFF: "sleep",
+        CONF_MEDIA_PLAYER_TURN_OFF_SCRIPT: "script.pc_off",  # left behind from an earlier choice
+    })
+    off = async_capture_events(hass, "pc_off_ran")
+    await _report(hass, pc, ["sleep"])
+
+    await hass.services.async_call("media_player", "turn_off", {ATTR_ENTITY_ID: ENTITY_ID}, blocking=True)
+    await hass.async_block_till_done()
+    assert off == []
 
 
 async def test_turn_off_runs_the_chosen_command(hass: HomeAssistant, pc: MockConfigEntry) -> None:
