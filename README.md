@@ -31,7 +31,7 @@ It is the matching Home Assistant side for the modern **HASS.Agent .NET10** Wind
 >
 > If you want to keep using the old HASS.Agent client, switch to the **[`legacy` branch](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/tree/legacy)** of this integration. The legacy branch works with Home Assistant 2026.6+ and the original pre-.NET10 HASS.Agent, but it is **no longer maintained**.
 
-> **Stable:** [10.9.1](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/releases/latest) &nbsp;·&nbsp; [What changed](#changelog) &nbsp;·&nbsp; [Full changelog](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/blob/main/CHANGELOG.md)
+> **Stable:** [10.9.1](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/releases/latest) &nbsp;·&nbsp; **Beta:** [10.9.2-beta.1](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/releases/tag/v10.9.2-beta.1) &nbsp;·&nbsp; [What changed](#changelog) &nbsp;·&nbsp; [Full changelog](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/blob/main/CHANGELOG.md)
 
 <p align="center"><img src="https://raw.githubusercontent.com/v1k70rk4/HASS.Agent.NET10-Integration/main/images/ha-device.png" width="800" alt="A Windows PC as a device in Home Assistant: media player, audio output select and command buttons"></p>
 
@@ -188,6 +188,27 @@ When connected via MQTT or HA API, the integration creates the following entitie
 Entities are created and removed dynamically as the Windows client changes its configuration.
 
 <p align="center"><img src="https://raw.githubusercontent.com/v1k70rk4/HASS.Agent.NET10-Integration/main/images/ha-sensors.png" width="330" alt="Some of the sensors of a Windows PC in Home Assistant"> <img src="https://raw.githubusercontent.com/v1k70rk4/HASS.Agent.NET10-Integration/main/images/ha-notify-events.png" width="330" alt="The notify entity, the notification actions event and the update entity of a Windows PC" valign="top"></p>
+
+### Turning the PC on and off with the media player
+
+Off by default (10.9.2-beta.1+, any supported client). Turn it on in the integration's options: **Settings → Devices & services → HASS.Agent .NET10 → Configure** on the PC, then **Media player: turn on and off**. It is not switched on by itself because it changes the player's state: until now a PC whose app was not running made the player *unavailable*, and automations may count on that.
+
+With the option on:
+
+- **The player is *off* when the PC is off**, not unavailable, so it can be turned on. While the Windows service still reports, the PC is on and only the app is closed: the player stays unavailable then. That can be switched off with **Media player: unavailable while the Windows service still reports**; without the service the PC cannot tell the two apart and the player is off.
+- **Turn on** fires the device trigger *Turn on was requested (media player)* and runs the script picked under **Media player: script to run on turn on**, if any. A PC that is off cannot be reached, so the waking is yours: Wake on LAN, a smart plug, anything an automation or a script can do.
+- **Turn off** fires the device trigger *Turn off was requested (media player)*, then does what **Media player: turn off does** says: nothing, the script picked under **Media player: script to run on turn off**, or the PC's own *Sleep*, *Hibernate* or *Shutdown* command. Shutdown waits 60 seconds, like the button, and the command has to be switched on in the Windows app.
+
+The scripts get `serial_number`, `device_id` and `entity_id` as variables. Waking a PC with Wake on LAN:
+
+```yaml
+script:
+  wake_my_pc:
+    sequence:
+      - action: wake_on_lan.send_magic_packet
+        data:
+          mac: "AA:BB:CC:DD:EE:FF"
+```
 
 ## Services
 
@@ -358,6 +379,12 @@ A hotkey pressed on the PC (client 10.9.0+) reaches the device's *Hotkeys* event
 ---
 
 ## Changelog
+
+### 10.9.2-beta.1
+
+> **Beta.** The media player can turn the PC on and off. Works with every supported Windows client; the client does not have to be updated. In HACS: open the integration, choose **Redownload**, turn on **Show beta versions**, then pick **10.9.2-beta.1**. Restart Home Assistant afterwards.
+
+- **The media player can turn the PC on and off**, off by default, in the integration's options. A PC that is off shows as *off* instead of unavailable; turn on fires a new device trigger and runs a script of your choice, so Wake on LAN or a smart plug can wake the PC; turn off fires a trigger too and runs a script or the PC's sleep, hibernate or shutdown command. It is not switched on by itself because it changes the player's state, which automations may count on. See [Turning the PC on and off with the media player](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration#turning-the-pc-on-and-off-with-the-media-player). Requested in [#41](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/issues/41).
 
 ### 10.9.1 — security pack
 

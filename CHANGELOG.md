@@ -2,6 +2,12 @@
 
 Every release of the HASS.Agent .NET10 integration, newest first. The Windows client has its own [changelog](https://github.com/v1k70rk4/HASS.Agent.NET10/blob/main/CHANGELOG.md).
 
+## 10.9.2-beta.1
+
+> **Beta.** The media player can turn the PC on and off. Works with every supported Windows client; the client does not have to be updated. In HACS: open the integration, choose **Redownload**, turn on **Show beta versions**, then pick **10.9.2-beta.1**. Restart Home Assistant afterwards.
+
+- **The media player can turn the PC on and off**, off by default, in the integration's options. A PC that is off shows as *off* instead of unavailable; turn on fires a new device trigger and runs a script of your choice, so Wake on LAN or a smart plug can wake the PC; turn off fires a trigger too and runs a script or the PC's sleep, hibernate or shutdown command. It is not switched on by itself because it changes the player's state, which automations may count on. See [Turning the PC on and off with the media player](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration#turning-the-pc-on-and-off-with-the-media-player). Requested in [#41](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/issues/41).
+
 ## 10.9.1
 
 The security release, going with the Windows client [10.9.1](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.9.1): 10.9.0 brought new entities and services, 10.9.1 is about what a PC, or anything else on the broker, may do in Home Assistant. It comes from a security review of the integration. The hardening helps with every supported client; a PC on the HA API without an administrator's token needs the client 10.9.1. Update in HACS and restart Home Assistant afterwards.
