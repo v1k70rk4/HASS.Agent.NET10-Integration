@@ -212,7 +212,7 @@ script:
 
 ### Announcements
 
-A `media_player.play_media` action sent with `announce: true` (a TTS message, `tts.speak` with `media_player_entity_id`, a doorbell sound) is meant to be heard. With the Windows client **10.10.0** or newer the PC is unmuted and set to the announcement volume chosen on its **Media player** page for it, what was playing is paused when the user wants that, and afterwards the volume, the mute and the playback go back to what they were. An older client plays the sound at the current volume, as before; without the flag, so does every client.
+A `media_player.play_media` action sent with `announce: true` (a TTS message, `tts.speak` with `media_player_entity_id`, a doorbell sound) is meant to be heard. With the Windows client **10.9.3** or newer the PC is unmuted and set to the announcement volume chosen on its **Media player** page for it, what was playing is paused when the user wants that, and afterwards the volume, the mute and the playback go back to what they were. An older client plays the sound at the current volume, as before; without the flag, so does every client.
 
 ## Services
 

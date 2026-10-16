@@ -328,7 +328,7 @@ class HassAgentMediaPlayerDevice(MediaPlayerEntity):
         _logger.debug("Sending command: %s", command)
 
         payload = {"command": command, "data": data}
-        # Next to the command, not inside data: a client before 10.10.0 reads data as the
+        # Next to the command, not inside data: a client before 10.9.3 reads data as the
         # address and skips what it does not know, so it plays the sound as it always did.
         if announce:
             payload["announce"] = True
@@ -600,6 +600,6 @@ class HassAgentMediaPlayerDevice(MediaPlayerEntity):
         _logger.debug("Received media request from HA: %s", media_id)
 
         self._state = MediaPlayerState.PLAYING.value
-        # An announcement (TTS, a doorbell) is meant to be heard: the client 10.10.0+ unmutes
+        # An announcement (TTS, a doorbell) is meant to be heard: the client 10.9.3+ unmutes
         # the PC and sets its announcement volume for it when the user allows that.
         await self._send_command("playmedia", media_id, announce=bool(announce))

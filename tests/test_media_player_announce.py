@@ -21,7 +21,7 @@ from custom_components.hass_agent.const import CONF_HA_API, DOMAIN
 
 SERIAL = "0123456789abcdef0123456789abcdef"
 ENTITY_ID = "media_player.my_pc"
-DEVICE = {"name": "MY-PC", "manufacturer": "v1k70rk4", "model": "HASS.Agent .NET10", "sw_version": "10.10.0"}
+DEVICE = {"name": "MY-PC", "manufacturer": "v1k70rk4", "model": "HASS.Agent .NET10", "sw_version": "10.9.3"}
 SOUND = "http://ha.local:8123/api/tts_proxy/hello.mp3"
 
 
