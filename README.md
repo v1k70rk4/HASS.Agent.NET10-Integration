@@ -176,7 +176,7 @@ When connected via MQTT or HA API, the integration creates the following entitie
 
 | Platform | Entity | Description |
 |----------|--------|-------------|
-| `media_player` | Media player | Control Windows media playback, volume, TTS |
+| `media_player` | Media player | Control Windows media playback, volume, cover art, TTS and announcements |
 | `notify` | Notifications | Send notifications to the Windows tray |
 | `event` | Notification actions, Hotkeys | Action button press events from notifications; hotkey presses (client 10.9.0+) |
 | `sensor` | System sensors | Built-in and custom sensors from the Windows client |
@@ -209,6 +209,10 @@ script:
         data:
           mac: "AA:BB:CC:DD:EE:FF"
 ```
+
+### Announcements
+
+A `media_player.play_media` action sent with `announce: true` (a TTS message, `tts.speak` with `media_player_entity_id`, a doorbell sound) is meant to be heard. With the Windows client **10.10.0** or newer the PC is unmuted and set to the announcement volume chosen on its **Media player** page for it, what was playing is paused when the user wants that, and afterwards the volume, the mute and the playback go back to what they were. An older client plays the sound at the current volume, as before; without the flag, so does every client.
 
 ## Services
 

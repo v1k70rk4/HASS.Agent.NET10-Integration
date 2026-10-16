@@ -2,6 +2,10 @@
 
 Every release of the HASS.Agent .NET10 integration, newest first. The Windows client has its own [changelog](https://github.com/v1k70rk4/HASS.Agent.NET10/blob/main/CHANGELOG.md).
 
+## Unreleased
+
+- **Announcements reach the PC as announcements.** A `media_player.play_media` sent with `announce: true` (TTS, a doorbell sound) carries the flag to the Windows client; the client 10.10.0+ unmutes the PC and sets its announcement volume for it, then puts everything back. An older client plays the sound at the current volume, as before. The player now also tells Home Assistant that it supports announcements.
+
 ## 10.9.2-beta.1
 
 > **Beta.** The media player can turn the PC on and off. Works with every supported Windows client; the client does not have to be updated. In HACS: open the integration, choose **Redownload**, turn on **Show beta versions**, then pick **10.9.2-beta.1**. Restart Home Assistant afterwards.

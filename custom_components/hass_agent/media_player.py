@@ -70,6 +70,7 @@ SUPPORT_HAMP = (
     | MediaPlayerEntityFeature.SEEK
     | MediaPlayerEntityFeature.BROWSE_MEDIA
     | MediaPlayerEntityFeature.VOLUME_SET
+    | MediaPlayerEntityFeature.MEDIA_ANNOUNCE
 )
 
 
@@ -322,11 +323,15 @@ class HassAgentMediaPlayerDevice(MediaPlayerEntity):
         self._availability_unsub: CALLBACK_TYPE | None = None
         self._original_device_name = original_device_name
 
-    async def _send_command(self, command: str, data: Any = None) -> None:
+    async def _send_command(self, command: str, data: Any = None, announce: bool = False) -> None:
         """Send a command"""
         _logger.debug("Sending command: %s", command)
 
         payload = {"command": command, "data": data}
+        # Next to the command, not inside data: a client before 10.10.0 reads data as the
+        # address and skips what it does not know, so it plays the sound as it always did.
+        if announce:
+            payload["announce"] = True
 
         if not self.hass.data.get(DOMAIN, {}).get(self._entry_id, {}).get("ha_api_only", False):
             await mqtt.async_publish(
@@ -595,4 +600,6 @@ class HassAgentMediaPlayerDevice(MediaPlayerEntity):
         _logger.debug("Received media request from HA: %s", media_id)
 
         self._state = MediaPlayerState.PLAYING.value
-        await self._send_command("playmedia", media_id)
+        # An announcement (TTS, a doorbell) is meant to be heard: the client 10.10.0+ unmutes
+        # the PC and sets its announcement volume for it when the user allows that.
+        await self._send_command("playmedia", media_id, announce=bool(announce))
