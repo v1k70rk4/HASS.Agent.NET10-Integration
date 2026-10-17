@@ -4,7 +4,7 @@ Every release of the HASS.Agent .NET10 integration, newest first. The Windows cl
 
 ## Unreleased
 
-- **Drive temperature** sensor for the Windows client 10.9.3-beta.5+: °C, temperature device class; the system drive's temperature as the value, every drive that reports one in the attributes.
+- **Drive health** sensor for the Windows client 10.9.3-beta.5+: Windows' verdict on the drives (`healthy`, `warning`, `unhealthy`, `unknown`), with the temperatures and the power-on hours in the attributes.
 
 ## 10.9.2-beta.2
 

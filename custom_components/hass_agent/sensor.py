@@ -22,7 +22,7 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import PERCENTAGE, UnitOfTemperature
+from homeassistant.const import PERCENTAGE
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.device_registry import DeviceInfo
@@ -78,14 +78,14 @@ SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:harddisk",
     ),
-    # Client 10.9.3-beta.5+, from the Windows service: the system drive's temperature, every
-    # drive that reports one in the attributes.
+    # Client 10.9.3-beta.5+, from the Windows service: Windows' verdict on the drives (the
+    # worst of them); the temperatures and the power-on hours are attributes.
     SensorEntityDescription(
-        key="drive_temperature",
-        translation_key="drive_temperature",
-        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
-        device_class=SensorDeviceClass.TEMPERATURE,
-        state_class=SensorStateClass.MEASUREMENT,
+        key="drive_health",
+        translation_key="drive_health",
+        icon="mdi:harddisk",
+        device_class=SensorDeviceClass.ENUM,
+        options=["healthy", "warning", "unhealthy", "unknown"],
     ),
     SensorEntityDescription(
         key="uptime_seconds",
