@@ -2,6 +2,10 @@
 
 Every release of the HASS.Agent .NET10 integration, newest first. The Windows client has its own [changelog](https://github.com/v1k70rk4/HASS.Agent.NET10/blob/main/CHANGELOG.md).
 
+## Unreleased
+
+- **Drive temperature** sensor for the Windows client 10.9.3-beta.5+: °C, temperature device class; the system drive's temperature as the value, every drive that reports one in the attributes.
+
 ## 10.9.2-beta.2
 
 > **Beta.** Announcements reach the PC as announcements. Works with every supported Windows client; the client 10.9.3-beta.4 or newer makes use of it. In HACS: open the integration, choose **Redownload**, turn on **Show beta versions**, then pick **10.9.2-beta.2**. Restart Home Assistant afterwards.
