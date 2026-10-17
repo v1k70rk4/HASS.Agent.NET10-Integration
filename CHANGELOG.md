@@ -2,7 +2,9 @@
 
 Every release of the HASS.Agent .NET10 integration, newest first. The Windows client has its own [changelog](https://github.com/v1k70rk4/HASS.Agent.NET10/blob/main/CHANGELOG.md).
 
-## Unreleased
+## 10.9.2-beta.4
+
+> **Beta.** One fix: the tray app's entities stayed unavailable after the app moved from the HA API to MQTT. Works with every supported Windows client. In HACS: open the integration, choose **Redownload**, turn on **Show beta versions**, then pick **10.9.2-beta.4**. Restart Home Assistant afterwards.
 
 - **Fixed: the tray app's entities went unavailable after the app moved from the HA API to MQTT.** Switching MQTT on in the app, or the broker coming back after a failover, put the app on MQTT, where it said online; the timer of its last HA API heartbeat then ran out and marked it offline anyway, and nothing put it back until the app reconnected. An online on MQTT now stops that timer, and the timer leaves alone an app the broker says is online. A heartbeat still means the app speaks on the HA API, so an app that dies there still times out.
 
