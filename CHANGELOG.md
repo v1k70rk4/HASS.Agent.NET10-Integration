@@ -5,6 +5,7 @@ Every release of the HASS.Agent .NET10 integration, newest first. The Windows cl
 ## Unreleased
 
 - **Custom sensors carry the device class the client names from their unit** (temperature for °C, data size for GB, duration for h, power for W and so on; client 10.9.3-beta.5+), so a °C sensor shows as °F where that is the custom and the unit can be changed on the entity.
+- **Available memory and System drive free space are data-size sensors now**, so their unit can be changed on the entity (GiB, GB, MiB) and the history follows.
 - **Drive health** sensor for the Windows client 10.9.3-beta.5+: Windows' verdict on the drives (`healthy`, `warning`, `unhealthy`, `unknown`), with the temperatures and the power-on hours in the attributes.
 
 ## 10.9.2-beta.2
