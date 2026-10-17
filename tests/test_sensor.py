@@ -7,6 +7,7 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 import pytest
+from homeassistant.components.sensor import SensorDeviceClass
 
 from custom_components.hass_agent.const import DOMAIN
 from custom_components.hass_agent.sensor import HassAgentCustomSensor
@@ -108,3 +109,11 @@ def test_attributes_are_taken_only_as_a_mapping() -> None:
 
     sensor._apply({"value": 1, "attributes": ["not", "a", "mapping"]})
     assert sensor.extra_state_attributes == {}
+
+
+def test_a_device_class_from_the_client_is_applied_when_it_is_one() -> None:
+    assert _sensor(unit="°C", device_class="temperature").device_class is SensorDeviceClass.TEMPERATURE
+    assert _sensor(unit="GB", device_class="data_size").device_class is SensorDeviceClass.DATA_SIZE
+    # Not a sensor device class, or none at all: left as it was.
+    assert _sensor(unit="°C", device_class="thermometer").device_class is None
+    assert _sensor(unit="°C").device_class is None

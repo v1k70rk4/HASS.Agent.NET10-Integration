@@ -566,6 +566,16 @@ class HassAgentCustomSensor(HassAgentAvailableEntity, SensorEntity):
         if descriptor.get("state_class") == "measurement":
             self._attr_state_class = SensorStateClass.MEASUREMENT
 
+        # The client 10.9.3-beta.5+ names what the sensor measures from its unit (°C ->
+        # temperature, GB -> data_size); Home Assistant then converts a °C value to °F where
+        # that is the custom. Anything that is not a sensor device class is left out.
+        device_class = descriptor.get("device_class")
+        if isinstance(device_class, str) and device_class:
+            try:
+                self._attr_device_class = SensorDeviceClass(device_class)
+            except ValueError:
+                _LOGGER.debug("custom sensor %s: unknown device class %r ignored", self._sensor_id, device_class)
+
         self._attr_device_info = DeviceInfo(
             identifiers=device.identifiers,
             name=device.name,
