@@ -2,7 +2,9 @@
 
 Every release of the HASS.Agent .NET10 integration, newest first. The Windows client has its own [changelog](https://github.com/v1k70rk4/HASS.Agent.NET10/blob/main/CHANGELOG.md).
 
-## Unreleased
+## 10.9.2-beta.3
+
+> **Beta.** The Drive health sensor for the Windows client 10.9.3-beta.5, and device classes on the custom sensors. Works with every supported Windows client. In HACS: open the integration, choose **Redownload**, turn on **Show beta versions**, then pick **10.9.2-beta.3**. Restart Home Assistant afterwards.
 
 - **Custom sensors carry the device class the client names from their unit** (temperature for °C, data size for GB, duration for h, power for W and so on; client 10.9.3-beta.5+), so a °C sensor shows as °F where that is the custom and the unit can be changed on the entity.
 - **Available memory and System drive free space are data-size sensors now**, so their unit can be changed on the entity (GiB, GB, MiB) and the history follows.
