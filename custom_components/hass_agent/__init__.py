@@ -997,6 +997,9 @@ def _register_ws_listeners(hass: HomeAssistant, entry: ConfigEntry) -> list:
             _refresh_availability(hass, entry)
             return
 
+        # A heartbeat means the app speaks over the HA API now: whatever the broker still
+        # retains about it is from before, so the timeout below may judge again.
+        entry_data["mqtt_app_online"] = False
         entry_data["app_online"] = True
         _refresh_availability(hass, entry)
 
@@ -1004,6 +1007,11 @@ def _register_ws_listeners(hass: HomeAssistant, entry: ConfigEntry) -> list:
         def _mark_offline(_now) -> None:
             entry_data["availability_timeout"] = None
             if not entry_data.get("app_online", True):
+                return
+            # The app moved to MQTT since the last heartbeat (MQTT switched on, or the
+            # broker back after a failover) and said so there; its last heartbeat's
+            # timer must not take it down.
+            if entry_data.get("mqtt_app_online"):
                 return
             entry_data["app_online"] = False
             _refresh_availability(hass, entry)
@@ -1244,6 +1252,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             entry_data = hass.data[DOMAIN].get(entry.entry_id)
             if entry_data is None:
                 return
+            entry_data["mqtt_app_online"] = online
+            if online:
+                # The app came to MQTT from the HA API (or back after a failover): the
+                # timer of its last heartbeat would otherwise mark it offline later.
+                cancel = entry_data.get("availability_timeout")
+                if cancel is not None:
+                    cancel()
+                    entry_data["availability_timeout"] = None
             entry_data["app_online"] = online
             _refresh_availability(hass, entry)
 
