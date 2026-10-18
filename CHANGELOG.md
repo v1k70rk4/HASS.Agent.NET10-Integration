@@ -2,37 +2,55 @@
 
 Every release of the HASS.Agent .NET10 integration, newest first. The Windows client has its own [changelog](https://github.com/v1k70rk4/HASS.Agent.NET10/blob/main/CHANGELOG.md).
 
-## 10.9.2-beta.5
+## 10.9.2
 
-> **Beta.** The two sensor keys the Windows client 10.9.3-beta.6 renamed, moved over without a trace. Works with every supported Windows client. In HACS: open the integration, choose **Redownload**, turn on **Show beta versions**, then pick **10.9.2-beta.5**. Restart Home Assistant afterwards.
+The five betas as one release, going with the Windows client [10.10.0](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.10.0): the media player can turn the PC on and off, announcements are heard as announcements, a Drive health sensor, device classes on the custom sensors, the two sensor keys the client renamed moved over without a trace, and one fix. Works with every supported Windows client; the client 10.10.0 makes use of the new parts. Update in HACS and restart Home Assistant afterwards.
+
+- **The media player can turn the PC on and off**, off by default, in the integration's options. A PC that is off shows as *off* instead of unavailable; turn on fires a new device trigger and runs a script of your choice, so Wake on LAN or a smart plug can wake the PC; turn off fires a trigger too and runs a script or the PC's sleep, hibernate or shutdown command. It is not switched on by itself because it changes the player's state, which automations may count on. See [Turning the PC on and off with the media player](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration#turning-the-pc-on-and-off-with-the-media-player). Requested in [#41](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/issues/41).
+- **Announcements reach the PC as announcements.** A `media_player.play_media` sent with `announce: true` (TTS, a doorbell sound) carries the flag to the Windows client; the client 10.10.0 unmutes the PC and sets its announcement volume for it, then puts everything back. An older client plays the sound at the current volume, as before. The player now also tells Home Assistant that it supports announcements. See [Announcements](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration#announcements).
+- **Drive health** sensor for the Windows client 10.10.0: Windows' verdict on the drives (`healthy`, `warning`, `unhealthy`, `unknown`), with the temperatures and the power-on hours in the attributes.
+- **Custom sensors carry the device class the client names from their unit** (temperature for °C, data size for GB, duration for h, power for W and so on; client 10.10.0), so a °C sensor shows as °F where that is the custom and the unit can be changed on the entity. **Available memory and System drive free space are data-size sensors now** too, so their unit can be changed on the entity (GiB, GB, MiB) and the history follows.
+- **Two sensors moved to new keys with the client 10.10.0: `system_drive_free_gb` is `system_drive`, `memory_available_mb` is `memory_available`.** The entity made under the old key is moved over once, with its entity ID, its history and its statistics, and a payload from an older client is read under the new keys, so nothing changes in Home Assistant. Raised on the client as [#107](https://github.com/v1k70rk4/HASS.Agent.NET10/issues/107).
+- **Fixed: the tray app's entities went unavailable after the app moved from the HA API to MQTT.** Switching MQTT on in the app, or the broker coming back after a failover, put the app on MQTT, where it said online; the timer of its last HA API heartbeat then ran out and marked it offline anyway, and nothing put it back until the app reconnected. An online on MQTT now stops that timer, and the timer leaves alone an app the broker says is online. A heartbeat still means the app speaks on the HA API, so an app that dies there still times out.
+
+**The betas.** 10.9.2 went out first as 10.9.2-beta.1 to beta.5. Their notes, as they were:
+
+<details markdown="1">
+<summary><b>10.9.2-beta.5</b>: the two renamed sensor keys moved over</summary>
 
 - **Two sensors moved to new keys with the client 10.9.3: `system_drive_free_gb` is `system_drive`, `memory_available_mb` is `memory_available`.** The entity made under the old key is moved over once, with its entity ID, its history and its statistics, and a payload from an older client is read under the new keys, so nothing changes in Home Assistant. Raised on the client as [#107](https://github.com/v1k70rk4/HASS.Agent.NET10/issues/107).
 
-## 10.9.2-beta.4
+</details>
 
-> **Beta.** One fix: the tray app's entities stayed unavailable after the app moved from the HA API to MQTT. Works with every supported Windows client. In HACS: open the integration, choose **Redownload**, turn on **Show beta versions**, then pick **10.9.2-beta.4**. Restart Home Assistant afterwards.
+<details markdown="1">
+<summary><b>10.9.2-beta.4</b>: entities unavailable after the move from the HA API to MQTT</summary>
 
 - **Fixed: the tray app's entities went unavailable after the app moved from the HA API to MQTT.** Switching MQTT on in the app, or the broker coming back after a failover, put the app on MQTT, where it said online; the timer of its last HA API heartbeat then ran out and marked it offline anyway, and nothing put it back until the app reconnected. An online on MQTT now stops that timer, and the timer leaves alone an app the broker says is online. A heartbeat still means the app speaks on the HA API, so an app that dies there still times out.
 
-## 10.9.2-beta.3
+</details>
 
-> **Beta.** The Drive health sensor for the Windows client 10.9.3-beta.5, and device classes on the custom sensors. Works with every supported Windows client. In HACS: open the integration, choose **Redownload**, turn on **Show beta versions**, then pick **10.9.2-beta.3**. Restart Home Assistant afterwards.
+<details markdown="1">
+<summary><b>10.9.2-beta.3</b>: Drive health, device classes on the custom sensors</summary>
 
 - **Custom sensors carry the device class the client names from their unit** (temperature for °C, data size for GB, duration for h, power for W and so on; client 10.9.3-beta.5+), so a °C sensor shows as °F where that is the custom and the unit can be changed on the entity.
 - **Available memory and System drive free space are data-size sensors now**, so their unit can be changed on the entity (GiB, GB, MiB) and the history follows.
 - **Drive health** sensor for the Windows client 10.9.3-beta.5+: Windows' verdict on the drives (`healthy`, `warning`, `unhealthy`, `unknown`), with the temperatures and the power-on hours in the attributes.
 
-## 10.9.2-beta.2
+</details>
 
-> **Beta.** Announcements reach the PC as announcements. Works with every supported Windows client; the client 10.9.3-beta.4 or newer makes use of it. In HACS: open the integration, choose **Redownload**, turn on **Show beta versions**, then pick **10.9.2-beta.2**. Restart Home Assistant afterwards.
+<details markdown="1">
+<summary><b>10.9.2-beta.2</b>: announcements</summary>
 
 - **Announcements reach the PC as announcements.** A `media_player.play_media` sent with `announce: true` (TTS, a doorbell sound) carries the flag to the Windows client; the client 10.9.3+ unmutes the PC and sets its announcement volume for it, then puts everything back. An older client plays the sound at the current volume, as before. The player now also tells Home Assistant that it supports announcements.
 
-## 10.9.2-beta.1
+</details>
 
-> **Beta.** The media player can turn the PC on and off. Works with every supported Windows client; the client does not have to be updated. In HACS: open the integration, choose **Redownload**, turn on **Show beta versions**, then pick **10.9.2-beta.1**. Restart Home Assistant afterwards.
+<details markdown="1">
+<summary><b>10.9.2-beta.1</b>: the media player turns the PC on and off</summary>
 
 - **The media player can turn the PC on and off**, off by default, in the integration's options. A PC that is off shows as *off* instead of unavailable; turn on fires a new device trigger and runs a script of your choice, so Wake on LAN or a smart plug can wake the PC; turn off fires a trigger too and runs a script or the PC's sleep, hibernate or shutdown command. It is not switched on by itself because it changes the player's state, which automations may count on. See [Turning the PC on and off with the media player](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration#turning-the-pc-on-and-off-with-the-media-player). Requested in [#41](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/issues/41).
+
+</details>
 
 ## 10.9.1
 

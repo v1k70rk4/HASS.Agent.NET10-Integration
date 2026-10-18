@@ -31,7 +31,7 @@ It is the matching Home Assistant side for the modern **HASS.Agent .NET10** Wind
 >
 > If you want to keep using the old HASS.Agent client, switch to the **[`legacy` branch](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/tree/legacy)** of this integration. The legacy branch works with Home Assistant 2026.6+ and the original pre-.NET10 HASS.Agent, but it is **no longer maintained**.
 
-> **Stable:** [10.9.1](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/releases/latest) &nbsp;·&nbsp; **Beta:** [10.9.2-beta.5](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/releases/tag/v10.9.2-beta.5) &nbsp;·&nbsp; [What changed](#changelog) &nbsp;·&nbsp; [Full changelog](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/blob/main/CHANGELOG.md)
+> **Stable:** [10.9.2](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/releases/latest) &nbsp;·&nbsp; [What changed](#changelog) &nbsp;·&nbsp; [Full changelog](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/blob/main/CHANGELOG.md)
 
 <p align="center"><img src="https://raw.githubusercontent.com/v1k70rk4/HASS.Agent.NET10-Integration/main/images/ha-device.png" width="800" alt="A Windows PC as a device in Home Assistant: media player, audio output select and command buttons"></p>
 
@@ -191,7 +191,7 @@ Entities are created and removed dynamically as the Windows client changes its c
 
 ### Turning the PC on and off with the media player
 
-Off by default (10.9.2-beta.1+, any supported client). Turn it on in the integration's options: **Settings → Devices & services → HASS.Agent .NET10 → Configure** on the PC, then **Media player: turn on and off**. It is not switched on by itself because it changes the player's state: until now a PC whose app was not running made the player *unavailable*, and automations may count on that.
+Off by default (10.9.2+, any supported client). Turn it on in the integration's options: **Settings → Devices & services → HASS.Agent .NET10 → Configure** on the PC, then **Media player: turn on and off**. It is not switched on by itself because it changes the player's state: until now a PC whose app was not running made the player *unavailable*, and automations may count on that.
 
 With the option on:
 
@@ -384,37 +384,19 @@ A hotkey pressed on the PC (client 10.9.0+) reaches the device's *Hotkeys* event
 
 ## Changelog
 
-### 10.9.2-beta.5
+### 10.9.2
 
-> **Beta.** The two sensor keys the Windows client 10.9.3-beta.6 renamed, moved over without a trace. Works with every supported Windows client. In HACS: open the integration, choose **Redownload**, turn on **Show beta versions**, then pick **10.9.2-beta.5**. Restart Home Assistant afterwards.
-
-- **Two sensors moved to new keys with the client 10.9.3: `system_drive_free_gb` is `system_drive`, `memory_available_mb` is `memory_available`.** The entity made under the old key is moved over once, with its entity ID, its history and its statistics, and a payload from an older client is read under the new keys, so nothing changes in Home Assistant. Raised on the client as [#107](https://github.com/v1k70rk4/HASS.Agent.NET10/issues/107).
-
-### 10.9.2-beta.4
-
-> **Beta.** One fix: the tray app's entities stayed unavailable after the app moved from the HA API to MQTT. Works with every supported Windows client. In HACS: open the integration, choose **Redownload**, turn on **Show beta versions**, then pick **10.9.2-beta.4**. Restart Home Assistant afterwards.
-
-- **Fixed: the tray app's entities went unavailable after the app moved from the HA API to MQTT.** Switching MQTT on in the app, or the broker coming back after a failover, put the app on MQTT, where it said online; the timer of its last HA API heartbeat then ran out and marked it offline anyway, and nothing put it back until the app reconnected. An online on MQTT now stops that timer, and the timer leaves alone an app the broker says is online. A heartbeat still means the app speaks on the HA API, so an app that dies there still times out.
-
-### 10.9.2-beta.3
-
-> **Beta.** The Drive health sensor for the Windows client 10.9.3-beta.5, and device classes on the custom sensors. Works with every supported Windows client. In HACS: open the integration, choose **Redownload**, turn on **Show beta versions**, then pick **10.9.2-beta.3**. Restart Home Assistant afterwards.
-
-- **Custom sensors carry the device class the client names from their unit** (temperature for °C, data size for GB, duration for h, power for W and so on; client 10.9.3-beta.5+), so a °C sensor shows as °F where that is the custom and the unit can be changed on the entity.
-- **Available memory and System drive free space are data-size sensors now**, so their unit can be changed on the entity (GiB, GB, MiB) and the history follows.
-- **Drive health** sensor for the Windows client 10.9.3-beta.5+: Windows' verdict on the drives (`healthy`, `warning`, `unhealthy`, `unknown`), with the temperatures and the power-on hours in the attributes.
-
-### 10.9.2-beta.2
-
-> **Beta.** Announcements reach the PC as announcements. Works with every supported Windows client; the client 10.9.3-beta.4 or newer makes use of it. In HACS: open the integration, choose **Redownload**, turn on **Show beta versions**, then pick **10.9.2-beta.2**. Restart Home Assistant afterwards.
-
-- **Announcements reach the PC as announcements.** A `media_player.play_media` sent with `announce: true` (TTS, a doorbell sound) carries the flag to the Windows client; the client 10.9.3-beta.4+ unmutes the PC and sets its announcement volume for it, then puts everything back. An older client plays the sound at the current volume, as before. The player now also tells Home Assistant that it supports announcements. See [Announcements](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration#announcements).
-
-### 10.9.2-beta.1
-
-> **Beta.** The media player can turn the PC on and off. Works with every supported Windows client; the client does not have to be updated. In HACS: open the integration, choose **Redownload**, turn on **Show beta versions**, then pick **10.9.2-beta.1**. Restart Home Assistant afterwards.
+The five betas as one release, going with the Windows client [10.10.0](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.10.0): the media player can turn the PC on and off, announcements are heard as announcements, a Drive health sensor, device classes on the custom sensors, the two sensor keys the client renamed moved over without a trace, and one fix. Works with every supported Windows client; the client 10.10.0 makes use of the new parts. Update in HACS and restart Home Assistant afterwards.
 
 - **The media player can turn the PC on and off**, off by default, in the integration's options. A PC that is off shows as *off* instead of unavailable; turn on fires a new device trigger and runs a script of your choice, so Wake on LAN or a smart plug can wake the PC; turn off fires a trigger too and runs a script or the PC's sleep, hibernate or shutdown command. It is not switched on by itself because it changes the player's state, which automations may count on. See [Turning the PC on and off with the media player](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration#turning-the-pc-on-and-off-with-the-media-player). Requested in [#41](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/issues/41).
+- **Announcements reach the PC as announcements.** A `media_player.play_media` sent with `announce: true` (TTS, a doorbell sound) carries the flag to the Windows client; the client 10.10.0 unmutes the PC and sets its announcement volume for it, then puts everything back. An older client plays the sound at the current volume, as before. The player now also tells Home Assistant that it supports announcements. See [Announcements](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration#announcements).
+- **Drive health** sensor for the Windows client 10.10.0: Windows' verdict on the drives (`healthy`, `warning`, `unhealthy`, `unknown`), with the temperatures and the power-on hours in the attributes.
+- **Custom sensors carry the device class the client names from their unit** (temperature for °C, data size for GB, duration for h, power for W and so on; client 10.10.0), so a °C sensor shows as °F where that is the custom and the unit can be changed on the entity. **Available memory and System drive free space are data-size sensors now** too, so their unit can be changed on the entity (GiB, GB, MiB) and the history follows.
+- **Two sensors moved to new keys with the client 10.10.0: `system_drive_free_gb` is `system_drive`, `memory_available_mb` is `memory_available`.** The entity made under the old key is moved over once, with its entity ID, its history and its statistics, and a payload from an older client is read under the new keys, so nothing changes in Home Assistant. Raised on the client as [#107](https://github.com/v1k70rk4/HASS.Agent.NET10/issues/107).
+- **Fixed: the tray app's entities went unavailable after the app moved from the HA API to MQTT.** Switching MQTT on in the app, or the broker coming back after a failover, put the app on MQTT, where it said online; the timer of its last HA API heartbeat then ran out and marked it offline anyway, and nothing put it back until the app reconnected. An online on MQTT now stops that timer, and the timer leaves alone an app the broker says is online. A heartbeat still means the app speaks on the HA API, so an app that dies there still times out.
+
+<details>
+<summary><b>10.9.1 — security pack</b></summary>
 
 ### 10.9.1 — security pack
 
@@ -439,34 +421,7 @@ The security release, going with the Windows client [10.9.1](https://github.com/
 - The setup dialog says why it stopped when a message is not from a HASS.Agent .NET10 client, instead of showing a bare key.
 - The GitHub workflows are pinned to commits and checked by OpenSSF Scorecard, and there is a [contributing guide](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/blob/main/CONTRIBUTING.md).
 
-### 10.9.0 — feature pack
-
-A bigger release, going with the Windows client [10.9.0](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.9.0): the PC's display as a light, audio device selects, hotkeys as events, per-app volume, notifications with pictures and text fields and with fields of their own in the editor, and the fixes of three betas. The new entities, services and notification fields need the client 10.9.0; the fixes help with every client.
-
-**New entities and services** (client 10.9.0+)
-
-- **The PC's display as a light.** With the Windows client **10.9.0** or newer and its *Display brightness* sensor turned on (tray app), the device gets a *Display* light: the brightness slider sets the screen brightness, off switches the monitor off, on wakes it. The client adjusts the built-in panel of a laptop and external monitors that speak DDC/CI; with no adjustable display (many TVs) the light is a plain on/off one. Works over MQTT and the HA API. The light disappears again when the sensor is turned off.
-- **Audio device selects.** Two select entities choose the PC's default playback and recording device, from the list of devices Windows has active. The output one appears for every client **10.9.0** or newer whose *Audio output device* sensor is on (it is by default); the input one when the new *Audio input device* sensor is turned on.
-- **Hotkeys as events.** A client 10.9.0+ with hotkeys set up gets a *Hotkeys* event entity whose event types are the hotkey names, for automations that start from the keyboard. The press also fires `hass_agent_hotkey_pressed` on the event bus.
-- **`hass_agent.set_app_volume` service.** Sets the volume or mute of one app in the Windows volume mixer (client 10.9.0+ with its *Audio sessions* sensor on; the sensor lists the apps with their volumes as attributes).
-- **Hibernate and Log off buttons**, for clients 10.9.0+ that have the command enabled (both are off by default in the client).
-
-**Notifications**
-
-- **Pictures in notifications, straight from Home Assistant.** `image` in a notification's `data` can now be a path on this Home Assistant (`/local/doorbell.jpg`, `/api/camera_proxy/camera.front_door`) or simply a camera or image entity (`camera.front_door`). The integration signs the address for five minutes, so the PC can fetch the picture without a login of its own; it sends both the internal and the external address of this Home Assistant, and the PC uses the one it can reach. A full web address is passed on as it is. Showing the picture needs the Windows client **10.9.0** or newer.
-- **Text typed into a notification comes back.** The client 10.9.0 can show text fields (`inputs`) on a notification; what was typed arrives with the pressed button, as `input` in the data of the *Notification actions* event and of the `hass_agent_notifications` bus event.
-- **The notification action has fields of its own.** `image`, `actions`, `inputs`, `style` and `duration` of `hass_agent.send_notification` no longer have to be written as YAML inside its `data` object: each is a field with its own input in the Home Assistant editor (a list editor for buttons and text fields, a drop-down for the style), named and described in English and Hungarian. The old form keeps working.
-- The integration now names `http` as a dependency, which the signed picture addresses need.
-
-**Fixes**
-
-- **Fixed: a PC that only uses the HA API showed old data after a Home Assistant restart.** Its device was set up from what the integration stored on the day the PC was added (the version and the capabilities of that day), and the client's fresh data, sent the moment it reconnected, arrived before the integration listened. The device page showed an old firmware version, the update entity was unavailable, and capabilities gained since could be missing until the client announced itself again. The integration now keeps the latest device data, and asks the client to announce itself once Home Assistant has started (the client answers from 10.9.0 on; the stored data alone already helps with older ones).
-- **Fixed: "has already been setup" errors at a Home Assistant start.** Capability messages of one PC arriving in a burst (the retained one and the client's fresh one) were handled side by side and could set a platform up twice or unload it mid-setup; Home Assistant refused the second with an error in the log, once per platform. They are applied one at a time now, the latest winning.
-- **Fixed: a custom sensor with a unit and a value that is not a number no longer floods the log.** Home Assistant takes a sensor with a unit for a number and raised an error on every update when the value was a text such as `off`. Such a sensor now shows as unknown, and the log says once which sensor it is and what to change in the Windows client.
-
-**And**
-
-- **The README shows what it all looks like**, in Home Assistant and on the PC, says plainly that the first PC on the HA API is added by hand, and keeps only the latest release here; every release is in [CHANGELOG.md](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/blob/main/CHANGELOG.md).
+</details>
 
 Older versions are in the [changelog](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/blob/main/CHANGELOG.md).
 
