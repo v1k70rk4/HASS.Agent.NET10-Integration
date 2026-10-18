@@ -31,6 +31,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN, SIGNAL_SENSORS_UPDATED
 from .entity import HassAgentAvailableEntity, async_get_agent_device
+from .sensor_keys import with_current_sensor_keys
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -58,7 +59,7 @@ SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
         icon="mdi:memory",
     ),
     SensorEntityDescription(
-        key="memory_available_mb",
+        key="memory_available",
         translation_key="memory_available",
         native_unit_of_measurement="MiB",
         device_class=SensorDeviceClass.DATA_SIZE,
@@ -73,7 +74,7 @@ SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
         icon="mdi:harddisk",
     ),
     SensorEntityDescription(
-        key="system_drive_free_gb",
+        key="system_drive",
         translation_key="system_drive_free_space",
         native_unit_of_measurement="GiB",
         device_class=SensorDeviceClass.DATA_SIZE,
@@ -452,6 +453,7 @@ class HassAgentSystemSensor(HassAgentAvailableEntity, SensorEntity):
             _LOGGER.warning("received non-object system metrics update on '%s'", message.topic)
             return
 
+        payload = with_current_sensor_keys(payload)
         if self.entity_description.key not in payload:
             return
 
@@ -485,6 +487,7 @@ class HassAgentSystemSensor(HassAgentAvailableEntity, SensorEntity):
         if not isinstance(payload, dict):
             return
 
+        payload = with_current_sensor_keys(payload)
         if self.entity_description.key not in payload:
             return
 

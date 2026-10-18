@@ -55,6 +55,7 @@ from .const import (
     SIGNAL_UPDATE_STATE,
 )
 from .entity import async_get_agent_device, availability_signal
+from .sensor_keys import async_migrate_renamed_sensor_entities, current_sensor_key
 
 PLATFORMS: list[Platform] = [
     Platform.MEDIA_PLAYER,
@@ -393,7 +394,8 @@ def _normalize_standard_sensors(sensors: Any) -> tuple[tuple[str, str], ...]:
         if not isinstance(name, str) or not name.strip():
             continue
 
-        normalized[sensor["key"]] = name.strip()
+        # A client from before the rename, or one advertising the old key next to the new.
+        normalized.setdefault(current_sensor_key(sensor["key"]), name.strip())
 
     return tuple(sorted(normalized.items(), key=lambda item: item[0]))
 
@@ -1040,6 +1042,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     _logger.debug("setting up device from config entry: %s [%s]", entry.title, entry.unique_id)
 
+    async_migrate_renamed_sensor_entities(hass, entry)
     hass.data.setdefault(DOMAIN, {})
 
     hass.data[DOMAIN].setdefault(

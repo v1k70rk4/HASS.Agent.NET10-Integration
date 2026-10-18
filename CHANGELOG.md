@@ -2,6 +2,10 @@
 
 Every release of the HASS.Agent .NET10 integration, newest first. The Windows client has its own [changelog](https://github.com/v1k70rk4/HASS.Agent.NET10/blob/main/CHANGELOG.md).
 
+## Unreleased
+
+- **Two sensors moved to new keys with the client 10.9.3: `system_drive_free_gb` is `system_drive`, `memory_available_mb` is `memory_available`.** The entity made under the old key is moved over once, with its entity ID, its history and its statistics, and a payload from an older client is read under the new keys, so nothing changes in Home Assistant. Raised on the client as [#107](https://github.com/v1k70rk4/HASS.Agent.NET10/issues/107).
+
 ## 10.9.2-beta.4
 
 > **Beta.** One fix: the tray app's entities stayed unavailable after the app moved from the HA API to MQTT. Works with every supported Windows client. In HACS: open the integration, choose **Redownload**, turn on **Show beta versions**, then pick **10.9.2-beta.4**. Restart Home Assistant afterwards.
