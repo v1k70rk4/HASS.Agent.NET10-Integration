@@ -161,12 +161,12 @@ All events and commands are targeted by `serial_number`, so renaming a device in
 
 ### Local HTTP API
 
-A minimal fallback for environments where neither MQTT nor HA API is available. Add the device manually:
+A minimal fallback for environments where neither MQTT nor HA API is available. On a new install of the agent (10.9.3 and newer) the API is off: turn it on first on its **General** page, under **Local HTTP API**. Then add the device manually:
 
 - **Host**: the Windows machine's LAN IP address
 - **Port**: `5115` (default)
 - **SSL**: disabled
-- **API key**: copy from the agent's General settings page (Network section)
+- **API key**: copy from the agent's General settings page (Local HTTP API section); it is made when the API is turned on, and a new one each time it is turned on again
 
 Only notifications are supported. The `POST /notify` endpoint is protected with the API key (`Authorization: Bearer <key>`). Use MQTT or HA API for full functionality.
 
