@@ -31,7 +31,7 @@ It is the matching Home Assistant side for the modern **HASS.Agent .NET10** Wind
 >
 > If you want to keep using the old HASS.Agent client, switch to the **[`legacy` branch](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/tree/legacy)** of this integration. The legacy branch works with Home Assistant 2026.6+ and the original pre-.NET10 HASS.Agent, but it is **no longer maintained**.
 
-> **Stable:** [10.9.2](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/releases/latest) &nbsp;·&nbsp; [What changed](#changelog) &nbsp;·&nbsp; [Full changelog](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/blob/main/CHANGELOG.md)
+> **Stable:** [10.10.0](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/releases/latest) &nbsp;·&nbsp; [What changed](#changelog) &nbsp;·&nbsp; [Full changelog](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/blob/main/CHANGELOG.md)
 
 <p align="center"><img src="https://raw.githubusercontent.com/v1k70rk4/HASS.Agent.NET10-Integration/main/images/ha-device.png" width="800" alt="A Windows PC as a device in Home Assistant: media player, audio output select and command buttons"></p>
 
@@ -191,7 +191,7 @@ Entities are created and removed dynamically as the Windows client changes its c
 
 ### Turning the PC on and off with the media player
 
-Off by default (10.9.2+, any supported client). Turn it on in the integration's options: **Settings → Devices & services → HASS.Agent .NET10 → Configure** on the PC, then **Media player: turn on and off**. It is not switched on by itself because it changes the player's state: until now a PC whose app was not running made the player *unavailable*, and automations may count on that.
+Off by default (10.10.0+, any supported client). Turn it on in the integration's options: **Settings → Devices & services → HASS.Agent .NET10 → Configure** on the PC, then **Media player: turn on and off**. It is not switched on by itself because it changes the player's state: until now a PC whose app was not running made the player *unavailable*, and automations may count on that.
 
 With the option on:
 
@@ -384,9 +384,9 @@ A hotkey pressed on the PC (client 10.9.0+) reaches the device's *Hotkeys* event
 
 ## Changelog
 
-### 10.9.2
+### 10.10.0
 
-The five betas as one release, going with the Windows client [10.10.0](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.10.0): the media player can turn the PC on and off, announcements are heard as announcements, a Drive health sensor, device classes on the custom sensors, the two sensor keys the client renamed moved over without a trace, and one fix. Works with every supported Windows client; the client 10.10.0 makes use of the new parts. Update in HACS and restart Home Assistant afterwards.
+Going with the Windows client [10.10.0](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.10.0): the media player can turn the PC on and off, announcements are heard as announcements, a Drive health sensor, device classes on the custom sensors, the two sensor keys the client renamed moved over without a trace, and one fix. Works with every supported Windows client; the client 10.10.0 makes use of the new parts. Update in HACS and restart Home Assistant afterwards.
 
 - **The media player can turn the PC on and off**, off by default, in the integration's options. A PC that is off shows as *off* instead of unavailable; turn on fires a new device trigger and runs a script of your choice, so Wake on LAN or a smart plug can wake the PC; turn off fires a trigger too and runs a script or the PC's sleep, hibernate or shutdown command. It is not switched on by itself because it changes the player's state, which automations may count on. See [Turning the PC on and off with the media player](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration#turning-the-pc-on-and-off-with-the-media-player). Requested in [#41](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/issues/41).
 - **Announcements reach the PC as announcements.** A `media_player.play_media` sent with `announce: true` (TTS, a doorbell sound) carries the flag to the Windows client; the client 10.10.0 unmutes the PC and sets its announcement volume for it, then puts everything back. An older client plays the sound at the current volume, as before. The player now also tells Home Assistant that it supports announcements. See [Announcements](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration#announcements).
