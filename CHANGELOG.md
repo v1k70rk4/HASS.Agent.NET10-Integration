@@ -2,6 +2,12 @@
 
 Every release of the HASS.Agent .NET10 integration, newest first. The Windows client has its own [changelog](https://github.com/v1k70rk4/HASS.Agent.NET10/blob/main/CHANGELOG.md).
 
+## 10.10.1
+
+Hotfix: a PC's sensors stayed unavailable after their list changed. Works with every supported Windows client. Update in HACS and restart Home Assistant afterwards.
+
+- **Fixed: all of a PC's sensors could go unavailable when a sensor was added or removed in the client, and stay so.** Rebuilding the sensors (and the buttons) waited for every task Home Assistant was running, so a long-running task of another integration kept them unloaded until it ended, and a reload did not help. It no longer waits for anything but its own sensors. Reported in [#123](https://github.com/v1k70rk4/HASS.Agent.NET10/issues/123).
+
 ## 10.10.0
 
 Going with the Windows client [10.10.0](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.10.0): the media player can turn the PC on and off, announcements are heard as announcements, a Drive health sensor, device classes on the custom sensors, the two sensor keys the client renamed moved over without a trace, and one fix. Works with every supported Windows client; the client 10.10.0 makes use of the new parts. Update in HACS and restart Home Assistant afterwards.
