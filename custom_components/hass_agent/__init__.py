@@ -573,7 +573,6 @@ async def _async_update_button_platform(
             return
 
         loaded["button"] = False
-        await hass.async_block_till_done()
 
     _async_remove_inactive_button_entities(hass, entry, active_commands, active_custom_ids)
     entry_data[BUTTON_COMMANDS_STORAGE_KEY] = command_signature
@@ -622,8 +621,11 @@ async def _async_update_sensor_platform(
             _logger.warning("failed to unload sensor for device: %s [%s]", device_name, entry.unique_id)
             return
 
+        # Not hass.async_block_till_done(): that waits for every task of Home Assistant,
+        # and one long-running task of another integration kept the sensors unloaded,
+        # and unavailable, for as long as it ran. The unload above has already removed
+        # the entities by the time it returns.
         loaded["sensor"] = False
-        await hass.async_block_till_done()
 
     _async_remove_inactive_custom_sensor_entities(hass, entry, active_sensor_ids)
     _async_remove_inactive_standard_sensor_entities(hass, entry, active_standard_keys)
