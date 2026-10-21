@@ -15,7 +15,7 @@ Problems on the Windows side (the tray app, sensors, commands, the service) belo
 1. Fork the repository and branch off `main`.
 2. Keep a pull request to one change. Say what it changes and why; for a bug, how to reproduce it.
 3. Open the pull request against `main`. CI runs ruff, the tests, hassfest, the HACS validation and CodeQL, and it gets a review before it is merged.
-   The first review comes from CodeRabbit, an automated reviewer. Its comments are suggestions: fix what it rightly points out, and if you don't agree with one, say why in a reply or simply resolve the thread. On a translation, it is good at spotting a missing placeholder or a text left in English; grammar, and how a sentence sounds in your language, are up to you.
+   The first review comes from CodeRabbit, an automated reviewer. Its comments are suggestions: fix what it rightly points out, and if you don't agree with one, say why in a short reply before you resolve the thread. That way a reviewer can tell a choice from an oversight. On a translation, it is good at spotting a missing placeholder or a text left in English; grammar, and how a sentence sounds in your language, are up to you.
 
 Before you open it:
 
