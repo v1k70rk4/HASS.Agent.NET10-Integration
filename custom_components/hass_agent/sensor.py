@@ -90,6 +90,15 @@ SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
         device_class=SensorDeviceClass.ENUM,
         options=["healthy", "warning", "unhealthy", "unknown"],
     ),
+    # Client 10.10.2+: how full the fullest fixed drive is; every drive with a letter is in the
+    # attributes, keyed by it (D.free_gb, D.used_percent, ...).
+    SensorEntityDescription(
+        key="drive_space",
+        translation_key="drive_space",
+        native_unit_of_measurement=PERCENTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:harddisk",
+    ),
     SensorEntityDescription(
         key="uptime_seconds",
         translation_key="uptime",

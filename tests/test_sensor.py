@@ -7,10 +7,15 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 import pytest
-from homeassistant.components.sensor import SensorDeviceClass
+from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
+from homeassistant.const import PERCENTAGE
 
 from custom_components.hass_agent.const import DOMAIN
-from custom_components.hass_agent.sensor import HassAgentCustomSensor
+from custom_components.hass_agent.sensor import (
+    SENSOR_DESCRIPTIONS,
+    HassAgentCustomSensor,
+    HassAgentSystemSensor,
+)
 
 DEVICE = SimpleNamespace(
     name="MY-PC",
@@ -117,3 +122,22 @@ def test_a_device_class_from_the_client_is_applied_when_it_is_one() -> None:
     # Not a sensor device class, or none at all: left as it was.
     assert _sensor(unit="°C", device_class="thermometer").device_class is None
     assert _sensor(unit="°C").device_class is None
+
+
+def test_drive_space_shows_the_fullest_drive_and_every_drive_by_its_letter() -> None:
+    description = next(item for item in SENSOR_DESCRIPTIONS if item.key == "drive_space")
+    assert description.native_unit_of_measurement == PERCENTAGE
+    assert description.state_class == SensorStateClass.MEASUREMENT
+
+    sensor = HassAgentSystemSensor("entry", "serial", DEVICE, description, "Drive space")
+    sensor.async_write_ha_state = MagicMock()
+    drives = {
+        "fullest": "D",
+        "C": {"label": "Windows", "total_gb": 100, "free_gb": 40, "used_percent": 60},
+        "D": {"label": "Data", "total_gb": 1000, "free_gb": 100, "used_percent": 90},
+    }
+    sensor._handle_ws_sensor_data({"drive_space": 90, "attributes": {"drive_space": drives}})
+
+    assert sensor.native_value == 90
+    assert sensor.extra_state_attributes["fullest"] == "D"
+    assert sensor.extra_state_attributes["D"]["free_gb"] == 100
