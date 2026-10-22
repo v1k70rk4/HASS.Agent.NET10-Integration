@@ -31,7 +31,7 @@ It is the matching Home Assistant side for the modern **HASS.Agent .NET10** Wind
 >
 > If you want to keep using the old HASS.Agent client, switch to the **[`legacy` branch](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/tree/legacy)** of this integration. The legacy branch works with Home Assistant 2026.6+ and the original pre-.NET10 HASS.Agent, but it is **no longer maintained**.
 
-> **Stable:** [10.10.1](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/releases/latest) &nbsp;·&nbsp; [What changed](#changelog) &nbsp;·&nbsp; [Full changelog](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/blob/main/CHANGELOG.md)
+> **Stable:** [10.10.1](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/releases/latest) &nbsp;·&nbsp; **Beta:** [10.10.2-beta.4](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/releases/tag/v10.10.2-beta.4) &nbsp;·&nbsp; [What changed](#changelog) &nbsp;·&nbsp; [Full changelog](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/blob/main/CHANGELOG.md)
 
 <p align="center"><img src="https://raw.githubusercontent.com/v1k70rk4/HASS.Agent.NET10-Integration/main/images/ha-device.png" width="800" alt="A Windows PC as a device in Home Assistant: media player, audio output select and command buttons"></p>
 
@@ -383,6 +383,12 @@ A hotkey pressed on the PC (client 10.9.0+) reaches the device's *Hotkeys* event
 ---
 
 ## Changelog
+
+### 10.10.2-beta.4
+
+> **Beta.** In HACS, turn on **Show beta versions** for the integration to be offered it. Goes with the Windows client [10.10.2-beta.4](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.10.2-beta.4).
+
+- **Drive space** sensor: the system drive's fullness, with every drive by its letter in the attributes. Requested in [#143](https://github.com/v1k70rk4/HASS.Agent.NET10/issues/143).
 
 ### 10.10.1 — hotfix
 

@@ -2,6 +2,14 @@
 
 Every release of the HASS.Agent .NET10 integration, newest first. The Windows client has its own [changelog](https://github.com/v1k70rk4/HASS.Agent.NET10/blob/main/CHANGELOG.md).
 
+## 10.10.2-beta.4
+
+> **Beta.** In HACS, turn on **Show beta versions** for the integration to be offered it.
+
+Going with the Windows client [10.10.2-beta.4](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.10.2-beta.4): a Drive space sensor. Works with every supported Windows client. Update in HACS and restart Home Assistant afterwards.
+
+- **Drive space** sensor for the Windows client 10.10.2: how full the system drive is, in percent, with every drive with a letter in the attributes, keyed by it (`D.free_gb`, `D.used_percent`, `D.total_gb`, ..., and `system`, the system drive's letter). An older client does not send it, so nothing changes there. Requested on the client as [#143](https://github.com/v1k70rk4/HASS.Agent.NET10/issues/143).
+
 ## 10.10.1
 
 Hotfix: a PC's sensors stayed unavailable after their list changed. Works with every supported Windows client. Update in HACS and restart Home Assistant afterwards.
