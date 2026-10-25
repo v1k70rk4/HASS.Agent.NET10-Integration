@@ -2,6 +2,10 @@
 
 Every release of the HASS.Agent .NET10 integration, newest first. The Windows client has its own [changelog](https://github.com/v1k70rk4/HASS.Agent.NET10/blob/main/CHANGELOG.md).
 
+## Unreleased
+
+- **Fixed: Check for updates got no answer from a PC on the HA API whose tray app was not running.** After a Home Assistant restart the integration took the tray app for running until it heard otherwise, and on the HA API only a heartbeat from the app could tell it otherwise. On a PC with the service only, or with nobody logged in, no heartbeat came, so the button's request and the other commands for whichever side is up went to the app, and the service left them alone. The app now counts as offline when no heartbeat comes within 90 seconds of the setup, as it already did 90 seconds after its last one.
+
 ## 10.10.2
 
 Going with the Windows client [10.10.2](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.10.2): a Drive space sensor. Works with every supported Windows client; the client 10.10.2 sends the new sensor. Update in HACS and restart Home Assistant afterwards.
