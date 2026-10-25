@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import timedelta
 
 import pytest
+from freezegun.api import FrozenDateTimeFactory
 from homeassistant.core import HomeAssistant
 from homeassistant.setup import async_setup_component
 from homeassistant.util import dt as dt_util
@@ -15,7 +16,7 @@ from pytest_homeassistant_custom_component.common import (
 )
 
 from custom_components.hass_agent import WS_AVAILABILITY_TIMEOUT
-from custom_components.hass_agent.const import DOMAIN
+from custom_components.hass_agent.const import CONF_HA_API, DOMAIN
 
 SERIAL = "0123456789abcdef0123456789abcdef"
 DEVICE = {"name": "MY-PC", "manufacturer": "v1k70rk4", "model": "HASS.Agent .NET10", "sw_version": "10.9.3"}
@@ -37,6 +38,22 @@ async def pc(hass: HomeAssistant, mqtt_mock) -> MockConfigEntry:
         unique_id=SERIAL,
         title="MY-PC",
         data={"device": DEVICE, "apis": {}},
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    return entry
+
+
+@pytest.fixture
+async def ha_api_pc(hass: HomeAssistant, mqtt_mock) -> MockConfigEntry:
+    """A PC on the HA API alone, set up while Home Assistant runs."""
+    assert await async_setup_component(hass, "http", {})
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        unique_id=SERIAL,
+        title="MY-PC",
+        data={CONF_HA_API: True, "device": DEVICE, "apis": {}},
     )
     entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(entry.entry_id)
@@ -107,3 +124,33 @@ async def test_heartbeats_alone_still_time_out(hass: HomeAssistant, pc: MockConf
     await _heartbeat(hass)
     await _heartbeat_timeout_passes(hass)
     assert not _app_online(hass, pc)
+
+
+async def test_an_app_that_never_shows_up_on_the_ha_api_goes_offline(
+    hass: HomeAssistant, ha_api_pc: MockConfigEntry
+) -> None:
+    """A PC with the service only: the app counted as online for good, so its commands went nowhere."""
+    hass.bus.async_fire("hass_agent_service_update", {"serial_number": SERIAL, "status": {"online": True}})
+    await hass.async_block_till_done()
+    assert _app_online(hass, ha_api_pc)
+
+    await _heartbeat_timeout_passes(hass)
+    assert not _app_online(hass, ha_api_pc)
+    # The service is still there, so the PC is.
+    assert hass.data[DOMAIN][ha_api_pc.entry_id]["available"] is True
+
+
+async def test_an_app_that_heartbeats_after_setup_stays_online(
+    hass: HomeAssistant, ha_api_pc: MockConfigEntry, freezer: FrozenDateTimeFactory
+) -> None:
+    """The timeout armed at setup gives way to the first heartbeat's."""
+    freezer.tick(timedelta(seconds=WS_AVAILABILITY_TIMEOUT - 30))
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+    await _heartbeat(hass)
+
+    # Past the timeout counted from the setup, within the one from the heartbeat.
+    freezer.tick(timedelta(seconds=60))
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+    assert _app_online(hass, ha_api_pc)

@@ -857,6 +857,40 @@ async def _async_publish_integration_info(hass: HomeAssistant, entry: ConfigEntr
     )
 
 
+@callback
+def _arm_app_offline_timeout(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Take the tray app offline unless a heartbeat comes within the timeout.
+
+    There is no broker Last Will on the WebSocket transport. Every heartbeat arms this
+    again, and so does the setup of a PC on the HA API: an app that never shows up (a PC
+    with the service only, or nobody logged in) counted as online from the start, so
+    commands for whichever side is up, such as Check for updates, went to an app that
+    does not run, and the service left them alone.
+    """
+    entry_data = hass.data[DOMAIN].get(entry.entry_id)
+    if entry_data is None:
+        return
+
+    cancel = entry_data.get("availability_timeout")
+    if cancel is not None:
+        cancel()
+
+    @callback
+    def _mark_offline(_now) -> None:
+        entry_data["availability_timeout"] = None
+        if not entry_data.get("app_online", True):
+            return
+        # The app moved to MQTT since the last heartbeat (MQTT switched on, or the
+        # broker back after a failover) and said so there; its last heartbeat's
+        # timer must not take it down.
+        if entry_data.get("mqtt_app_online"):
+            return
+        entry_data["app_online"] = False
+        _refresh_availability(hass, entry)
+
+    entry_data["availability_timeout"] = async_call_later(hass, WS_AVAILABILITY_TIMEOUT, _mark_offline)
+
+
 def _register_ws_listeners(hass: HomeAssistant, entry: ConfigEntry) -> list:
     """Register WebSocket event listeners for HA API failover/standalone transport."""
 
@@ -1006,24 +1040,7 @@ def _register_ws_listeners(hass: HomeAssistant, entry: ConfigEntry) -> list:
         entry_data["mqtt_app_online"] = False
         entry_data["app_online"] = True
         _refresh_availability(hass, entry)
-
-        @callback
-        def _mark_offline(_now) -> None:
-            entry_data["availability_timeout"] = None
-            if not entry_data.get("app_online", True):
-                return
-            # The app moved to MQTT since the last heartbeat (MQTT switched on, or the
-            # broker back after a failover) and said so there; its last heartbeat's
-            # timer must not take it down.
-            if entry_data.get("mqtt_app_online"):
-                return
-            entry_data["app_online"] = False
-            _refresh_availability(hass, entry)
-
-        # No broker Last Will on the WebSocket transport: if heartbeats stop, go offline.
-        entry_data["availability_timeout"] = async_call_later(
-            hass, WS_AVAILABILITY_TIMEOUT, _mark_offline
-        )
+        _arm_app_offline_timeout(hass, entry)
 
     return [
         hass.bus.async_listen("hass_agent_device_update", _ws_device_update),
@@ -1127,6 +1144,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         ws_unsubs = _register_ws_listeners(hass, entry)
         hass.data[DOMAIN][entry.entry_id]["ws_unsubs"] = ws_unsubs
+        # The app starts out online; with no heartbeat by the timeout, it is not running.
+        _arm_app_offline_timeout(hass, entry)
         _async_request_announce(hass, entry)
 
         await handle_apis_changed(hass, entry, apis)
