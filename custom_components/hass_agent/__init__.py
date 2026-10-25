@@ -1144,11 +1144,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         ws_unsubs = _register_ws_listeners(hass, entry)
         hass.data[DOMAIN][entry.entry_id]["ws_unsubs"] = ws_unsubs
-        # The app starts out online; with no heartbeat by the timeout, it is not running.
-        _arm_app_offline_timeout(hass, entry)
         _async_request_announce(hass, entry)
 
         await handle_apis_changed(hass, entry, apis)
+        # The app starts out online; with no heartbeat by the timeout, it is not running.
+        # Armed once the setup went through, so a failed one leaves no timer behind.
+        if hass.data[DOMAIN][entry.entry_id].get("availability_timeout") is None:
+            _arm_app_offline_timeout(hass, entry)
 
     else:
         # --- MQTT path (with WebSocket failover listeners) ---
