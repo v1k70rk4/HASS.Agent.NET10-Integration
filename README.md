@@ -31,7 +31,7 @@ It is the matching Home Assistant side for the modern **HASS.Agent .NET10** Wind
 >
 > If you want to keep using the old HASS.Agent client, switch to the **[`legacy` branch](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/tree/legacy)** of this integration. The legacy branch works with Home Assistant 2026.6+ and the original pre-.NET10 HASS.Agent, but it is **no longer maintained**.
 
-> **Stable:** [10.10.1](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/releases/latest) &nbsp;·&nbsp; **Beta:** [10.10.2-beta.4](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/releases/tag/v10.10.2-beta.4) &nbsp;·&nbsp; [What changed](#changelog) &nbsp;·&nbsp; [Full changelog](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/blob/main/CHANGELOG.md)
+> **Stable:** [10.10.2](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/releases/latest) &nbsp;·&nbsp; [What changed](#changelog) &nbsp;·&nbsp; [Full changelog](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/blob/main/CHANGELOG.md)
 
 <p align="center"><img src="https://raw.githubusercontent.com/v1k70rk4/HASS.Agent.NET10-Integration/main/images/ha-device.png" width="800" alt="A Windows PC as a device in Home Assistant: media player, audio output select and command buttons"></p>
 
@@ -384,11 +384,14 @@ A hotkey pressed on the PC (client 10.9.0+) reaches the device's *Hotkeys* event
 
 ## Changelog
 
-### 10.10.2-beta.4
+### 10.10.2
 
-> **Beta.** In HACS, turn on **Show beta versions** for the integration to be offered it. Goes with the Windows client [10.10.2-beta.4](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.10.2-beta.4).
+Going with the Windows client [10.10.2](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.10.2): a Drive space sensor. Works with every supported Windows client; the client 10.10.2 sends the new sensor. Update in HACS and restart Home Assistant afterwards.
 
-- **Drive space** sensor: the system drive's fullness, with every drive by its letter in the attributes. Requested in [#143](https://github.com/v1k70rk4/HASS.Agent.NET10/issues/143).
+- **Drive space** sensor for the Windows client 10.10.2: how full the system drive is, in percent, with every drive with a letter in the attributes, keyed by it (`D.free_gb`, `D.used_percent`, `D.total_gb`, ..., and `system`, the system drive's letter). An older client does not send it, so nothing changes there. Requested on the client as [#143](https://github.com/v1k70rk4/HASS.Agent.NET10/issues/143).
+
+<details>
+<summary><b>10.10.1 — hotfix</b> and <b>10.10.0</b></summary>
 
 ### 10.10.1 — hotfix
 
@@ -404,32 +407,6 @@ Going with the Windows client [10.10.0](https://github.com/v1k70rk4/HASS.Agent.N
 - **Custom sensors carry the device class the client names from their unit** (temperature for °C, data size for GB, duration for h, power for W and so on; client 10.10.0), so a °C sensor shows as °F where that is the custom and the unit can be changed on the entity. **Available memory and System drive free space are data-size sensors now** too, so their unit can be changed on the entity (GiB, GB, MiB) and the history follows.
 - **Two sensors moved to new keys with the client 10.10.0: `system_drive_free_gb` is `system_drive`, `memory_available_mb` is `memory_available`.** The entity made under the old key is moved over once, with its entity ID, its history and its statistics, and a payload from an older client is read under the new keys, so nothing changes in Home Assistant. Raised on the client as [#107](https://github.com/v1k70rk4/HASS.Agent.NET10/issues/107).
 - **Fixed: the tray app's entities went unavailable after the app moved from the HA API to MQTT.** Switching MQTT on in the app, or the broker coming back after a failover, put the app on MQTT, where it said online; the timer of its last HA API heartbeat then ran out and marked it offline anyway, and nothing put it back until the app reconnected. An online on MQTT now stops that timer, and the timer leaves alone an app the broker says is online. A heartbeat still means the app speaks on the HA API, so an app that dies there still times out.
-
-<details>
-<summary><b>10.9.1 — security pack</b></summary>
-
-### 10.9.1 — security pack
-
-The security release, going with the Windows client [10.9.1](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.9.1): 10.9.0 brought new entities and services, 10.9.1 is about what a PC, or anything else on the broker, may do in Home Assistant. It comes from a security review of the integration. The hardening helps with every supported client; a PC on the HA API without an administrator's token needs the client 10.9.1. Update in HACS and restart Home Assistant afterwards.
-
-**A PC on the HA API without an administrator's token**
-
-- **A PC on the HA API can use a Home Assistant user who is not an administrator.** Two WebSocket commands of the integration, `hass_agent/fire` and `hass_agent/subscribe`, take the place of Home Assistant's `fire_event` and `subscribe_events`, which need an administrator's token. Through them a PC can only send its own kind of messages for its own serial number, and only gets its own commands. A PC with such a user is approved once by an administrator: a new one under *Discovered*, one already set up through a confirmation of its own; ignoring that confirmation keeps the PC as it was. A third command, `hass_agent/provision` (administrators only), lets a PC that connects with an administrator's token ask for a user of its own: the integration makes a Home Assistant user named after the PC, not an administrator and without a password, gives it a token and approves it for the PC; asked again, it keeps the user and replaces the token. The client 10.9.1 offers this by itself; older clients keep using an administrator's token as before. Setting up the user: [A Home Assistant user for the PC](https://github.com/v1k70rk4/HASS.Agent.NET10/blob/main/docs/connection.md#a-home-assistant-user-for-the-pc).
-
-**What a PC, or anything on the broker, can no longer do**
-
-- **A PC set up over the HA API or the local HTTP API is switched to MQTT only when you confirm it.** When such a PC announced itself over MQTT, the integration moved it to MQTT on its own, with whatever name the message gave. Anything that can publish to the broker could send that message and receive the PC's notifications from then on. The PC now shows up under *Discovered*, and the switch happens when you confirm it there.
-- **A discovery message must come on its own PC's topic.** One whose serial number differs from the topic it came on (`hass.agent/devices/<serial>`) is ignored, so a broker that limits each PC to its own topics also keeps it from speaking for another PC. Serial numbers that could not work in MQTT topics and entity ids (`+`, `#`, `/`, `_`) are refused too.
-- **Notification actions and hotkey presses name the PC they came in for.** The `device_name` in their events, which device triggers matched on, came from the message itself, so one PC could fire another PC's automations. It is now always the name of the device the message came in for, the events also carry its `serial_number`, and the *notification action* device trigger matches on that serial number. A PC that announces itself with the name of another PC keeps its own name.
-- **Only picture paths are signed for a notification.** A path given as `image` was signed whatever it was, `/api/states` included, and the signed link went to the PC and over MQTT to the broker. Now only `/local/`, `/media/` and the camera and image proxies are; anything else is left out of the notification, with a warning in the log.
-- **Actions refuse a device name that two PCs have.** `execute_command` and `set_app_volume` took the first PC with that name. They now say that the name is not unique, rather than shutting down the wrong PC.
-- **The local HTTP API checks that it talks to the same PC.** Before each notification, and when the entry is set up, the integration asks the address who it is. If another device answers (a new IP from DHCP), it gets neither the notification nor the API key.
-- The release notes link of the update entity has to lead to github.com.
-
-**Also in this release**
-
-- The setup dialog says why it stopped when a message is not from a HASS.Agent .NET10 client, instead of showing a bare key.
-- The GitHub workflows are pinned to commits and checked by OpenSSF Scorecard, and there is a [contributing guide](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/blob/main/CONTRIBUTING.md).
 
 </details>
 
