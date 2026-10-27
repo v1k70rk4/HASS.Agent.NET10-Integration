@@ -1,6 +1,11 @@
 {
   "domain": "hass_agent",
   "name": "HASS.Agent .NET10 Integration",
+  "categories": [
+    "computers_network",
+    "messaging_notifications.push_notifications",
+    "media_entertainment"
+  ],
   "codeowners": [
     "@v1k70rk4"
   ],
