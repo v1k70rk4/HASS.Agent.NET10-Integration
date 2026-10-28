@@ -1,0 +1,261 @@
+{
+  "config": {
+    "flow_title": "{name}",
+    "step": {
+      "user": {
+        "title": "添加HASS.Agent设备",
+        "description": "通过MQTT连接的PC通常会被自动发现。且当集成连接到一个设备时，后续连接到HA API上的其他PC也会被自动发现，如有需要请在下方手动选择连接方式。",
+        "menu_options": {
+          "ha_api_info": "HA API(WebSocket)",
+          "local_api": "本地HTTP API(仅支持通知)"
+        }
+      },
+      "confirm": {
+        "title": "需要确认",
+        "description": "是否立刻开始设置？"
+      },
+      "local_api": {
+        "title": "HASS.Agent .NET10 本地HTTP API",
+        "description": "此操作将设备通过本地HTTP API连接到HA，该连接方式仅支持通知功能。如需完整功能，请通过MQTT或HA API将设备连接到HA。",
+        "data": {
+          "host": "主机",
+          "port": "端口",
+          "ssl": "通过SSL加密连接",
+          "api_key": "API密钥(密钥可在“应用>常规>本地HTTP API>API密钥”找到)"
+        }
+      },
+      "ha_api_info": {
+        "title": "通过HA API连接",
+        "description": "请确保HASS.Agent .NET10已经在需要连接的设备上运行，并且设置为使用 **HA API** 连接。\n\n之后打开应用，进入**调试选项(Danger Zone)** 然后点击 **同步设备实体到HA** 。也可以尝试直接重启应用。\n\n完成这些操作后，点击下方的 **提交** 按钮，设备即可成功添加至集成。"
+      },
+      "switch_to_mqtt": {
+        "title": "切换至MQTT连接",
+        "description": "**{current}** 设备通过HA API或本地HTTP API连接到集成，但它也正通过MQTT的方式，以 **{name}** 身份发送广播。需要将其切换到MQTT方式连接吗？\n\n因任何连接到MQTT代理服务器的设备都可以发送此类广播，因此只有在手动开启了应用中的MQTT连接时，才可以允许切换，具体状态可在“应用>MQTT设置”中检查。"
+      },
+      "approve_user": {
+        "title": "通过HomeAssistant普通用户连接",
+        "description": "**{name}** 希望使用非管理员账户 **{user}** 连接到HomeAssistant，如非本人操作请拒绝。\n\n因任何拥有长期访问令牌的设备皆可试图连接至HA，故请确认此令牌是否为用户本人创建。"
+      },
+      "confirm_user": {
+        "title": "连接到专属HomeAssistant用户的设备",
+        "description": "**{name}** 请求连接，并使用非管理员账户的HomeAssistant用户 **{user}** 进行连接。如非本人操作请拒绝。\n\n因任何拥有长期访问令牌的设备皆可试图连接至HA，故请确认此令牌是否为用户本人创建。"
+      }
+    },
+    "error": {
+      "cannot_connect": "连接失败",
+      "no_discovery": "尚未接收到设备发送的广播，请检查设置，或在“应用>调试选项”中点击 **同步设备实体到HA** 然后重新尝试连接。"
+    },
+    "abort": {
+      "already_configured": "设备连接已配置完成",
+      "legacy_client": "此设备使用的是传统HASS.Agent应用。如需使用新版集成，请将应用更新至HASS.Agent .NET10.",
+      "switched_to_mqtt": "此设备现在通过MQTT连接到集成",
+      "not_supported": "此消息不完整，请检查连接或是检查否来自HASS.Agent .NET10应用",
+      "user_approved": "此设备现在可以以{user}连接到集成。"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "data": {
+          "default_notification_title": "默认的通知标题，留空以禁用。",
+          "media_player_power": "媒体播放：开关控制",
+          "media_player_service_state": "媒体播放：Windows服务仍在运行时，播放器显示的状态。",
+          "media_player_turn_on_script": "媒体播放：按下开启时执行的脚本。",
+          "media_player_turn_off": "媒体播放：按下关闭时的操作。",
+          "media_player_turn_off_script": "媒体播放：按下关闭时执行的脚本。"
+        },
+        "data_description": {
+          "media_player_power": "当应用未运行，且指定开关机方式时，媒体播放器会在HA中显示为“关闭”而非“不可用”。按下开启或关闭时，会执行相应的设备触发器(分别为“收到开机请求”和“收到关机请求”)，若有在下方设置自定义脚本的情况下，之后会执行相应的脚本(例如开启智能插座，WoL唤醒，打开播放器应用之类)。",
+          "media_player_service_state": "当应用关闭，但Windows服务仍在上报状态时，若设备处于开机状态，则播放器状态会显示为“不可用”而非“关闭”(因为设备正在运行但无法控制媒体播放)，若无Windows服务在后台上报状态，则无法区分两种情况，则直接视为“已关闭”。",
+          "media_player_turn_on_script": "将serial_number(序列号)、device_id(设备ID)和entity_id(实体ID)作为变量。",
+          "media_player_turn_off": "运行自定义脚本或设备上的命令行指令。关机操作会等待60s。命令行指令则需提前在应用中勾选开启。",
+          "media_player_turn_off_script": "当关机设置为执行“脚本”时运行，传入与开机脚本相同的变量。"
+        },
+        "title": "配置HASS.Agent .NET10"
+      }
+    },
+    "error": {
+      "turn_off_script_required": "请选择按下关闭时应当执行的脚本。"
+    }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "notifications_mqtt": "当收到带有特定动作的通知时(MQTT)",
+      "notifications_event": "当收到带有特定动作的通知时(事件)",
+      "turn_on": "收到开机请求 (媒体播放器)",
+      "turn_off": "收到关机请求 (媒体播放器)"
+    }
+  },
+  "entity": {
+    "event": {
+      "notification_action": {
+        "name": "通知动作"
+      },
+      "hotkey": {
+        "name": "组合键"
+      }
+    },
+    "select": {
+      "audio_output": {
+        "name": "音频输出"
+      },
+      "audio_input": {
+        "name": "音频输入"
+      }
+    },
+    "light": {
+      "display": {
+        "name": "显示器"
+      }
+    },
+    "button": {
+      "update_check": {
+        "name": "检查更新"
+      }
+    }
+  },
+  "issues": {
+    "restart_required": {
+      "title": "设备已重命名。重启以应用修改",
+      "fix_flow": {
+        "step": {
+          "confirm_restart": {
+            "title": "需要重启",
+            "description": "设备名称已更改，需要重启HomeAssistant才能正确重新加载 {name} 的通知服务，点击“提交”则立即重启。"
+          }
+        }
+      }
+    },
+    "legacy_client": {
+      "title": "{name}正在运行旧版本的HASS.Agent",
+      "description": "此设备**{name}**使用的是传统的HASS.Agent{version}应用，HASS.Agent .NET10集成无法与传统应用连接，当前设置均未更改。\n\n如需使用HASS.Agent .NET10集成，请将应用更新至HASS.Agent .NET10(推荐)。更新并完成应用的设置后，此通知会被移除，且设备会被自动发现\n\n也可回退到支持传统HASS.Agent应用的最后一个版本“HACS>HASS.Agent .NET10 Integration>Redownload>Need a different version?>v3.0.2”\n\n若切换过程中出现问题，可以在项目页面中查看README"
+    },
+    "outdated_client": {
+      "title": "{name}需要更新HASS.Agent .NET10应用",
+      "description": "**{name}** 设备正在运行HASS.Agent .NET10 {version}版本，但当前版本集成仅支持最低**{minimum}**版本或更新的版本。\n在更新应用之前，一些特定的功能将无法正常工作，详情参见下方的**了解详情**\n更新后此通知会被移除。"
+    }
+  },
+  "services": {
+    "send_notification": {
+      "name": "发送通知",
+      "description": "在WindowsPC显示通知，支持图片，按钮和文本。",
+      "fields": {
+        "message": {
+          "name": "消息内容",
+          "description": "通知文本"
+        },
+        "title": {
+          "name": "标题",
+          "description": "通知标题，如果未指定，则使用集成默认设置的标题。"
+        },
+        "image": {
+          "name": "图片",
+          "description": "可选择摄像头、图像实体(如camera.front_door)或HomeAssistant可访问的路径(/local/doorbell.jpg)，也支持网页地址，需要应用版本10.9.0+."
+        },
+        "actions": {
+          "name": "按钮",
+          "description": "最多可添加5个按钮。按下不同的按钮会在通知事件中返回相对应的动作。"
+        },
+        "inputs": {
+          "name": "文本",
+          "description": "最多5个文本字段。文本字段会和按下的按钮对应，在input中按照id返回。需要应用版本10.9.0+."
+        },
+        "style": {
+          "name": "通知渠道",
+          "description": "可指定通知的显示方式(如Windows原生通知或独立窗口通知)，未指定时则由应用的设置决定。需要应用版本10.9.0+."
+        },
+        "duration": {
+          "name": "持续时间",
+          "description": "通知持续显示的秒数，可指定1至60中的任意值，Windows原生通知则分为短时长和长时长通知，若超过10秒，Windows原生通知会使用长时长。"
+        },
+        "data": {
+          "name": "数据",
+          "description": "将上述字段合并视作一个整体对象。即它们成为各自独立字段之前的传递方式。单独指定的字段优先。"
+        }
+      }
+    },
+    "execute_command": {
+      "name": "运行系统指令",
+      "description": "在Windows设备上运行系统指令(锁定、休眠、关机等)，也可取消等待执行的关机或重启指令",
+      "fields": {
+        "device_name": {
+          "name": "设备名",
+          "description": "Windows设备名，即应用中设置的设备名称。"
+        },
+        "command": {
+          "name": "命令行指令",
+          "description": "需要运行的命令行指令。运行前必须在“功能>自定义指令”中开启需要执行的项目。"
+        },
+        "comment": {
+          "name": "注释",
+          "description": "关机和重启时，在弹窗中向已登录的用户显示自定义文本。"
+        },
+        "force": {
+          "name": "强制关机",
+          "description": "执行关机和重启后，不等待应用程序和服务，直接强行停止。"
+        },
+        "time": {
+          "name": "延迟关机",
+          "description": "执行关机和重启后，设备等待的时间。"
+        },
+        "restart_cancel": {
+          "name": "取消关机或重启",
+          "description": "取消等待执行的关机或重启指令。"
+        }
+      }
+    },
+    "set_app_volume": {
+      "name": "分别设置应用的音量",
+      "description": "对于Windows音量合成器中的应用程序，可以指定特定应用程序的音量或静音状态。此功能需要在应用中启用音频会话(Audio sessions)传感器，且应用版本在10.9.0+",
+      "fields": {
+        "device_name": {
+          "name": "设备名",
+          "description": "Windows设备名，即应用中设置的设备名称。"
+        },
+        "app": {
+          "name": "应用程序",
+          "description": "在任务管理器中显示的应用程序的进程名，填入时请去除扩展名，例如：spotify。"
+        },
+        "volume": {
+          "name": "音量",
+          "description": "音量的百分比"
+        },
+        "muted": {
+          "name": "静音",
+          "description": "将应用程序设置为静音或非静音状态。"
+        }
+      }
+    }
+  },
+  "selector": {
+    "media_player_turn_off": {
+      "options": {
+        "none": "无操作",
+        "script": "脚本",
+        "sleep": "睡眠",
+        "hibernate": "休眠",
+        "shutdown": "关机"
+      }
+    },
+    "notification_style": {
+      "options": {
+        "toast": "Windows通知",
+        "window": "独立窗口(始终可见)"
+      }
+    },
+    "system_command": {
+      "options": {
+        "lock": "锁定",
+        "sleep": "睡眠",
+        "hibernate": "休眠",
+        "logoff": "注销",
+        "monitor_off": "关闭显示",
+        "volume_up": "音量增加",
+        "volume_down": "音量减小",
+        "toggle_mute": "切换静音状态",
+        "shutdown": "关机",
+        "restart": "重启"
+      }
+    }
+  }
+}
