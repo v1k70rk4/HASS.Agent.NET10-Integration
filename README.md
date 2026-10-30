@@ -74,12 +74,6 @@ This integration is in the **Marketplace** — no custom repository needed.
 
    Over the HA API (WebSocket) the **first** PC is added by hand, here, with **HA API (WebSocket)**: Home Assistant only lets an integration listen for new devices once it has one. Every further PC on the HA API is then discovered like the MQTT ones. For the Local HTTP API you always add it manually here.
 
-<details>
-<summary>Manual install (custom repository fallback)</summary>
-
-If the integration isn't showing in your Marketplace (or HACS) yet, add it as a custom repository: **⋮ menu → Custom repositories**, URL `https://github.com/v1k70rk4/HASS.Agent.NET10-Integration`, category **Integration**.
-</details>
-
 If another HASS.Agent integration is already installed, remove it before installing this one, then restart Home Assistant.
 
 Every PC is a device of the integration. **Add device** is for the two ways that are not discovered on their own:
