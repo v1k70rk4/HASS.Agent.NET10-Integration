@@ -128,7 +128,7 @@
     },
     "legacy_client": {
       "title": "{name}正在运行旧版本的HASS.Agent",
-      "description": "此设备**{name}**使用的是传统的HASS.Agent{version}应用，HASS.Agent .NET10集成无法与传统应用连接，当前设置均未更改。\n\n如需使用HASS.Agent .NET10集成，请将应用更新至HASS.Agent .NET10(推荐)。更新并完成应用的设置后，此通知会被移除，且设备会被自动发现\n\n也可回退到支持传统HASS.Agent应用的最后一个版本“HACS>HASS.Agent .NET10 Integration>Redownload>Need a different version?>v3.0.2”\n\n若切换过程中出现问题，可以在项目页面中查看README"
+      "description": "此设备**{name}**使用的是传统的HASS.Agent{version}应用，HASS.Agent .NET10集成无法与传统应用连接，当前设置均未更改。\n\n如需使用HASS.Agent .NET10集成，请将应用更新至HASS.Agent .NET10(推荐)。更新并完成应用的设置后，此通知会被移除，且设备会被自动发现\n\n也可回退到支持传统HASS.Agent应用的最后一个版本“Marketplace（2026.11 之前的 Home Assistant 中为 HACS）>HASS.Agent .NET10 Integration>Redownload>Need a different version?>v3.0.2”\n\n若切换过程中出现问题，可以在项目页面中查看README"
     },
     "outdated_client": {
       "title": "{name}需要更新HASS.Agent .NET10应用",
