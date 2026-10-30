@@ -4,7 +4,7 @@
 
 <p align="center">
   <a href="https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/releases/latest"><img src="https://img.shields.io/github/v/release/v1k70rk4/HASS.Agent.NET10-Integration?label=version&color=41bdf5" alt="Version"></a>
-  <a href="https://hacs.xyz"><img src="https://img.shields.io/badge/HACS-Default-41BDF5" alt="HACS Default"></a>
+  <img src="https://img.shields.io/badge/Marketplace-Default-41BDF5" alt="Marketplace Default">
   <img src="https://img.shields.io/badge/Home%20Assistant-2026.6%2B-41BDF5?logo=homeassistant&logoColor=white" alt="Home Assistant 2026.6+">
   <a href="https://github.com/v1k70rk4/HASS.Agent.NET10"><img src="https://img.shields.io/badge/Windows%20client-HASS.Agent%20.NET10-0078D4?logo=windows&logoColor=white" alt="Windows client: HASS.Agent .NET10"></a>
   <img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT license">
@@ -47,7 +47,7 @@ It is the matching Home Assistant side for the modern **HASS.Agent .NET10** Wind
 | HASS.Agent .NET10 (Windows client) | 10.2.0 (10.9.1+ recommended) |
 | MQTT broker (recommended) | Mosquitto or any MQTT 3.1.1+ broker |
 
-HACS is required for installation. This integration is available in the **HACS default store**, so no custom repository needs to be added.
+This integration is in the **Marketplace** (HACS in Home Assistant before 2026.11), so no custom repository needs to be added.
 
 The Windows client installs with winget, or with the signed installer from its [Releases](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/latest):
 
@@ -57,13 +57,13 @@ winget install v1k70rk4.HASSAgentNET10
 
 MQTT is recommended for full functionality. Alternatively, HA API (WebSocket) provides nearly the same features without requiring an MQTT broker. The Local HTTP API setup supports notifications only.
 
-### Install from HACS
+### Install from the Marketplace
 
-This integration is in the **HACS default store** — no custom repository needed.
+This integration is in the **Marketplace** — no custom repository needed.
 
-[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=v1k70rk4&repository=HASS.Agent.NET10-Integration&category=integration)
+[![Open your Home Assistant instance and open a repository in the Marketplace.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=v1k70rk4&repository=HASS.Agent.NET10-Integration&category=integration)
 
-1. Open **HACS** and search for **HASS.Agent** — or click the button above.
+1. Open **Settings → Marketplace** (HACS in the sidebar before 2026.11) and search for **HASS.Agent** — or click the button above.
 2. **Download** the integration.
 3. **Restart** Home Assistant.
 4. **Add the integration** — click the button below (or go to **Settings → Devices & services → Add integration → HASS.Agent**):
@@ -77,7 +77,7 @@ This integration is in the **HACS default store** — no custom repository neede
 <details>
 <summary>Manual install (custom repository fallback)</summary>
 
-If the integration isn't showing in your HACS yet, add it as a custom repository: **HACS → ⋮ menu → Custom repositories**, URL `https://github.com/v1k70rk4/HASS.Agent.NET10-Integration`, category **Integration**.
+If the integration isn't showing in your Marketplace (or HACS) yet, add it as a custom repository: **⋮ menu → Custom repositories**, URL `https://github.com/v1k70rk4/HASS.Agent.NET10-Integration`, category **Integration**.
 </details>
 
 If another HASS.Agent integration is already installed, remove it before installing this one, then restart Home Assistant.
@@ -416,7 +416,7 @@ Older versions are in the [changelog](https://github.com/v1k70rk4/HASS.Agent.NET
 
 ## Legacy Branch
 
-> **Using the old pre-.NET10 HASS.Agent?** Install **[v3.0.2](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/releases/tag/v3.0.2)** from HACS: open *HASS.Agent .NET10 Integration* in HACS, choose *Redownload* and pick version `v3.0.2`. HACS otherwise installs the latest release (10.x), which cannot talk to the old client — you would see a **Settings → Repairs** notice saying the PC was not added, and nothing else would happen.
+> **Using the old pre-.NET10 HASS.Agent?** Install **[v3.0.2](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/releases/tag/v3.0.2)** from the Marketplace (HACS in Home Assistant before 2026.11): open *HASS.Agent .NET10 Integration* there, choose *Redownload* and pick version `v3.0.2`. The Marketplace otherwise installs the latest release (10.x), which cannot talk to the old client — you would see a **Settings → Repairs** notice saying the PC was not added, and nothing else would happen.
 >
 > v3.0.2 is compatible with **Home Assistant 2026.6+** and the original pre-.NET10 HASS.Agent client. It is **no longer maintained** — updating the Windows client to HASS.Agent .NET10 is the way forward.
 >
