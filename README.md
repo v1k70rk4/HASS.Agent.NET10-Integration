@@ -47,7 +47,7 @@ It is the matching Home Assistant side for the modern **HASS.Agent .NET10** Wind
 | HASS.Agent .NET10 (Windows client) | 10.2.0 (10.9.1+ recommended) |
 | MQTT broker (recommended) | Mosquitto or any MQTT 3.1.1+ broker |
 
-This integration is in the **Marketplace** (HACS in Home Assistant before 2026.11), so no custom repository needs to be added.
+This integration is in the **Marketplace** (HACS in Home Assistant before 2026.11), so no custom repository needs to be added. On Home Assistant 2026.6 to 2026.10 install [HACS](https://hacs.xyz) first; from 2026.11 the Marketplace is built in and HACS is not needed.
 
 The Windows client installs with winget, or with the signed installer from its [Releases](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/latest):
 
