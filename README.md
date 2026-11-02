@@ -221,7 +221,7 @@ template:
             entity_id: button.my_pc_shutdown
 ```
 
-To go by the PC's own report, use `{{ has_value('sensor.my_pc_uptime') }}` as the state, with a sensor ticked for the Windows service on the **Capabilities** page, so it stays on while nobody is logged in. A PC takes a while to boot after the switch is turned on, and the switch shows off until the state says otherwise; that is the state being right, not the wake failing, so give it time before turning it on again.
+The shutdown button is there when *Shutdown* is switched on in the Windows app under **Capabilities → System commands**; `button.my_pc_sleep` or `button.my_pc_hibernate` work the same way, if those are switched on. To go by the PC's own report, use `{{ has_value('sensor.my_pc_uptime') }}` as the state, with a sensor ticked for the Windows service on the **Capabilities** page, so it stays on while nobody is logged in. A PC takes a while to boot after the switch is turned on, and the switch shows off until the state says otherwise; that is the state being right, not the wake failing, so give it time before turning it on again.
 
 ### Announcements
 
