@@ -204,6 +204,25 @@ script:
           mac: "AA:BB:CC:DD:EE:FF"
 ```
 
+### A power switch for the PC
+
+For a switch on a dashboard instead of a media player, or a PC that has the media player switched off, make one with Home Assistant's **Template** helper: **Settings → Devices & services → Helpers → Create helper → Template → Switch**. The integration does not create one, because what *on* means is yours to say: the app reporting, the Windows service reporting, the PC answering a ping, or the smart plug it hangs on drawing power. A ping or a plug tells whether the machine is powered, not whether the app runs, which is the more honest answer for a power switch. In YAML:
+
+```yaml
+template:
+  - switch:
+      - name: "My PC power"
+        state: "{{ is_state('binary_sensor.my_pc_ping', 'on') }}"
+        turn_on:
+          action: script.wake_my_pc
+        turn_off:
+          action: button.press
+          target:
+            entity_id: button.my_pc_shutdown
+```
+
+To go by the PC's own report, use `{{ has_value('sensor.my_pc_uptime') }}` as the state, with a sensor ticked for the Windows service on the **Capabilities** page, so it stays on while nobody is logged in. A PC takes a while to boot after the switch is turned on, and the switch shows off until the state says otherwise; that is the state being right, not the wake failing, so give it time before turning it on again.
+
 ### Announcements
 
 A `media_player.play_media` action sent with `announce: true` (a TTS message, `tts.speak` with `media_player_entity_id`, a doorbell sound) is meant to be heard. With the Windows client **10.9.3** or newer the PC is unmuted and set to the announcement volume chosen on its **Media player** page for it, what was playing is paused when the user wants that, and afterwards the volume, the mute and the playback go back to what they were. An older client plays the sound at the current volume, as before; without the flag, so does every client.
