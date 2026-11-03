@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from homeassistant.core import CoreState, HomeAssistant
-from pytest_homeassistant_custom_component.common import MockConfigEntry, async_capture_events
+from pytest_homeassistant.common import MockConfigEntry, async_capture_events
 
 from custom_components.hass_agent import _async_request_announce
 from custom_components.hass_agent.const import DOMAIN
