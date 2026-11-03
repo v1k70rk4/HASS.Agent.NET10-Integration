@@ -1,7 +1,7 @@
 # Tests
 
 The integration's tests run on Home Assistant itself, through
-[pytest-home-assistant](https://github.com/home-assistant/core/tree/dev/packages/pytest-home-assistant),
+[pytest-homeassistant](https://github.com/home-assistant/core/tree/dev/packages/pytest-homeassistant),
 Home Assistant's own test package:
 a Home Assistant instance in memory, with a mocked MQTT client, no network and no real PC.
 
