@@ -2,6 +2,10 @@
 
 Every release of the HASS.Agent .NET10 integration, newest first. The Windows client has its own [changelog](https://github.com/v1k70rk4/HASS.Agent.NET10/blob/main/CHANGELOG.md).
 
+## Unreleased
+
+- **Categories for the Marketplace.** The manifest names the integration's categories (Computers & network, Push notifications, Media & entertainment), so the Marketplace can list it there next to the built-in integrations. Older Home Assistant versions ignore them.
+
 ## 10.11.0
 
 Going with the Windows client [10.11.0](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.11.0): Check for updates reaches a PC on the HA API whose tray app is not running, Simplified Chinese, and the notice for a PC on the old client names the Marketplace. Works with every supported Windows client. Update in the Marketplace (HACS in Home Assistant before 2026.11) and restart Home Assistant afterwards.
