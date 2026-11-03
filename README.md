@@ -4,7 +4,7 @@
 
 <p align="center">
   <a href="https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/releases/latest"><img src="https://img.shields.io/github/v/release/v1k70rk4/HASS.Agent.NET10-Integration?label=version&color=41bdf5" alt="Version"></a>
-  <a href="https://hacs.xyz"><img src="https://img.shields.io/badge/HACS-Default-41BDF5" alt="HACS Default"></a>
+  <img src="https://img.shields.io/badge/Marketplace-Default-41BDF5" alt="Marketplace Default">
   <img src="https://img.shields.io/badge/Home%20Assistant-2026.6%2B-41BDF5?logo=homeassistant&logoColor=white" alt="Home Assistant 2026.6+">
   <a href="https://github.com/v1k70rk4/HASS.Agent.NET10"><img src="https://img.shields.io/badge/Windows%20client-HASS.Agent%20.NET10-0078D4?logo=windows&logoColor=white" alt="Windows client: HASS.Agent .NET10"></a>
   <img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT license">
@@ -31,7 +31,7 @@ It is the matching Home Assistant side for the modern **HASS.Agent .NET10** Wind
 >
 > If you want to keep using the old HASS.Agent client, switch to the **[`legacy` branch](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/tree/legacy)** of this integration. The legacy branch works with Home Assistant 2026.6+ and the original pre-.NET10 HASS.Agent, but it is **no longer maintained**.
 
-> **Stable:** [10.10.2](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/releases/latest) &nbsp;·&nbsp; [What changed](#changelog) &nbsp;·&nbsp; [Full changelog](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/blob/main/CHANGELOG.md)
+> **Stable:** [10.11.0](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/releases/latest) &nbsp;·&nbsp; [What changed](#changelog) &nbsp;·&nbsp; [Full changelog](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/blob/main/CHANGELOG.md)
 
 <p align="center"><img src="https://raw.githubusercontent.com/v1k70rk4/HASS.Agent.NET10-Integration/main/images/ha-device.png" width="800" alt="A Windows PC as a device in Home Assistant: media player, audio output select and command buttons"></p>
 
@@ -47,7 +47,7 @@ It is the matching Home Assistant side for the modern **HASS.Agent .NET10** Wind
 | HASS.Agent .NET10 (Windows client) | 10.2.0 (10.9.1+ recommended) |
 | MQTT broker (recommended) | Mosquitto or any MQTT 3.1.1+ broker |
 
-HACS is required for installation. This integration is available in the **HACS default store**, so no custom repository needs to be added.
+This integration is in the **Marketplace** (HACS in Home Assistant before 2026.11), so no custom repository needs to be added. On Home Assistant 2026.6 to 2026.10 install [HACS](https://hacs.xyz) first; from 2026.11 the Marketplace is built in and HACS is not needed.
 
 The Windows client installs with winget, or with the signed installer from its [Releases](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/latest):
 
@@ -57,13 +57,13 @@ winget install v1k70rk4.HASSAgentNET10
 
 MQTT is recommended for full functionality. Alternatively, HA API (WebSocket) provides nearly the same features without requiring an MQTT broker. The Local HTTP API setup supports notifications only.
 
-### Install from HACS
+### Install from the Marketplace
 
-This integration is in the **HACS default store** — no custom repository needed.
+This integration is in the **Marketplace** — no custom repository needed.
 
-[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=v1k70rk4&repository=HASS.Agent.NET10-Integration&category=integration)
+[![Open your Home Assistant instance and open a repository in the Marketplace.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=v1k70rk4&repository=HASS.Agent.NET10-Integration&category=integration)
 
-1. Open **HACS** and search for **HASS.Agent** — or click the button above.
+1. Open **Settings → Marketplace** (HACS in the sidebar before 2026.11) and search for **HASS.Agent** — or click the button above.
 2. **Download** the integration.
 3. **Restart** Home Assistant.
 4. **Add the integration** — click the button below (or go to **Settings → Devices & services → Add integration → HASS.Agent**):
@@ -73,12 +73,6 @@ This integration is in the **HACS default store** — no custom repository neede
    With MQTT enabled in the Windows client, the PC turns up on its own under **Discovered** at the top of **Settings → Devices & services**. Like any Home Assistant discovery it waits for you: click **Add** on that card to create the device and its entities.
 
    Over the HA API (WebSocket) the **first** PC is added by hand, here, with **HA API (WebSocket)**: Home Assistant only lets an integration listen for new devices once it has one. Every further PC on the HA API is then discovered like the MQTT ones. For the Local HTTP API you always add it manually here.
-
-<details>
-<summary>Manual install (custom repository fallback)</summary>
-
-If the integration isn't showing in your HACS yet, add it as a custom repository: **HACS → ⋮ menu → Custom repositories**, URL `https://github.com/v1k70rk4/HASS.Agent.NET10-Integration`, category **Integration**.
-</details>
 
 If another HASS.Agent integration is already installed, remove it before installing this one, then restart Home Assistant.
 
@@ -209,6 +203,25 @@ script:
         data:
           mac: "AA:BB:CC:DD:EE:FF"
 ```
+
+### A power switch for the PC
+
+For a switch on a dashboard instead of a media player, or a PC that has the media player switched off, make one with Home Assistant's **Template** helper: **Settings → Devices & services → Helpers → Create helper → Template → Switch**. The integration does not create one, because what *on* means is yours to say: the app reporting, the Windows service reporting, the PC answering a ping, or the smart plug it hangs on drawing power. A ping or a plug tells whether the machine is powered, not whether the app runs, which is the more honest answer for a power switch. In YAML:
+
+```yaml
+template:
+  - switch:
+      - name: "My PC power"
+        state: "{{ is_state('binary_sensor.my_pc_ping', 'on') }}"
+        turn_on:
+          action: script.wake_my_pc
+        turn_off:
+          action: button.press
+          target:
+            entity_id: button.my_pc_shutdown
+```
+
+The shutdown button is there when *Shutdown* is switched on in the Windows app under **Capabilities → System commands**; `button.my_pc_sleep` or `button.my_pc_hibernate` work the same way, if those are switched on. To go by the PC's own report, use `{{ has_value('sensor.my_pc_uptime') }}` as the state, with a sensor ticked for the Windows service on the **Capabilities** page, so it stays on while nobody is logged in. A PC takes a while to boot after the switch is turned on, and the switch shows off until the state says otherwise; that is the state being right, not the wake failing, so give it time before turning it on again.
 
 ### Announcements
 
@@ -384,29 +397,20 @@ A hotkey pressed on the PC (client 10.9.0+) reaches the device's *Hotkeys* event
 
 ## Changelog
 
-### 10.10.2
+### 10.11.0
+
+Going with the Windows client [10.11.0](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.11.0): Check for updates reaches a PC on the HA API whose tray app is not running, Simplified Chinese, and the notice for a PC on the old client names the Marketplace. Works with every supported Windows client. Update in the Marketplace (HACS in Home Assistant before 2026.11) and restart Home Assistant afterwards.
+
+- **Fixed: Check for updates got no answer from a PC on the HA API whose tray app was not running.** After a Home Assistant restart the integration took the tray app for running until it heard otherwise, and on the HA API only a heartbeat from the app could tell it otherwise. On a PC with the service only, or with nobody logged in, no heartbeat came, so the button's request and the other commands for whichever side is up went to the app, and the service left them alone. The app now counts as offline when no heartbeat comes within 90 seconds of the setup, as it already did 90 seconds after its last one.
+- **Simplified Chinese.** 中文(简体), translated by @natsu-tsuki in [#65](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/pull/65), thank you! A Home Assistant set to Chinese shows the integration's setup, options and notices in it.
+- **The notice for a PC on the old client names the Marketplace** (HACS in Home Assistant before 2026.11) as the way to the legacy release, in English, Hungarian and Chinese. The README says the same, and the custom-repository step is gone from it: the integration is in the Marketplace, which refuses a repository it already has.
+
+<details>
+<summary><b>10.10.2</b></summary>
 
 Going with the Windows client [10.10.2](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.10.2): a Drive space sensor. Works with every supported Windows client; the client 10.10.2 sends the new sensor. Update in HACS and restart Home Assistant afterwards.
 
 - **Drive space** sensor for the Windows client 10.10.2: how full the system drive is, in percent, with every drive with a letter in the attributes, keyed by it (`D.free_gb`, `D.used_percent`, `D.total_gb`, ..., and `system`, the system drive's letter). An older client does not send it, so nothing changes there. Requested on the client as [#143](https://github.com/v1k70rk4/HASS.Agent.NET10/issues/143).
-
-<details>
-<summary><b>10.10.1 — hotfix</b> and <b>10.10.0</b></summary>
-
-### 10.10.1 — hotfix
-
-- **Fixed: all of a PC's sensors could go unavailable when a sensor was added or removed in the client, and stay so.** Reported in [#123](https://github.com/v1k70rk4/HASS.Agent.NET10/issues/123).
-
-### 10.10.0
-
-Going with the Windows client [10.10.0](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.10.0): the media player can turn the PC on and off, announcements are heard as announcements, a Drive health sensor, device classes on the custom sensors, the two sensor keys the client renamed moved over without a trace, and one fix. Works with every supported Windows client; the client 10.10.0 makes use of the new parts. Update in HACS and restart Home Assistant afterwards.
-
-- **The media player can turn the PC on and off**, off by default, in the integration's options. A PC that is off shows as *off* instead of unavailable; turn on fires a new device trigger and runs a script of your choice, so Wake on LAN or a smart plug can wake the PC; turn off fires a trigger too and runs a script or the PC's sleep, hibernate or shutdown command. It is not switched on by itself because it changes the player's state, which automations may count on. See [Turning the PC on and off with the media player](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration#turning-the-pc-on-and-off-with-the-media-player). Requested in [#41](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/issues/41).
-- **Announcements reach the PC as announcements.** A `media_player.play_media` sent with `announce: true` (TTS, a doorbell sound) carries the flag to the Windows client; the client 10.10.0 unmutes the PC and sets its announcement volume for it, then puts everything back. An older client plays the sound at the current volume, as before. The player now also tells Home Assistant that it supports announcements. See [Announcements](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration#announcements).
-- **Drive health** sensor for the Windows client 10.10.0: Windows' verdict on the drives (`healthy`, `warning`, `unhealthy`, `unknown`), with the temperatures and the power-on hours in the attributes.
-- **Custom sensors carry the device class the client names from their unit** (temperature for °C, data size for GB, duration for h, power for W and so on; client 10.10.0), so a °C sensor shows as °F where that is the custom and the unit can be changed on the entity. **Available memory and System drive free space are data-size sensors now** too, so their unit can be changed on the entity (GiB, GB, MiB) and the history follows.
-- **Two sensors moved to new keys with the client 10.10.0: `system_drive_free_gb` is `system_drive`, `memory_available_mb` is `memory_available`.** The entity made under the old key is moved over once, with its entity ID, its history and its statistics, and a payload from an older client is read under the new keys, so nothing changes in Home Assistant. Raised on the client as [#107](https://github.com/v1k70rk4/HASS.Agent.NET10/issues/107).
-- **Fixed: the tray app's entities went unavailable after the app moved from the HA API to MQTT.** Switching MQTT on in the app, or the broker coming back after a failover, put the app on MQTT, where it said online; the timer of its last HA API heartbeat then ran out and marked it offline anyway, and nothing put it back until the app reconnected. An online on MQTT now stops that timer, and the timer leaves alone an app the broker says is online. A heartbeat still means the app speaks on the HA API, so an app that dies there still times out.
 
 </details>
 
@@ -416,7 +420,7 @@ Older versions are in the [changelog](https://github.com/v1k70rk4/HASS.Agent.NET
 
 ## Legacy Branch
 
-> **Using the old pre-.NET10 HASS.Agent?** Install **[v3.0.2](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/releases/tag/v3.0.2)** from HACS: open *HASS.Agent .NET10 Integration* in HACS, choose *Redownload* and pick version `v3.0.2`. HACS otherwise installs the latest release (10.x), which cannot talk to the old client — you would see a **Settings → Repairs** notice saying the PC was not added, and nothing else would happen.
+> **Using the old pre-.NET10 HASS.Agent?** Install **[v3.0.2](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/releases/tag/v3.0.2)** from the Marketplace (HACS in Home Assistant before 2026.11): open *HASS.Agent .NET10 Integration* there, choose *Redownload* and pick version `v3.0.2`. The Marketplace otherwise installs the latest release (10.x), which cannot talk to the old client — you would see a **Settings → Repairs** notice saying the PC was not added, and nothing else would happen.
 >
 > v3.0.2 is compatible with **Home Assistant 2026.6+** and the original pre-.NET10 HASS.Agent client. It is **no longer maintained** — updating the Windows client to HASS.Agent .NET10 is the way forward.
 >

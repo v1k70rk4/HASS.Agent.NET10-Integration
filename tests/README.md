@@ -1,7 +1,8 @@
 # Tests
 
 The integration's tests run on Home Assistant itself, through
-[pytest-homeassistant-custom-component](https://github.com/MatthieuDartiailh/pytest-homeassistant-custom-component):
+[pytest-homeassistant](https://github.com/home-assistant/core/tree/dev/packages/pytest-homeassistant),
+Home Assistant's own test package:
 a Home Assistant instance in memory, with a mocked MQTT client, no network and no real PC.
 
 | File | What it covers |
@@ -14,7 +15,7 @@ a Home Assistant instance in memory, with a mocked MQTT client, no network and n
 | `test_hardening.py` | what a PC, or anything that can publish to the broker, must not be able to do: speak for another PC, take its name, send its notifications elsewhere, link a release outside GitHub, have a picture path signed that is not one |
 | `test_ws_commands.py` | the HA API commands for a PC with a Home Assistant user of its own: approval of a new user, only its own events and commands, the user an administrator creates for it, never a token for a person's account |
 
-They need Linux (or WSL) and Python 3.14, like Home Assistant:
+They need Linux (or WSL) and Python 3.14.2 or newer, like Home Assistant 2026.11:
 
 ```bash
 python -m pip install -r requirements_test.txt

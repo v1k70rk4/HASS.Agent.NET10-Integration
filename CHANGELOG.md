@@ -5,7 +5,14 @@ Every release of the HASS.Agent .NET10 integration, newest first. The Windows cl
 ## Unreleased
 
 - **Categories for the Marketplace.** The manifest names the integration's categories (Computers & network, Push notifications, Media & entertainment), so the Marketplace can list it there next to the built-in integrations. Older Home Assistant versions ignore them.
+
+## 10.11.0
+
+Going with the Windows client [10.11.0](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.11.0): Check for updates reaches a PC on the HA API whose tray app is not running, Simplified Chinese, and the notice for a PC on the old client names the Marketplace. Works with every supported Windows client. Update in the Marketplace (HACS in Home Assistant before 2026.11) and restart Home Assistant afterwards.
+
 - **Fixed: Check for updates got no answer from a PC on the HA API whose tray app was not running.** After a Home Assistant restart the integration took the tray app for running until it heard otherwise, and on the HA API only a heartbeat from the app could tell it otherwise. On a PC with the service only, or with nobody logged in, no heartbeat came, so the button's request and the other commands for whichever side is up went to the app, and the service left them alone. The app now counts as offline when no heartbeat comes within 90 seconds of the setup, as it already did 90 seconds after its last one.
+- **Simplified Chinese.** 中文(简体), translated by @natsu-tsuki in [#65](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/pull/65), thank you! A Home Assistant set to Chinese shows the integration's setup, options and notices in it.
+- **The notice for a PC on the old client names the Marketplace** (HACS in Home Assistant before 2026.11) as the way to the legacy release, in English, Hungarian and Chinese. The README says the same, and the custom-repository step is gone from it: the integration is in the Marketplace, which refuses a repository it already has.
 
 ## 10.10.2
 
