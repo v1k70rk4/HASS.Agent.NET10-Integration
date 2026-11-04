@@ -48,6 +48,7 @@ from .const import (
     MEDIA_PLAYER_TURN_OFF_COMMANDS,
     MEDIA_PLAYER_TURN_OFF_NONE,
     MEDIA_PLAYER_TURN_OFF_SCRIPT,
+    MIGRATION_GUIDE_URL,
     MINIMUM_CLIENT_VERSION,
     SIGNAL_PENDING_DEVICE,
 )
@@ -126,7 +127,7 @@ def _async_report_client_version(
         issue_id=issue_id,
         is_fixable=False,
         severity=IssueSeverity.ERROR if status == "legacy" else IssueSeverity.WARNING,
-        learn_more_url=CLIENT_RELEASES_URL,
+        learn_more_url=MIGRATION_GUIDE_URL if status == "legacy" else CLIENT_RELEASES_URL,
         translation_key=f"{status}_client",
         translation_placeholders={
             "name": device_name,

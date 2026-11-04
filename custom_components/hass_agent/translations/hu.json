@@ -47,7 +47,7 @@
     },
     "abort": {
       "already_configured": "Ez az eszköz már be van állítva.",
-      "legacy_client": "Ezen a gépen a régi HASS.Agent fut, amit ez az integráció nem támogat. Frissítsd a Windows klienst HASS.Agent .NET10-re.",
+      "legacy_client": "Ezen a gépen a régi HASS.Agent fut, amit ez az integráció nem támogat. Állítsd át HASS.Agent .NET10-re: a Beállítások → Javítások alatti értesítés leírja, hogyan.",
       "switched_to_mqtt": "A gép mostantól MQTT-t használ.",
       "not_supported": "Ez az üzenet nem egy HASS.Agent .NET10 klienstől jött, vagy hiányos.",
       "user_approved": "A gép mostantól {user} felhasználóként csatlakozhat."
@@ -128,7 +128,7 @@
     },
     "legacy_client": {
       "title": "{name} a régi HASS.Agentet futtatja",
-      "description": "A(z) **{name}** gépen a HASS.Agent {version}, az eredeti Windows kliens fut. Ez az integráció a **HASS.Agent .NET10**-hez készült, a régi klienssel nem tud kommunikálni, ezért a gépet nem vettem fel. A gépen semmi nem változott.\n\nKét lehetőség:\n\n- **Frissítsd a Windows klienst** HASS.Agent .NET10-re (ajánlott) — lásd lent a **További információ**-t. A frissítés után ez az értesítés eltűnik, és a gép újra megjelenik.\n- **Maradj egyelőre a régi kliensnél**, és lépj vissza az integráció utolsó legacy kiadására: a Közösségi tárban (a 2026.11 előtti Home Assistantban a HACS-ban) nyisd meg a *HASS.Agent .NET10 Integration*-t, válaszd az *Újraletöltés* (Redownload) lehetőséget, és a `v3.0.2` verziót. Ez az ág működik a régi klienssel, de már nincs karbantartva.\n\nHa az átállással gond van, a README és a hibabejelentő a projekt oldaláról érhető el a További információ alatt."
+      "description": "A(z) **{name}** gépen a HASS.Agent {version}, az eredeti Windows kliens fut. Ez az integráció a **HASS.Agent .NET10**-hez készült, a régi klienssel nem tud kommunikálni, ezért a gépet nem vettem fel. A gépen semmi nem változott.\n\nKét lehetőség:\n\n- **Állítsd át a gépet HASS.Agent .NET10-re** (ajánlott). Ez külön program, nem a régi frissítése: lent a **További információ** leírja a lépéseket, és azt, mi jön át a régi kliensből. Ha a gépen már az új fut, ez az értesítés eltűnik, és a gép újra megjelenik.\n- **Maradj egyelőre a régi kliensnél**, és lépj vissza az integráció utolsó legacy kiadására: a Közösségi tárban (a 2026.11 előtti Home Assistantban a HACS-ban) nyisd meg a *HASS.Agent .NET10 Integration*-t, válaszd az *Újraletöltés* (Redownload) lehetőséget, és a `v3.0.2` verziót. Ez az ág működik a régi klienssel, de már nincs karbantartva.\n\nHa az átállás elakad, kérdezz a [hibabejelentőben](https://github.com/v1k70rk4/HASS.Agent.NET10/issues)."
     },
     "outdated_client": {
       "title": "{name} újabb HASS.Agent .NET10-et igényel",

@@ -5,6 +5,7 @@ Every release of the HASS.Agent .NET10 integration, newest first. The Windows cl
 ## Unreleased
 
 - **Categories for the Marketplace.** The manifest names the integration's categories (Computers & network, Push notifications, Media & entertainment), so the Marketplace can list it there next to the built-in integrations. Older Home Assistant versions ignore them.
+- **The notice for a PC on the old client links the switching guide.** *Learn more* under **Settings → Repairs** used to open the download page of HASS.Agent .NET10, as if it were an update of the old client. It now opens [Coming from HASS.Agent](https://v1k70rk4.github.io/HASS.Agent.NET10/getting-started/migrating/), which has the steps and what comes over, and the notice says that the new client is a separate program (English and Hungarian).
 
 ## 10.11.0
 

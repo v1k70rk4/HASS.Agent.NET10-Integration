@@ -7,6 +7,9 @@ DOMAIN = "hass_agent"
 # (MinimumIntegrationVersion) for the integration.
 MINIMUM_CLIENT_VERSION = "10.2.0"
 CLIENT_RELEASES_URL = "https://github.com/v1k70rk4/HASS.Agent.NET10/releases/latest"
+# Where a PC still on the original HASS.Agent is sent: the steps of the switch and what
+# carries over, rather than a download page for a different program.
+MIGRATION_GUIDE_URL = "https://v1k70rk4.github.io/HASS.Agent.NET10/getting-started/migrating/"
 
 CONF_ACTION = "action"
 CONF_API_KEY = "api_key"
