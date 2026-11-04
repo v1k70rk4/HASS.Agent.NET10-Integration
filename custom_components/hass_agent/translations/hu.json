@@ -128,11 +128,11 @@
     },
     "legacy_client": {
       "title": "{name} a régi HASS.Agentet futtatja",
-      "description": "A(z) **{name}** gépen a HASS.Agent {version}, az eredeti Windows kliens fut. Ez az integráció a **HASS.Agent .NET10**-hez készült, a régi klienssel nem tud kommunikálni, ezért a gépet nem vettem fel. A gépen semmi nem változott.\n\nKét lehetőség:\n\n- **Állítsd át a gépet HASS.Agent .NET10-re** (ajánlott). Ez külön program, nem a régi frissítése: lent a **További információ** leírja a lépéseket, és azt, mi jön át a régi kliensből. Ha a gépen már az új fut, ez az értesítés eltűnik, és a gép újra megjelenik.\n- **Maradj egyelőre a régi kliensnél**, és lépj vissza az integráció utolsó legacy kiadására: a Közösségi tárban (a 2026.11 előtti Home Assistantban a HACS-ban) nyisd meg a *HASS.Agent .NET10 Integration*-t, válaszd az *Újraletöltés* (Redownload) lehetőséget, és a `v3.0.2` verziót. Ez az ág működik a régi klienssel, de már nincs karbantartva.\n\nHa az átállás elakad, kérdezz a [hibabejelentőben](https://github.com/v1k70rk4/HASS.Agent.NET10/issues)."
+      "description": "A(z) **{name}** gépen a HASS.Agent {version}, az eredeti Windows kliens fut. Ez az integráció a **HASS.Agent .NET10**-hez készült, a régi klienssel nem tud kommunikálni, ezért a gépet nem vettem fel. A gépen semmi nem változott.\n\nKét lehetőség:\n\n- **Állítsd át a gépet HASS.Agent .NET10-re** (ajánlott). Ez külön program, nem a régi frissítése: lent a **Bővebben** gomb leírja a lépéseket, és azt, mi jön át a régi kliensből. Ha a gépen már az új fut, ez az értesítés eltűnik, és a gép újra megjelenik.\n- **Maradj egyelőre a régi kliensnél**, és lépj vissza az integráció utolsó legacy kiadására: a Közösségi tárban (a 2026.11 előtti Home Assistantban a HACS-ban) nyisd meg a *HASS.Agent .NET10 Integration*-t, válaszd az *Újraletöltés* (Redownload) lehetőséget, és a `v3.0.2` verziót. Ez az ág működik a régi klienssel, de már nincs karbantartva.\n\nHa az átállás elakad, kérdezz a [hibabejelentőben](https://github.com/v1k70rk4/HASS.Agent.NET10/issues)."
     },
     "outdated_client": {
       "title": "{name} újabb HASS.Agent .NET10-et igényel",
-      "description": "A(z) **{name}** gépen a HASS.Agent .NET10 {version} fut, de ehhez az integrációhoz legalább **{minimum}** kell. Néhány funkció nem fog működni, amíg a Windows kliens nincs frissítve — lásd lent a **További információ**-t. A frissítés után ez az értesítés eltűnik."
+      "description": "A(z) **{name}** gépen a HASS.Agent .NET10 {version} fut, de ehhez az integrációhoz legalább **{minimum}** kell. Néhány funkció nem fog működni, amíg a Windows kliens nincs frissítve — lásd lent a **Bővebben** gombot. A frissítés után ez az értesítés eltűnik."
     }
   },
   "services": {
