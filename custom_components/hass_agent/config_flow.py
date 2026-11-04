@@ -264,6 +264,15 @@ class FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             )
             return self.async_abort(reason="not_supported")
 
+        # The old client is refused outright rather than added as a device that cannot
+        # work; the repair notice is what tells the user, since discovery shows no UI. It
+        # comes before the topic check below: the old client publishes under its device
+        # name, not its serial number, and would otherwise be dropped without a word.
+        # Nothing is added for it, so the notice (keyed by the serial number, which has
+        # passed the same check as any other) is all a payload on an odd topic can do.
+        if valid_serial(serial_number) and _async_report_client_version(self.hass, serial_number, device_name, device) == "legacy":
+            return self.async_abort(reason="legacy_client")
+
         # The topic is the one a broker ACL can limit a PC to; the payload must not speak
         # for another PC than the topic it came on.
         if not valid_serial(serial_number) or discovery_info.topic != f"hass.agent/devices/{serial_number}":
@@ -275,10 +284,9 @@ class FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
         _logger.debug("found device. Name: %s, Serial Number: %s", device_name, serial_number)
 
-        # The old client is refused outright rather than added as a device that cannot
-        # work; the repair notice is what tells the user, since discovery shows no UI.
-        if _async_report_client_version(self.hass, serial_number, device_name, device) == "legacy":
-            return self.async_abort(reason="legacy_client")
+        # A supported client that is older than the minimum gets a warning notice; the one
+        # for an up-to-date client is cleared here.
+        _async_report_client_version(self.hass, serial_number, device_name, device)
 
         self._data = {"device": device, "apis": apis}
 

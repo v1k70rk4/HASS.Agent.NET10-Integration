@@ -110,9 +110,11 @@ async def test_payload_for_another_serial_is_ignored(hass: HomeAssistant, mqtt_m
 
 
 async def test_pc_on_the_old_client_is_sent_to_the_switching_guide(hass: HomeAssistant, mqtt_mock) -> None:
+    # The old client publishes under its device name, not its serial number (a GUID).
+    serial = "9f1c2d3e-4b5a-4c6d-8e7f-0a1b2c3d4e5f"
     info = MqttServiceInfo(
-        topic=f"hass.agent/devices/{SERIAL}",
-        payload=json.dumps({"serial_number": SERIAL, "device": {**DEVICE, "sw_version": "2.1.0"}, "apis": {}}),
+        topic="hass.agent/devices/MY-PC",
+        payload=json.dumps({"serial_number": serial, "device": {**DEVICE, "sw_version": "2.2.1"}, "apis": {}}),
         qos=0,
         retain=True,
         subscribed_topic="hass.agent/devices/#",
@@ -123,9 +125,26 @@ async def test_pc_on_the_old_client_is_sent_to_the_switching_guide(hass: HomeAss
 
     assert result["type"] is FlowResultType.ABORT
     assert result["reason"] == "legacy_client"
-    issue = ir.async_get(hass).async_get_issue(DOMAIN, f"client_version_{SERIAL}")
+    issue = ir.async_get(hass).async_get_issue(DOMAIN, f"client_version_{serial}")
     assert issue is not None
     assert issue.learn_more_url == MIGRATION_GUIDE_URL
+    assert hass.config_entries.async_entries(DOMAIN) == []
+
+
+async def test_old_client_payload_without_a_serial_is_ignored(hass: HomeAssistant, mqtt_mock) -> None:
+    info = MqttServiceInfo(
+        topic="hass.agent/devices/MY-PC",
+        payload=json.dumps({"serial_number": "not a serial!", "device": {**DEVICE, "sw_version": "2.2.1"}, "apis": {}}),
+        qos=0,
+        retain=True,
+        subscribed_topic="hass.agent/devices/#",
+        timestamp=0,
+    )
+
+    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": "mqtt"}, data=info)
+
+    assert result["reason"] == "not_supported"
+    assert ir.async_get(hass).issues == {}
 
 
 async def test_pc_on_the_ha_api_is_switched_to_mqtt_only_when_confirmed(hass: HomeAssistant, mqtt_mock) -> None:
