@@ -11,12 +11,13 @@ from homeassistant.const import CONF_URL
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.service_info.mqtt import MqttServiceInfo
 from homeassistant.setup import async_setup_component
 from pytest_homeassistant.common import MockConfigEntry
 
 from custom_components.hass_agent.config_flow import valid_serial
-from custom_components.hass_agent.const import CONF_HA_API, DOMAIN
+from custom_components.hass_agent.const import CONF_HA_API, DOMAIN, MIGRATION_GUIDE_URL
 from custom_components.hass_agent.event import own_device
 from custom_components.hass_agent.notify import _prepare_image
 from custom_components.hass_agent.update import HassAgentUpdate
@@ -106,6 +107,68 @@ async def test_payload_for_another_serial_is_ignored(hass: HomeAssistant, mqtt_m
 
     assert result["type"] is FlowResultType.ABORT
     assert result["reason"] == "not_supported"
+
+
+async def test_pc_on_the_old_client_is_sent_to_the_switching_guide(hass: HomeAssistant, mqtt_mock) -> None:
+    # The old client publishes under its device name, not its serial number (a GUID).
+    serial = "9f1c2d3e-4b5a-4c6d-8e7f-0a1b2c3d4e5f"
+    info = MqttServiceInfo(
+        topic="hass.agent/devices/MY-PC",
+        payload=json.dumps({"serial_number": serial, "device": {**DEVICE, "sw_version": "2.2.1"}, "apis": {}}),
+        qos=0,
+        retain=True,
+        subscribed_topic="hass.agent/devices/#",
+        timestamp=0,
+    )
+
+    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": "mqtt"}, data=info)
+
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "legacy_client"
+    issue = ir.async_get(hass).async_get_issue(DOMAIN, f"client_version_{serial}")
+    assert issue is not None
+    assert issue.learn_more_url == MIGRATION_GUIDE_URL
+    assert hass.config_entries.async_entries(DOMAIN) == []
+
+
+async def test_old_client_payload_without_a_serial_is_ignored(hass: HomeAssistant, mqtt_mock) -> None:
+    info = MqttServiceInfo(
+        topic="hass.agent/devices/MY-PC",
+        payload=json.dumps({"serial_number": "not a serial!", "device": {**DEVICE, "sw_version": "2.2.1"}, "apis": {}}),
+        qos=0,
+        retain=True,
+        subscribed_topic="hass.agent/devices/#",
+        timestamp=0,
+    )
+
+    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": "mqtt"}, data=info)
+
+    assert result["reason"] == "not_supported"
+    assert ir.async_get(hass).issues == {}
+
+
+@pytest.mark.parametrize("version", ["10.9.1", "10.0.0"])
+async def test_payload_on_another_pcs_topic_reports_no_version(hass: HomeAssistant, mqtt_mock, version: str) -> None:
+    # A supported client's payload on a topic that is not its serial number's is dropped, and
+    # no notice is cleared (a current version with a notice standing) or raised (an outdated
+    # version without one) for the serial number it names.
+    registry = ir.async_get(hass)
+    seeded = version == "10.9.1"
+    if seeded:
+        registry.async_get_or_create(DOMAIN, f"client_version_{SERIAL}", is_fixable=False, is_persistent=False, severity=ir.IssueSeverity.WARNING, translation_key="outdated_client")
+    info = MqttServiceInfo(
+        topic="hass.agent/devices/attacker",
+        payload=json.dumps({"serial_number": SERIAL, "device": {**DEVICE, "sw_version": version}, "apis": {}}),
+        qos=0,
+        retain=True,
+        subscribed_topic="hass.agent/devices/#",
+        timestamp=0,
+    )
+
+    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": "mqtt"}, data=info)
+
+    assert result["reason"] == "not_supported"
+    assert (registry.async_get_issue(DOMAIN, f"client_version_{SERIAL}") is not None) == seeded
 
 
 async def test_pc_on_the_ha_api_is_switched_to_mqtt_only_when_confirmed(hass: HomeAssistant, mqtt_mock) -> None:

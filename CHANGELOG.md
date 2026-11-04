@@ -2,8 +2,12 @@
 
 Every release of the HASS.Agent .NET10 integration, newest first. The Windows client has its own [changelog](https://github.com/v1k70rk4/HASS.Agent.NET10/blob/main/CHANGELOG.md).
 
-## Unreleased
+## 10.12.0-beta.1
 
+> **Beta.** Going with the Windows client [10.12.0-beta.1](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.12.0-beta.1): the notice for a PC on the old client is back, and it links the switching guide; the Marketplace categories. Works with every supported Windows client. In the Marketplace (HACS in Home Assistant before 2026.11): open the integration, choose **Redownload**, turn on **Show beta versions**, then pick **10.12.0-beta.1**. Restart Home Assistant afterwards.
+
+- **Fixed: a PC on the old client got no notice at all.** The old client publishes its discovery message under the PC's name, not its serial number, and the check that a message must come on its own serial number's topic (10.9.1) dropped it before the version was looked at. The notice under **Settings → Repairs** is back for it; nothing else changes, the old client is still not added.
+- **The notice for a PC on the old client links the switching guide.** *Learn more* under **Settings → Repairs** used to open the download page of HASS.Agent .NET10, as if it were an update of the old client. It now opens [Coming from HASS.Agent](https://v1k70rk4.github.io/HASS.Agent.NET10/getting-started/migrating/), which has the steps and what comes over, and the notice says that the new client is a separate program (English and Hungarian). The Windows client 10.12.0-beta.1 takes the old client's settings over, so the switch is no longer a setup from scratch.
 - **Categories for the Marketplace.** The manifest names the integration's categories (Computers & network, Push notifications, Media & entertainment), so the Marketplace can list it there next to the built-in integrations. Older Home Assistant versions ignore them.
 
 ## 10.11.0
