@@ -147,6 +147,26 @@ async def test_old_client_payload_without_a_serial_is_ignored(hass: HomeAssistan
     assert ir.async_get(hass).issues == {}
 
 
+async def test_payload_on_another_pcs_topic_reports_no_version(hass: HomeAssistant, mqtt_mock) -> None:
+    # A supported client's payload on a topic that is not its serial number's: dropped, and no
+    # notice is raised or cleared for the serial number it names.
+    registry = ir.async_get(hass)
+    registry.async_get_or_create(DOMAIN, f"client_version_{SERIAL}", is_fixable=False, is_persistent=False, severity=ir.IssueSeverity.WARNING, translation_key="outdated_client")
+    info = MqttServiceInfo(
+        topic="hass.agent/devices/attacker",
+        payload=json.dumps({"serial_number": SERIAL, "device": {**DEVICE, "sw_version": "10.0.0"}, "apis": {}}),
+        qos=0,
+        retain=True,
+        subscribed_topic="hass.agent/devices/#",
+        timestamp=0,
+    )
+
+    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": "mqtt"}, data=info)
+
+    assert result["reason"] == "not_supported"
+    assert registry.async_get_issue(DOMAIN, f"client_version_{SERIAL}") is not None
+
+
 async def test_pc_on_the_ha_api_is_switched_to_mqtt_only_when_confirmed(hass: HomeAssistant, mqtt_mock) -> None:
     entry = MockConfigEntry(
         domain=DOMAIN, unique_id=SERIAL, title="MY-PC", data={CONF_HA_API: True, "device": DEVICE, "apis": {}}

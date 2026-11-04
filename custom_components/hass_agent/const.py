@@ -10,6 +10,8 @@ CLIENT_RELEASES_URL = "https://github.com/v1k70rk4/HASS.Agent.NET10/releases/lat
 # Where a PC still on the original HASS.Agent is sent: the steps of the switch and what
 # carries over, rather than a download page for a different program.
 MIGRATION_GUIDE_URL = "https://v1k70rk4.github.io/HASS.Agent.NET10/getting-started/migrating/"
+# Named in the notice through a placeholder: hassfest refuses a URL written into a translation.
+ISSUE_TRACKER_URL = "https://github.com/v1k70rk4/HASS.Agent.NET10/issues"
 
 CONF_ACTION = "action"
 CONF_API_KEY = "api_key"

@@ -45,6 +45,7 @@ from .const import (
     CONF_USER_ID,
     DISCOVERY_USER_ID,
     DOMAIN,
+    ISSUE_TRACKER_URL,
     MEDIA_PLAYER_TURN_OFF_COMMANDS,
     MEDIA_PLAYER_TURN_OFF_NONE,
     MEDIA_PLAYER_TURN_OFF_SCRIPT,
@@ -133,6 +134,7 @@ def _async_report_client_version(
             "name": device_name,
             "version": str(device.get("sw_version", "")),
             "minimum": MINIMUM_CLIENT_VERSION,
+            "issue_url": ISSUE_TRACKER_URL,
         },
     )
     return status
@@ -270,7 +272,8 @@ class FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         # name, not its serial number, and would otherwise be dropped without a word.
         # Nothing is added for it, so the notice (keyed by the serial number, which has
         # passed the same check as any other) is all a payload on an odd topic can do.
-        if valid_serial(serial_number) and _async_report_client_version(self.hass, serial_number, device_name, device) == "legacy":
+        if valid_serial(serial_number) and _client_compatibility(device) == "legacy":
+            _async_report_client_version(self.hass, serial_number, device_name, device)
             return self.async_abort(reason="legacy_client")
 
         # The topic is the one a broker ACL can limit a PC to; the payload must not speak
