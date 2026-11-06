@@ -40,7 +40,7 @@ This repository is a custom integration for Home Assistant, `custom_components/h
 - The tests run against a Home Assistant instance in memory, with a mocked MQTT client, no network and no real PC. A test that needs the network or a running PC is wrong.
 - When writing or modifying tests, ensure all test function parameters have type annotations.
 - Prefer concrete types (for example, `HomeAssistant`, `MockConfigEntry`, etc.) over `Any`.
-- Prefer `@pytest.mark.usefixtures` over arguments, if the argument is not going to be used.
+- Prefer `@pytest.mark.usefixtures` over arguments, if the argument will not be used.
 - Avoid using conditions/branching in tests. Instead, either split tests or adjust the test parametrization to cover all cases without branching.
 - If multiple tests share most of their code, use `pytest.mark.parametrize` to merge them into a single parameterized test instead of duplicating the body. Use `pytest.param` with an `id` parameter to name the test cases clearly.
 - Hardcoded `entity_id`s in tests are fine. If the same one is repeated, use a constant.
