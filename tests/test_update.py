@@ -10,6 +10,7 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.setup import async_setup_component
 from pytest_homeassistant.common import MockConfigEntry, async_fire_mqtt_message
+from pytest_homeassistant.typing import MqttMockHAClient
 
 from custom_components.hass_agent.const import DOMAIN
 
@@ -26,7 +27,7 @@ def expected_lingering_timers() -> bool:
 
 
 @pytest.fixture
-async def pc(hass: HomeAssistant, mqtt_mock) -> MockConfigEntry:
+async def pc(hass: HomeAssistant, mqtt_mock: MqttMockHAClient) -> MockConfigEntry:
     """An MQTT PC with the tray app online and no service."""
     assert await async_setup_component(hass, "http", {})
     entry = MockConfigEntry(domain=DOMAIN, unique_id=SERIAL, title="MY-PC", data={"device": DEVICE, "apis": {}})
