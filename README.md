@@ -31,7 +31,7 @@ It is the matching Home Assistant side for the modern **HASS.Agent .NET10** Wind
 >
 > If you want to keep using the old HASS.Agent client, switch to the **[`legacy` branch](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/tree/legacy)** of this integration. The legacy branch works with Home Assistant 2026.6+ and the original pre-.NET10 HASS.Agent, but it is **no longer maintained**.
 
-> **Stable:** [10.11.0](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/releases/latest) &nbsp;·&nbsp; **Beta:** [10.12.0-beta.1](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/releases/tag/v10.12.0-beta.1) &nbsp;·&nbsp; [What changed](#changelog) &nbsp;·&nbsp; [Full changelog](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/blob/main/CHANGELOG.md)
+> **Stable:** [10.12.0](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/releases/latest) &nbsp;·&nbsp; [What changed](#changelog) &nbsp;·&nbsp; [Full changelog](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/blob/main/CHANGELOG.md)
 
 <p align="center"><img src="https://raw.githubusercontent.com/v1k70rk4/HASS.Agent.NET10-Integration/main/images/ha-device.png" width="800" alt="A Windows PC as a device in Home Assistant: media player, audio output select and command buttons"></p>
 
@@ -397,28 +397,23 @@ A hotkey pressed on the PC (client 10.9.0+) reaches the device's *Hotkeys* event
 
 ## Changelog
 
-### 10.12.0-beta.1
+### 10.12.0
 
-> **Beta.** Going with the Windows client [10.12.0-beta.1](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.12.0-beta.1): the notice for a PC on the old client is back, and it links the switching guide; the Marketplace categories. Works with every supported Windows client. In the Marketplace (HACS in Home Assistant before 2026.11): open the integration, choose **Redownload**, turn on **Show beta versions**, then pick **10.12.0-beta.1**. Restart Home Assistant afterwards.
+Going with the Windows client [10.12.0](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.12.0): the notice for a PC on the old client is back, and it links the switching guide; the Marketplace categories; and the README shows a power switch for the PC. Works with every supported Windows client. Update in the Marketplace (HACS in Home Assistant before 2026.11) and restart Home Assistant afterwards.
 
 - **Fixed: a PC on the old client got no notice at all.** The old client publishes its discovery message under the PC's name, not its serial number, and the check that a message must come on its own serial number's topic (10.9.1) dropped it before the version was looked at. The notice under **Settings → Repairs** is back for it; nothing else changes, the old client is still not added.
-- **The notice for a PC on the old client links the switching guide.** *Learn more* under **Settings → Repairs** used to open the download page of HASS.Agent .NET10, as if it were an update of the old client. It now opens [Coming from HASS.Agent](https://v1k70rk4.github.io/HASS.Agent.NET10/getting-started/migrating/), which has the steps and what comes over, and the notice says that the new client is a separate program (English and Hungarian). The Windows client 10.12.0-beta.1 takes the old client's settings over, so the switch is no longer a setup from scratch.
+- **The notice for a PC on the old client links the switching guide.** *Learn more* under **Settings → Repairs** used to open the download page of HASS.Agent .NET10, as if it were an update of the old client. It now opens [Coming from HASS.Agent](https://v1k70rk4.github.io/HASS.Agent.NET10/getting-started/migrating/), which has the steps and what comes over, and the notice says that the new client is a separate program (English and Hungarian). The Windows client 10.12.0 takes the old client's settings over, so the switch is no longer a setup from scratch.
 - **Categories for the Marketplace.** The manifest names the integration's categories (Computers & network, Push notifications, Media & entertainment), so the Marketplace can list it there next to the built-in integrations. Older Home Assistant versions ignore them.
+- **A power switch for the PC**, in the README: how to make one with Home Assistant's Template helper, with a ping, a smart plug or the PC's own report as the state and the shutdown button for *off*. The integration does not create one, because what *on* means is yours to say. Asked for in [#70](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/issues/70). See [A power switch for the PC](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration#a-power-switch-for-the-pc).
 
-### 10.11.0
+<details>
+<summary><b>10.11.0</b></summary>
 
 Going with the Windows client [10.11.0](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.11.0): Check for updates reaches a PC on the HA API whose tray app is not running, Simplified Chinese, and the notice for a PC on the old client names the Marketplace. Works with every supported Windows client. Update in the Marketplace (HACS in Home Assistant before 2026.11) and restart Home Assistant afterwards.
 
 - **Fixed: Check for updates got no answer from a PC on the HA API whose tray app was not running.** After a Home Assistant restart the integration took the tray app for running until it heard otherwise, and on the HA API only a heartbeat from the app could tell it otherwise. On a PC with the service only, or with nobody logged in, no heartbeat came, so the button's request and the other commands for whichever side is up went to the app, and the service left them alone. The app now counts as offline when no heartbeat comes within 90 seconds of the setup, as it already did 90 seconds after its last one.
 - **Simplified Chinese.** 中文(简体), translated by @natsu-tsuki in [#65](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/pull/65), thank you! A Home Assistant set to Chinese shows the integration's setup, options and notices in it.
 - **The notice for a PC on the old client names the Marketplace** (HACS in Home Assistant before 2026.11) as the way to the legacy release, in English, Hungarian and Chinese. The README says the same, and the custom-repository step is gone from it: the integration is in the Marketplace, which refuses a repository it already has.
-
-<details>
-<summary><b>10.10.2</b></summary>
-
-Going with the Windows client [10.10.2](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.10.2): a Drive space sensor. Works with every supported Windows client; the client 10.10.2 sends the new sensor. Update in HACS and restart Home Assistant afterwards.
-
-- **Drive space** sensor for the Windows client 10.10.2: how full the system drive is, in percent, with every drive with a letter in the attributes, keyed by it (`D.free_gb`, `D.used_percent`, `D.total_gb`, ..., and `system`, the system drive's letter). An older client does not send it, so nothing changes there. Requested on the client as [#143](https://github.com/v1k70rk4/HASS.Agent.NET10/issues/143).
 
 </details>
 
