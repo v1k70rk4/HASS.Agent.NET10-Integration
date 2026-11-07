@@ -287,6 +287,13 @@ def _refresh_availability(hass: HomeAssistant, entry: ConfigEntry) -> None:
     service_online = entry_data.get("service", {}).get("online") is True
     available = app_online or service_online
     entry_data["available"] = available
+    if not available:
+        # Nothing on the PC answers, which is also how an update looks while Setup
+        # replaces the files. The stored state is the old version's: kept, it would
+        # bring the update entity back as "on" for the moment between the new version
+        # coming online and sending its own state. Without it the entity comes back
+        # unknown and shows what the PC says next.
+        entry_data.pop("update_state", None)
     async_dispatcher_send(hass, availability_signal(entry.entry_id), available)
 
 
