@@ -23,10 +23,8 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, SIGNAL_UPDATE_STATE
+from .const import DOMAIN, SIGNAL_UPDATE_STATE, UPDATE_STATE_STORAGE_KEY
 from .entity import HassAgentAvailableEntity, async_get_agent_device
-
-UPDATE_STATE_STORAGE_KEY = "update_state"
 
 
 async def async_setup_entry(
