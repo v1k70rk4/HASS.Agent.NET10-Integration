@@ -53,6 +53,7 @@ from .const import (
     SIGNAL_BUTTONS_UPDATED,
     SIGNAL_SENSORS_UPDATED,
     SIGNAL_UPDATE_STATE,
+    UPDATE_STATE_STORAGE_KEY,
 )
 from .entity import async_get_agent_device, availability_signal
 from .sensor_keys import async_migrate_renamed_sensor_entities, current_sensor_key
@@ -293,7 +294,7 @@ def _refresh_availability(hass: HomeAssistant, entry: ConfigEntry) -> None:
         # bring the update entity back as "on" for the moment between the new version
         # coming online and sending its own state. Without it the entity comes back
         # unknown and shows what the PC says next.
-        entry_data.pop("update_state", None)
+        entry_data.pop(UPDATE_STATE_STORAGE_KEY, None)
     async_dispatcher_send(hass, availability_signal(entry.entry_id), available)
 
 
@@ -801,7 +802,7 @@ def _create_device_notification(hass: HomeAssistant, entry: ConfigEntry, title: 
 def _apply_update_state(hass: HomeAssistant, entry: ConfigEntry, state: dict) -> None:
     """Store the agent's update state and create or refresh the update entity."""
     entry_data = hass.data[DOMAIN][entry.entry_id]
-    entry_data["update_state"] = state
+    entry_data[UPDATE_STATE_STORAGE_KEY] = state
 
     if not entry_data["loaded"].get("update", False):
         hass.async_create_background_task(
