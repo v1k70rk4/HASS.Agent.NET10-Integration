@@ -83,7 +83,8 @@
       "notifications_mqtt": "当收到带有特定动作的通知时(MQTT)",
       "notifications_event": "当收到带有特定动作的通知时(事件)",
       "turn_on": "收到开机请求 (媒体播放器)",
-      "turn_off": "收到关机请求 (媒体播放器)"
+      "turn_off": "收到关机请求 (媒体播放器)",
+      "update_available": "有新的 HASS.Agent 版本可用"
     }
   },
   "entity": {

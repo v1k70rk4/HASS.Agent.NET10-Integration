@@ -58,3 +58,9 @@ SIGNAL_SENSORS_UPDATED = "hass_agent_sensors_updated_{}"
 SIGNAL_UPDATE_STATE = "hass_agent_update_state_{}"
 # Where the PC's last update state is kept in the entry's data.
 UPDATE_STATE_STORAGE_KEY = "update_state"
+# Fired once per new version a PC offers: the update entity's state cannot tell a new update
+# from the same one coming back after a restart, this can.
+EVENT_UPDATE_AVAILABLE = "hass_agent_update_available"
+# The version each PC (by serial number) last had announced, kept across restarts.
+UPDATE_ANNOUNCED_STORE = f"{DOMAIN}.update_announced"
+UPDATE_ANNOUNCED_DATA = f"{DOMAIN}_update_announced"

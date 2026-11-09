@@ -3,16 +3,26 @@
 from __future__ import annotations
 
 import json
+from typing import Any
 
 import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.setup import async_setup_component
-from pytest_homeassistant.common import MockConfigEntry, async_fire_mqtt_message
+from pytest_homeassistant.common import (
+    MockConfigEntry,
+    async_capture_events,
+    async_fire_mqtt_message,
+)
 from pytest_homeassistant.typing import MqttMockHAClient
 
-from custom_components.hass_agent.const import DOMAIN
+from custom_components.hass_agent.const import (
+    DOMAIN,
+    EVENT_UPDATE_AVAILABLE,
+    UPDATE_ANNOUNCED_STORE,
+)
+from custom_components.hass_agent.device_trigger import async_get_triggers
 
 SERIAL = "0123456789abcdef0123456789abcdef"
 DEVICE = {"name": "MY-PC", "manufacturer": "v1k70rk4", "model": "HASS.Agent .NET10", "sw_version": "10.11.0"}
@@ -74,6 +84,59 @@ async def test_an_installed_update_does_not_come_back_as_available(hass: HomeAss
 
     await _send(hass, UPDATE_TOPIC, _update_state("10.12.0", "10.12.0"))
     assert _state(hass) == "off"
+
+
+async def test_each_version_is_announced_once(hass: HomeAssistant, pc: MockConfigEntry) -> None:
+    events = async_capture_events(hass, EVENT_UPDATE_AVAILABLE)
+
+    await _send(hass, UPDATE_TOPIC, _update_state("10.11.0", "10.12.0"))
+    assert len(events) == 1
+    assert events[0].data["serial_number"] == SERIAL
+    assert events[0].data["device_name"] == "MY-PC"
+    assert events[0].data["installed_version"] == "10.11.0"
+    assert events[0].data["latest_version"] == "10.12.0"
+    assert events[0].data["release_url"].startswith("https://github.com/")
+
+    # The same update after the PC was off: unknown, then on again, and no second event.
+    await _send(hass, AVAILABILITY_TOPIC, "offline")
+    await _send(hass, AVAILABILITY_TOPIC, "online")
+    await _send(hass, UPDATE_TOPIC, _update_state("10.11.0", "10.12.0"))
+    assert _state(hass) == "on"
+    assert len(events) == 1
+
+    # Installed: nothing to announce. A newer one later: announced.
+    await _send(hass, UPDATE_TOPIC, _update_state("10.12.0", "10.12.0"))
+    await _send(hass, UPDATE_TOPIC, _update_state("10.12.0", "10.13.0"))
+    assert [event.data["latest_version"] for event in events] == ["10.12.0", "10.13.0"]
+
+
+async def test_the_announced_version_outlives_a_restart_of_home_assistant(
+    hass: HomeAssistant, mqtt_mock: MqttMockHAClient, hass_storage: dict[str, Any]
+) -> None:
+    # What a run before this one announced, as Home Assistant keeps it.
+    hass_storage[UPDATE_ANNOUNCED_STORE] = {"version": 1, "minor_version": 1, "key": UPDATE_ANNOUNCED_STORE, "data": {SERIAL: "10.12.0"}}
+    assert await async_setup_component(hass, "http", {})
+    entry = MockConfigEntry(domain=DOMAIN, unique_id=SERIAL, title="MY-PC", data={"device": DEVICE, "apis": {}})
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    dr.async_get(hass).async_get_or_create(config_entry_id=entry.entry_id, identifiers={(DOMAIN, SERIAL)}, name="MY-PC")
+    events = async_capture_events(hass, EVENT_UPDATE_AVAILABLE)
+
+    await _send(hass, UPDATE_TOPIC, _update_state("10.11.0", "10.12.0"))
+    assert events == []
+
+    # A version that came out meanwhile, while the PC was off: announced on its first state.
+    await _send(hass, UPDATE_TOPIC, _update_state("10.11.0", "10.13.0"))
+    assert len(events) == 1
+
+
+async def test_every_pc_offers_the_update_trigger(hass: HomeAssistant, pc: MockConfigEntry) -> None:
+    device = dr.async_get(hass).async_get_or_create(
+        config_entry_id=pc.entry_id, identifiers={(DOMAIN, SERIAL)}, name="MY-PC"
+    )
+    types = {trigger["type"] for trigger in await async_get_triggers(hass, device.id)}
+    assert "update_available" in types
 
 
 async def test_a_pending_update_shows_again_once_the_pc_says_so(hass: HomeAssistant, pc: MockConfigEntry) -> None:

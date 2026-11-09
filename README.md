@@ -393,6 +393,22 @@ When using the HA API (WebSocket) transport, the Windows client fires events int
 
 A hotkey pressed on the PC (client 10.9.0+) reaches the device's *Hotkeys* event entity on either transport, and the entity fires `hass_agent_hotkey_pressed` on the event bus with the hotkey's name in `hotkey`.
 
+When a PC offers a new HASS.Agent version, the integration (10.13.0+) fires `hass_agent_update_available` once for that version, with `device_name`, `serial_number`, `installed_version`, `latest_version` and `release_url`. It remembers which version it announced, across restarts of Home Assistant and of the PC: the same update is not announced again, and one that came out while the PC was off is announced when the PC is back. The device trigger *A new HASS.Agent version is available* is the same event for one PC. The update entity's state can't tell these cases apart, since it comes back `unknown` and then `on` after every restart, so an automation that should speak up once per version is better on the event:
+
+```yaml
+triggers:
+  - trigger: event
+    event_type: hass_agent_update_available
+    event_data:
+      device_name: MY-PC
+actions:
+  - action: notify.notify
+    data:
+      message: "{{ trigger.event.data.device_name }}: HASS.Agent {{ trigger.event.data.latest_version }} is out"
+```
+
+The first time the integration runs with this, an update a PC already offers is announced once.
+
 ---
 
 ## Changelog

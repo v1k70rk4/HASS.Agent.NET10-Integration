@@ -83,7 +83,8 @@
       "notifications_mqtt": "When a notification with a specific action has been pressed (MQTT)",
       "notifications_event": "When a notification with a specific action has been pressed (Event)",
       "turn_on": "Turn on was requested (media player)",
-      "turn_off": "Turn off was requested (media player)"
+      "turn_off": "Turn off was requested (media player)",
+      "update_available": "A new HASS.Agent version is available"
     }
   },
   "entity": {
