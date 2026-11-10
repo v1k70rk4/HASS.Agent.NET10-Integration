@@ -177,6 +177,7 @@ When connected via MQTT or HA API, the integration creates the following entitie
 | `button` | System commands | Lock, sleep, shutdown, restart, volume, etc. |
 | `select` | Audio output / input | Chooses the default playback and recording device (client 10.9.0+, the matching *Audio output device* / *Audio input device* sensor enabled) |
 | `light` | Display | Screen brightness where the display can be dimmed; off switches the monitor off, on wakes it (client 10.9.0+, *Display brightness* sensor enabled) |
+| `image` | Screenshot | The last screenshot of the PC, taken when its *Take a screenshot* button is pressed and never on its own (client 10.14.0+, the command ticked on the PC; it is off by default) |
 | `update` | App update | Shows available HASS.Agent .NET10 updates |
 
 Entities are created and removed dynamically as the Windows client changes its configuration.
