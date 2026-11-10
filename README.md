@@ -31,7 +31,7 @@ It is the matching Home Assistant side for the modern **HASS.Agent .NET10** Wind
 >
 > If you want to keep using the old HASS.Agent client, switch to the **[`legacy` branch](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/tree/legacy)** of this integration. The legacy branch works with Home Assistant 2026.6+ and the original pre-.NET10 HASS.Agent, but it is **no longer maintained**.
 
-> **Stable:** [10.12.0](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/releases/latest) &nbsp;·&nbsp; [What changed](#changelog) &nbsp;·&nbsp; [Full changelog](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/blob/main/CHANGELOG.md)
+> **Stable:** [10.13.0](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/releases/latest) &nbsp;·&nbsp; [What changed](#changelog) &nbsp;·&nbsp; [Full changelog](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/blob/main/CHANGELOG.md)
 
 <p align="center"><img src="https://raw.githubusercontent.com/v1k70rk4/HASS.Agent.NET10-Integration/main/images/ha-device.png" width="800" alt="A Windows PC as a device in Home Assistant: media player, audio output select and command buttons"></p>
 
@@ -413,7 +413,17 @@ The first time the integration runs with this, an update a PC already offers is 
 
 ## Changelog
 
-### 10.12.0
+### 10.13.0
+
+Going with the Windows client [10.13.0](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.13.0): an event when a PC offers a new version, an update entity that no longer says "update available" for a moment while the PC comes back, and a limit on approval requests. Works with every supported Windows client. Update in the Marketplace (HACS in Home Assistant before 2026.11) and restart Home Assistant afterwards.
+
+- **An event when a PC offers a new HASS.Agent version.** `hass_agent_update_available` fires once for that version, with `device_name`, `serial_number`, `installed_version`, `latest_version` and `release_url`; the device trigger *A new HASS.Agent version is available* is the same event for one PC. The integration remembers which version it announced, across restarts of Home Assistant and of the PC: the same update is not announced twice, and one that came out while the PC was off is announced when the PC is back. The first time it runs, an update a PC already offers is announced once. See [Home Assistant Events](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration#home-assistant-events).
+- **Fixed: the update entity said "update available" for a moment while the PC came back.** During an update of the app, or after the PC was off, the entity went from unavailable to the state it had before, *on*, and only then to *off*, which set off automations that wait for *on*. The state from before is dropped when neither the tray app nor the service answers, so the entity comes back as unknown until the PC reports. Reported in [#77](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/issues/77).
+- **Approval requests on the HA API have a limit.** A Home Assistant user can have three PCs waiting for an administrator's approval at a time; a fourth is not shown until one of them is dealt with, and a PC that announces itself again takes no second place. The user the integration made for one PC cannot ask for another PC. From a security review of the integration.
+- **The tests run against Home Assistant 2026.11.1.**
+
+<details>
+<summary><b>10.12.0</b></summary>
 
 Going with the Windows client [10.12.0](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.12.0): the notice for a PC on the old client is back, and it links the switching guide; the Marketplace categories; and the README shows a power switch for the PC. Works with every supported Windows client. Update in the Marketplace (HACS in Home Assistant before 2026.11) and restart Home Assistant afterwards.
 
@@ -421,15 +431,6 @@ Going with the Windows client [10.12.0](https://github.com/v1k70rk4/HASS.Agent.N
 - **The notice for a PC on the old client links the switching guide.** *Learn more* under **Settings → Repairs** used to open the download page of HASS.Agent .NET10, as if it were an update of the old client. It now opens [Coming from HASS.Agent](https://v1k70rk4.github.io/HASS.Agent.NET10/getting-started/migrating/), which has the steps and what comes over, and the notice says that the new client is a separate program (English and Hungarian). The Windows client 10.12.0 takes the old client's settings over, so the switch is no longer a setup from scratch.
 - **Categories for the Marketplace.** The manifest names the integration's categories (Computers & network, Push notifications, Media & entertainment), so the Marketplace can list it there next to the built-in integrations. Older Home Assistant versions ignore them.
 - **A power switch for the PC**, in the README: how to make one with Home Assistant's Template helper, with a ping, a smart plug or the PC's own report as the state and the shutdown button for *off*. The integration does not create one, because what *on* means is yours to say. Asked for in [#70](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/issues/70). See [A power switch for the PC](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration#a-power-switch-for-the-pc).
-
-<details>
-<summary><b>10.11.0</b></summary>
-
-Going with the Windows client [10.11.0](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.11.0): Check for updates reaches a PC on the HA API whose tray app is not running, Simplified Chinese, and the notice for a PC on the old client names the Marketplace. Works with every supported Windows client. Update in the Marketplace (HACS in Home Assistant before 2026.11) and restart Home Assistant afterwards.
-
-- **Fixed: Check for updates got no answer from a PC on the HA API whose tray app was not running.** After a Home Assistant restart the integration took the tray app for running until it heard otherwise, and on the HA API only a heartbeat from the app could tell it otherwise. On a PC with the service only, or with nobody logged in, no heartbeat came, so the button's request and the other commands for whichever side is up went to the app, and the service left them alone. The app now counts as offline when no heartbeat comes within 90 seconds of the setup, as it already did 90 seconds after its last one.
-- **Simplified Chinese.** 中文(简体), translated by @natsu-tsuki in [#65](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/pull/65), thank you! A Home Assistant set to Chinese shows the integration's setup, options and notices in it.
-- **The notice for a PC on the old client names the Marketplace** (HACS in Home Assistant before 2026.11) as the way to the legacy release, in English, Hungarian and Chinese. The README says the same, and the custom-repository step is gone from it: the integration is in the Marketplace, which refuses a repository it already has.
 
 </details>
 

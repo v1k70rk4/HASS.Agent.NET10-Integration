@@ -2,6 +2,15 @@
 
 Every release of the HASS.Agent .NET10 integration, newest first. The Windows client has its own [changelog](https://github.com/v1k70rk4/HASS.Agent.NET10/blob/main/CHANGELOG.md).
 
+## 10.13.0
+
+Going with the Windows client [10.13.0](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.13.0): an event when a PC offers a new version, an update entity that no longer says "update available" for a moment while the PC comes back, and a limit on approval requests. Works with every supported Windows client. Update in the Marketplace (HACS in Home Assistant before 2026.11) and restart Home Assistant afterwards.
+
+- **An event when a PC offers a new HASS.Agent version.** `hass_agent_update_available` fires once for that version, with `device_name`, `serial_number`, `installed_version`, `latest_version` and `release_url`; the device trigger *A new HASS.Agent version is available* is the same event for one PC. The integration remembers which version it announced, across restarts of Home Assistant and of the PC: the same update is not announced twice, and one that came out while the PC was off is announced when the PC is back. The first time it runs, an update a PC already offers is announced once. See [Home Assistant Events](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration#home-assistant-events).
+- **Fixed: the update entity said "update available" for a moment while the PC came back.** During an update of the app, or after the PC was off, the entity went from unavailable to the state it had before, *on*, and only then to *off*, which set off automations that wait for *on*. The state from before is dropped when neither the tray app nor the service answers, so the entity comes back as unknown until the PC reports. Reported in [#77](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/issues/77).
+- **Approval requests on the HA API have a limit.** A Home Assistant user can have three PCs waiting for an administrator's approval at a time; a fourth is not shown until one of them is dealt with, and a PC that announces itself again takes no second place. The user the integration made for one PC cannot ask for another PC. From a security review of the integration.
+- **The tests run against Home Assistant 2026.11.1.**
+
 ## 10.12.0
 
 Going with the Windows client [10.12.0](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.12.0): the notice for a PC on the old client is back, and it links the switching guide; the Marketplace categories; and the README shows a power switch for the PC. Works with every supported Windows client. Update in the Marketplace (HACS in Home Assistant before 2026.11) and restart Home Assistant afterwards.
