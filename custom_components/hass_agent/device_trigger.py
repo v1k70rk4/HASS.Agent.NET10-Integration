@@ -36,6 +36,7 @@ from .const import (
     EVENT_NOTIFICATION_ACTIONS,
     EVENT_TURN_OFF_REQUESTED,
     EVENT_TURN_ON_REQUESTED,
+    EVENT_UPDATE_AVAILABLE,
 )
 
 NOTIFICATION_TRIGGER_TYPES = {"notifications_mqtt", "notifications_event"}
@@ -46,12 +47,17 @@ POWER_TRIGGER_EVENTS = {
     "turn_on": EVENT_TURN_ON_REQUESTED,
     "turn_off": EVENT_TURN_OFF_REQUESTED,
 }
+# Once per new version the PC offers (see __init__._announce_update); every PC has it.
+EVENT_TRIGGER_EVENTS = {
+    **POWER_TRIGGER_EVENTS,
+    "update_available": EVENT_UPDATE_AVAILABLE,
+}
 
 TRIGGER_SCHEMA = vol.Any(
     DEVICE_TRIGGER_BASE_SCHEMA.extend(
         {vol.Required(CONF_TYPE): vol.In(NOTIFICATION_TRIGGER_TYPES), vol.Required(CONF_ACTION): str}
     ),
-    DEVICE_TRIGGER_BASE_SCHEMA.extend({vol.Required(CONF_TYPE): vol.In(POWER_TRIGGER_EVENTS)}),
+    DEVICE_TRIGGER_BASE_SCHEMA.extend({vol.Required(CONF_TYPE): vol.In(EVENT_TRIGGER_EVENTS)}),
 )
 
 
@@ -61,6 +67,7 @@ async def async_get_triggers(
     """List device triggers for HASS.Agent devices."""
 
     types = sorted(NOTIFICATION_TRIGGER_TYPES)
+    types.append("update_available")
     if _power_control_on(hass, device_id):
         types.extend(POWER_TRIGGER_EVENTS)
 
@@ -111,11 +118,11 @@ async def async_attach_trigger(
         device_name,
     )
 
-    if config[CONF_TYPE] in POWER_TRIGGER_EVENTS:
+    if config[CONF_TYPE] in EVENT_TRIGGER_EVENTS:
         power_config = event_trigger.TRIGGER_SCHEMA(
             {
                 event_trigger.CONF_PLATFORM: CONF_EVENT,
-                event_trigger.CONF_EVENT_TYPE: POWER_TRIGGER_EVENTS[config[CONF_TYPE]],
+                event_trigger.CONF_EVENT_TYPE: EVENT_TRIGGER_EVENTS[config[CONF_TYPE]],
                 event_trigger.CONF_EVENT_DATA: {"serial_number": topic_id},
             }
         )
@@ -163,6 +170,6 @@ async def async_get_trigger_capabilities(
     hass: HomeAssistant, config: ConfigType
 ) -> dict[str, vol.Schema]:
     """List trigger capabilities."""
-    if config.get(CONF_TYPE) in POWER_TRIGGER_EVENTS:
+    if config.get(CONF_TYPE) in EVENT_TRIGGER_EVENTS:
         return {}
     return {"extra_fields": vol.Schema({vol.Required(CONF_ACTION): str})}

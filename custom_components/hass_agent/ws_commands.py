@@ -22,6 +22,8 @@ confirmation of its own. Administrators are let through, as `fire_event` lets th
 
 from __future__ import annotations
 
+import asyncio
+import logging
 from datetime import timedelta
 from typing import Any
 
@@ -41,6 +43,8 @@ from .const import (
     DOMAIN,
     SIGNAL_PENDING_DEVICE,
 )
+
+_logger = logging.getLogger(__name__)
 
 # The events the client sends, the ones the integration listens to.
 CLIENT_EVENTS = frozenset(
@@ -66,6 +70,18 @@ COMMAND_EVENT = "hass_agent_command"
 
 # As long as the profile page of Home Assistant offers for a long-lived token.
 PROVISIONED_TOKEN_LIFETIME = timedelta(days=3650)
+
+# How many PCs may wait for an administrator's approval for one user at a time. Each is a
+# card under Discovered, with a name the user chose; without a limit anyone with a login
+# could fill the list. More than one, so that a few PCs set up together with one user of
+# their own all show up.
+MAX_PENDING_PER_USER = 3
+
+# In the context of a flow that asks for an approval: who asked, and for which PC.
+REQUESTED_BY = "hass_agent_requested_by"
+REQUESTED_FOR = "hass_agent_requested_for"
+# In hass.data of the integration: the requests whose flow is being started.
+REQUESTS_STARTING_KEY = "_approval_requests_starting"
 
 
 @callback
@@ -94,6 +110,37 @@ def may_speak_for(hass: HomeAssistant, user: Any, serial_number: str) -> bool:
 
 
 @callback
+def _may_ask_for(hass: HomeAssistant, user_id: str, serial_number: str) -> bool:
+    """Whether this user's request for this PC is put before an administrator.
+
+    Any user with a login can announce a PC, under any serial number and name, one already
+    set up included. Two kinds of request are not passed on: one from a user this
+    integration made for another PC, which is that PC's alone; and one more from a user
+    who already has several PCs waiting.
+    """
+    if any(
+        entry.unique_id != serial_number and entry.data.get(CONF_PROVISIONED_USER_ID) == user_id
+        for entry in hass.config_entries.async_entries(DOMAIN)
+    ):
+        return False
+
+    waiting = {
+        flow["context"].get(REQUESTED_FOR)
+        for flow in hass.config_entries.flow.async_progress_by_handler(DOMAIN, include_uninitialized=True)
+        if flow["context"].get(REQUESTED_BY) == user_id
+    }
+    # And the requests whose flow has not started yet: several can come in one go.
+    waiting |= {serial for asked_by, serial in _requests_starting(hass) if asked_by == user_id}
+    return serial_number in waiting or len(waiting) < MAX_PENDING_PER_USER
+
+
+@callback
+def _requests_starting(hass: HomeAssistant) -> set[tuple[str, str]]:
+    """The (user, serial number) pairs a flow is being started for."""
+    return hass.data.setdefault(DOMAIN, {}).setdefault(REQUESTS_STARTING_KEY, set())
+
+
+@callback
 def _ask_for_approval(hass: HomeAssistant, data: dict[str, Any], user_id: str) -> None:
     """A PC announced itself with a user not approved for it: ask an administrator.
 
@@ -101,12 +148,45 @@ def _ask_for_approval(hass: HomeAssistant, data: dict[str, Any], user_id: str) -
     of its own. Home Assistant keeps one flow per PC, so repeated announcements do not
     pile up.
     """
+    serial_number = data["serial_number"]
+    if not _may_ask_for(hass, user_id, serial_number):
+        return
+
     pending = {**data, DISCOVERY_USER_ID: user_id}
     # The manual "HA API" step, if one is open, takes it from here as well.
     async_dispatcher_send(hass, SIGNAL_PENDING_DEVICE, pending)
-    hass.async_create_task(
-        hass.config_entries.flow.async_init(DOMAIN, context={"source": "ha_api"}, data=pending)
+    starting = _requests_starting(hass)
+    request = (user_id, serial_number)
+    starting.add(request)
+    task = hass.async_create_task(
+        hass.config_entries.flow.async_init(
+            DOMAIN,
+            context={"source": "ha_api", REQUESTED_BY: user_id, REQUESTED_FOR: serial_number},
+            data=pending,
+        )
     )
+
+    @callback
+    def _started(done: asyncio.Task[Any]) -> None:
+        # From here on the flow itself, while it waits, is what counts.
+        starting.discard(request)
+        if not done.cancelled() and done.exception() is None:
+            return
+
+        # A first step that failed, or was cancelled, leaves its flow behind: not started,
+        # shown to nobody, and counted among this user's waiting PCs for good.
+        if not done.cancelled():
+            _logger.warning("the approval request for %s could not be started: %s", serial_number, done.exception())
+        for flow in hass.config_entries.flow.async_progress_by_handler(DOMAIN, include_uninitialized=True):
+            context = flow["context"]
+            if (
+                flow.get("step_id") is None
+                and context.get(REQUESTED_BY) == user_id
+                and context.get(REQUESTED_FOR) == serial_number
+            ):
+                hass.config_entries.flow.async_abort(flow["flow_id"])
+
+    task.add_done_callback(_started)
 
 
 @websocket_api.websocket_command(

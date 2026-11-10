@@ -83,7 +83,8 @@
       "notifications_mqtt": "Amikor egy adott műveletet tartalmazó értesítésre rányomtak (MQTT)",
       "notifications_event": "Amikor egy adott műveletet tartalmazó értesítésre rányomtak (Esemény)",
       "turn_on": "Bekapcsolást kértek (médialejátszó)",
-      "turn_off": "Kikapcsolást kértek (médialejátszó)"
+      "turn_off": "Kikapcsolást kértek (médialejátszó)",
+      "update_available": "Új HASS.Agent verzió érhető el"
     }
   },
   "entity": {

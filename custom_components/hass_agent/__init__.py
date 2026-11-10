@@ -37,6 +37,7 @@ from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.event import async_call_later
 from homeassistant.helpers.issue_registry import async_delete_issue
 from homeassistant.helpers.start import async_at_started
+from homeassistant.helpers.storage import Store
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.loader import async_get_integration
 
@@ -50,9 +51,12 @@ from .const import (
     CONF_RESTART_CANCEL,
     CONF_TIME,
     DOMAIN,
+    EVENT_UPDATE_AVAILABLE,
     SIGNAL_BUTTONS_UPDATED,
     SIGNAL_SENSORS_UPDATED,
     SIGNAL_UPDATE_STATE,
+    UPDATE_ANNOUNCED_DATA,
+    UPDATE_ANNOUNCED_STORE,
     UPDATE_STATE_STORAGE_KEY,
 )
 from .entity import async_get_agent_device, availability_signal
@@ -798,11 +802,68 @@ def _create_device_notification(hass: HomeAssistant, entry: ConfigEntry, title: 
     )
 
 
+async def _async_load_announced(hass: HomeAssistant) -> None:
+    """Read which version each PC last had announced, once per run of Home Assistant."""
+    if UPDATE_ANNOUNCED_DATA in hass.data:
+        return
+
+    store: Store[dict[str, str]] = Store(hass, 1, UPDATE_ANNOUNCED_STORE)
+    data = await store.async_load()
+    announced = {
+        serial: version
+        for serial, version in (data or {}).items()
+        if isinstance(serial, str) and isinstance(version, str)
+    }
+    hass.data.setdefault(UPDATE_ANNOUNCED_DATA, {"store": store, "versions": announced})
+
+
+@callback
+def _announce_update(hass: HomeAssistant, entry: ConfigEntry, state: dict) -> None:
+    """Fire hass_agent_update_available once for each new version the PC offers.
+
+    The update entity cannot tell a new update from the same one coming back after a
+    restart of the PC or of Home Assistant (it goes unknown or unavailable, then on
+    again), so an automation on its state either fires again or misses an update
+    released while the PC was off. The version announced last is kept per PC across
+    restarts; the event fires when the PC offers a different one.
+    """
+    if state.get("update_available") is not True:
+        return
+
+    latest = state.get("latest_version")
+    serial = entry.unique_id
+    announced = hass.data.get(UPDATE_ANNOUNCED_DATA)
+    if not isinstance(latest, str) or not latest or not serial or announced is None:
+        return
+
+    versions: dict[str, str] = announced["versions"]
+    if versions.get(serial) == latest:
+        return
+
+    versions[serial] = latest
+    announced["store"].async_delay_save(lambda: dict(versions), 1)
+
+    installed = state.get("installed_version")
+    release_url = state.get("release_url")
+    hass.bus.async_fire(
+        EVENT_UPDATE_AVAILABLE,
+        {
+            CONF_DEVICE_NAME: entry.data.get("device", {}).get("name", entry.title),
+            "serial_number": serial,
+            "installed_version": installed if isinstance(installed, str) else None,
+            "latest_version": latest,
+            # The PC sends it; only a GitHub page is passed on, as on the update entity.
+            "release_url": release_url if isinstance(release_url, str) and release_url.startswith("https://github.com/") else None,
+        },
+    )
+
+
 @callback
 def _apply_update_state(hass: HomeAssistant, entry: ConfigEntry, state: dict) -> None:
     """Store the agent's update state and create or refresh the update entity."""
     entry_data = hass.data[DOMAIN][entry.entry_id]
     entry_data[UPDATE_STATE_STORAGE_KEY] = state
+    _announce_update(hass, entry, state)
 
     if not entry_data["loaded"].get("update", False):
         hass.async_create_background_task(
@@ -837,6 +898,10 @@ def _apply_update_state_when_free(hass: HomeAssistant, entry: ConfigEntry, state
     if discovered is None:
         _apply_update_state(hass, entry, state)
         return
+
+    # The event does not depend on whose entity shows the update: a PC on an older agent
+    # offers a new version like any other. Announced once, whatever the retries find.
+    _announce_update(hass, entry, state)
 
     if attempt >= 6:
         _logger.debug("update entity %s comes from MQTT discovery (older agent), not adding another", discovered)
@@ -1071,6 +1136,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     async_migrate_renamed_sensor_entities(hass, entry)
     hass.data.setdefault(DOMAIN, {})
+    # Before anything can deliver an update state: which versions were announced already.
+    await _async_load_announced(hass)
 
     hass.data[DOMAIN].setdefault(
         entry.entry_id,
@@ -1349,6 +1416,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Clear the retained announcement of a device that is being deleted."""
+    # A PC added again is told about its pending update again.
+    await _async_load_announced(hass)
+    announced = hass.data[UPDATE_ANNOUNCED_DATA]
+    if announced["versions"].pop(entry.unique_id or "", None) is not None:
+        versions = announced["versions"]
+        announced["store"].async_delay_save(lambda: dict(versions), 1)
+
     if entry.data.get(CONF_URL) is None and not entry.data.get(CONF_HA_API, False):
         try:
             await mqtt.async_publish(hass, f"hass.agent/integration/{entry.unique_id}", "", qos=0, retain=True)
