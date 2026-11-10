@@ -20,6 +20,7 @@ from pytest_homeassistant.typing import MqttMockHAClient
 from custom_components.hass_agent.const import (
     DOMAIN,
     EVENT_UPDATE_AVAILABLE,
+    UPDATE_ANNOUNCED_DATA,
     UPDATE_ANNOUNCED_STORE,
 )
 from custom_components.hass_agent.device_trigger import async_get_triggers
@@ -143,6 +144,72 @@ async def test_the_announced_version_outlives_a_restart_of_home_assistant(
     # A version that came out meanwhile, while the PC was off: announced on its first state.
     await _send(hass, UPDATE_TOPIC, _update_state("10.11.0", "10.13.0"))
     assert len(events) == 1
+
+
+async def test_the_tag_of_a_release_is_a_version(hass: HomeAssistant, pc: MockConfigEntry) -> None:
+    # What the client sends for the version it offers: the release's tag as GitHub has it.
+    events = async_capture_events(hass, EVENT_UPDATE_AVAILABLE)
+
+    await _send(hass, UPDATE_TOPIC, _update_state("10.13.0", "v10.14.0-beta.1"))
+
+    assert [event.data["latest_version"] for event in events] == ["v10.14.0-beta.1"]
+    assert [event.data["installed_version"] for event in events] == ["10.13.0"]
+    assert hass.data[UPDATE_ANNOUNCED_DATA]["versions"] == {SERIAL: "v10.14.0-beta.1"}
+
+
+@pytest.mark.parametrize(
+    "latest",
+    [
+        "the newest one",
+        "10.14.0 and more after it",
+        "10.14.0" + chr(10) + "a line below it",
+        "10.14.0-" + "x" * 10_000,
+        "1" * 10_000,
+        "10.14.0.1.2",
+    ],
+)
+async def test_what_is_not_a_version_is_neither_announced_nor_kept(
+    hass: HomeAssistant, pc: MockConfigEntry, latest: str
+) -> None:
+    # The state is the PC's to send, and on MQTT anyone's who may publish on its topic:
+    # a text of any length would go into the event and into the file kept across restarts.
+    events = async_capture_events(hass, EVENT_UPDATE_AVAILABLE)
+
+    await _send(hass, UPDATE_TOPIC, _update_state("10.11.0", latest))
+
+    assert events == []
+    assert hass.data[UPDATE_ANNOUNCED_DATA]["versions"] == {}
+
+
+async def test_an_installed_version_that_is_not_one_is_left_out_of_the_event(
+    hass: HomeAssistant, pc: MockConfigEntry
+) -> None:
+    events = async_capture_events(hass, EVENT_UPDATE_AVAILABLE)
+
+    await _send(hass, UPDATE_TOPIC, _update_state("x" * 10_000, "10.13.0"))
+
+    assert [event.data["latest_version"] for event in events] == ["10.13.0"]
+    assert [event.data["installed_version"] for event in events] == [None]
+
+
+async def test_a_kept_text_that_is_not_a_version_is_not_kept_on(
+    hass: HomeAssistant, mqtt_mock: MqttMockHAClient, hass_storage: dict[str, Any]
+) -> None:
+    # What a run before this fix could be made to keep: dropped when it is read, so the
+    # version the PC really offers is announced.
+    hass_storage[UPDATE_ANNOUNCED_STORE] = {"version": 1, "minor_version": 1, "key": UPDATE_ANNOUNCED_STORE, "data": {SERIAL: "x" * 10_000}}
+    assert await async_setup_component(hass, "http", {})
+    entry = MockConfigEntry(domain=DOMAIN, unique_id=SERIAL, title="MY-PC", data={"device": DEVICE, "apis": {}})
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    dr.async_get(hass).async_get_or_create(config_entry_id=entry.entry_id, identifiers={(DOMAIN, SERIAL)}, name="MY-PC")
+    assert hass.data[UPDATE_ANNOUNCED_DATA]["versions"] == {}
+    events = async_capture_events(hass, EVENT_UPDATE_AVAILABLE)
+
+    await _send(hass, UPDATE_TOPIC, _update_state("10.11.0", "10.12.0"))
+
+    assert [event.data["latest_version"] for event in events] == ["10.12.0"]
 
 
 async def test_every_pc_offers_the_update_trigger(hass: HomeAssistant, pc: MockConfigEntry) -> None:

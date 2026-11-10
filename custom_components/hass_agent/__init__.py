@@ -802,6 +802,22 @@ def _create_device_notification(hass: HomeAssistant, entry: ConfigEntry, title: 
     )
 
 
+# What a version looks like in the PC's update state: the release's tag as GitHub has it
+# ("v10.13.0", "v10.14.0-beta.1") for the one it offers, numbers alone for the one it runs.
+# Two to four numbers, and what follows a dash or a plus, short.
+_OFFERED_VERSION = re.compile(r"[vV]?[0-9]{1,9}(?:\.[0-9]{1,9}){1,3}(?:[-+][0-9A-Za-z.+-]{1,64})?")
+
+
+def _offered_version(value: object) -> str | None:
+    """Return a version from the PC's update state as it was sent, or None when it is not one.
+
+    The state comes from the PC, and over MQTT from whoever may publish on its topic. What
+    it names as a version goes into an event and into a file Home Assistant keeps: a text
+    of any length or shape is not passed on to either.
+    """
+    return value if isinstance(value, str) and _OFFERED_VERSION.fullmatch(value) else None
+
+
 async def _async_load_announced(hass: HomeAssistant) -> None:
     """Read which version each PC last had announced, once per run of Home Assistant."""
     if UPDATE_ANNOUNCED_DATA in hass.data:
@@ -809,10 +825,11 @@ async def _async_load_announced(hass: HomeAssistant) -> None:
 
     store: Store[dict[str, str]] = Store(hass, 1, UPDATE_ANNOUNCED_STORE)
     data = await store.async_load()
+    # A text kept before versions were checked, that is not one, is not kept on.
     announced = {
         serial: version
         for serial, version in (data or {}).items()
-        if isinstance(serial, str) and isinstance(version, str)
+        if isinstance(serial, str) and _offered_version(version) is not None
     }
     hass.data.setdefault(UPDATE_ANNOUNCED_DATA, {"store": store, "versions": announced})
 
@@ -830,10 +847,11 @@ def _announce_update(hass: HomeAssistant, entry: ConfigEntry, state: dict) -> No
     if state.get("update_available") is not True:
         return
 
-    latest = state.get("latest_version")
+    # Only what reads as a version is announced and kept (see _offered_version).
+    latest = _offered_version(state.get("latest_version"))
     serial = entry.unique_id
     announced = hass.data.get(UPDATE_ANNOUNCED_DATA)
-    if not isinstance(latest, str) or not latest or not serial or announced is None:
+    if latest is None or not serial or announced is None:
         return
 
     versions: dict[str, str] = announced["versions"]
@@ -843,14 +861,13 @@ def _announce_update(hass: HomeAssistant, entry: ConfigEntry, state: dict) -> No
     versions[serial] = latest
     announced["store"].async_delay_save(lambda: dict(versions), 1)
 
-    installed = state.get("installed_version")
     release_url = state.get("release_url")
     hass.bus.async_fire(
         EVENT_UPDATE_AVAILABLE,
         {
             CONF_DEVICE_NAME: entry.data.get("device", {}).get("name", entry.title),
             "serial_number": serial,
-            "installed_version": installed if isinstance(installed, str) else None,
+            "installed_version": _offered_version(state.get("installed_version")),
             "latest_version": latest,
             # The PC sends it; only a GitHub page is passed on, as on the update entity.
             "release_url": release_url if isinstance(release_url, str) and release_url.startswith("https://github.com/") else None,
