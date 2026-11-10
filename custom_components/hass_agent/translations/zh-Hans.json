@@ -113,6 +113,11 @@
       "update_check": {
         "name": "检查更新"
       }
+    },
+    "image": {
+      "screenshot": {
+        "name": "屏幕截图"
+      }
     }
   },
   "issues": {

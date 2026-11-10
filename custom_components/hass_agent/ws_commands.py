@@ -18,11 +18,17 @@ confirmation of its own. Administrators are let through, as `fire_event` lets th
 - `hass_agent/provision`, for an administrator only, is the easy way there: a PC that
   connects with an administrator's token asks for a user of its own, and gets one with
   a token, already approved for it.
+
+- `hass_agent/screenshot` hands a screenshot the PC was asked for to that PC's image
+  entity. It does not go on the bus as the client's events do: there, everything that
+  listens to all events would be given the picture.
 """
 
 from __future__ import annotations
 
 import asyncio
+import base64
+import binascii
 import logging
 from datetime import timedelta
 from typing import Any
@@ -41,7 +47,9 @@ from .const import (
     CONF_USER_ID,
     DISCOVERY_USER_ID,
     DOMAIN,
+    MAX_SCREENSHOT_BYTES,
     SIGNAL_PENDING_DEVICE,
+    SIGNAL_SCREENSHOT,
 )
 
 _logger = logging.getLogger(__name__)
@@ -90,6 +98,7 @@ def async_register(hass: HomeAssistant) -> None:
     websocket_api.async_register_command(hass, ws_fire)
     websocket_api.async_register_command(hass, ws_subscribe)
     websocket_api.async_register_command(hass, ws_provision)
+    websocket_api.async_register_command(hass, ws_screenshot)
 
 
 @callback
@@ -252,6 +261,54 @@ def ws_subscribe(hass: HomeAssistant, connection: websocket_api.ActiveConnection
         connection.send_message(websocket_api.event_message(msg["id"], event.as_dict()))
 
     connection.subscriptions[msg["id"]] = hass.bus.async_listen(COMMAND_EVENT, forward)
+    connection.send_result(msg["id"])
+
+
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): "hass_agent/screenshot",
+        vol.Required("serial_number"): str,
+        vol.Required("image"): str,
+    }
+)
+@callback
+def ws_screenshot(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
+    """Hand a screenshot to the image entity of the PC that took it.
+
+    The picture is base64 in the message. Only the PC's own entity gets it, through a
+    signal: nothing of it is put on the bus or written down.
+    """
+    serial_number = msg["serial_number"]
+    if not valid_serial(serial_number):
+        connection.send_error(msg["id"], websocket_api.ERR_INVALID_FORMAT, "serial_number is not usable")
+        return
+
+    if not may_speak_for(hass, connection.user, serial_number):
+        connection.send_error(
+            msg["id"],
+            websocket_api.ERR_UNAUTHORIZED,
+            "this PC is not approved for this Home Assistant user",
+        )
+        return
+
+    entry = _entry_for(hass, serial_number)
+    if entry is None:
+        connection.send_error(msg["id"], websocket_api.ERR_NOT_FOUND, "no HASS.Agent device with this serial number")
+        return
+
+    # Four characters of base64 carry three bytes: a text longer than this cannot hold a
+    # picture that would be taken, so it is not decoded at all.
+    encoded = msg["image"]
+    if len(encoded) > MAX_SCREENSHOT_BYTES * 4 // 3 + 4:
+        connection.send_error(msg["id"], websocket_api.ERR_INVALID_FORMAT, "the picture is too large")
+        return
+    try:
+        image = base64.b64decode(encoded, validate=True)
+    except (binascii.Error, ValueError):
+        connection.send_error(msg["id"], websocket_api.ERR_INVALID_FORMAT, "image is not base64")
+        return
+
+    async_dispatcher_send(hass, SIGNAL_SCREENSHOT.format(entry.entry_id), image)
     connection.send_result(msg["id"])
 
 

@@ -113,6 +113,11 @@
       "update_check": {
         "name": "Check for updates"
       }
+    },
+    "image": {
+      "screenshot": {
+        "name": "Screenshot"
+      }
     }
   },
   "issues": {

@@ -53,6 +53,16 @@ SIGNAL_PENDING_DEVICE = "hass_agent_pending_device"
 
 EVENT_NOTIFICATION_ACTIONS = "hass_agent_notifications"
 
+# The built-in command of the tray app that takes a screenshot: a PC that offers it gets
+# the image entity next to its button.
+SCREENSHOT_COMMAND = "screenshot"
+# Carries a screenshot that came over the HA API to the PC's image entity. Not an event
+# on the bus, where everything that listens to all events would get the picture.
+SIGNAL_SCREENSHOT = "hass_agent_screenshot_{}"
+# The client keeps a screenshot under 512 KB; this leaves room, and stays well under what
+# one message of Home Assistant's websocket may carry (4 MiB, the picture in base64).
+MAX_SCREENSHOT_BYTES = 2 * 1024 * 1024
+
 SIGNAL_BUTTONS_UPDATED = "hass_agent_buttons_updated_{}"
 SIGNAL_SENSORS_UPDATED = "hass_agent_sensors_updated_{}"
 SIGNAL_UPDATE_STATE = "hass_agent_update_state_{}"
