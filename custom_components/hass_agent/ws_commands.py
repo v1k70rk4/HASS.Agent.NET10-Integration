@@ -22,6 +22,8 @@ confirmation of its own. Administrators are let through, as `fire_event` lets th
 
 from __future__ import annotations
 
+import asyncio
+import logging
 from datetime import timedelta
 from typing import Any
 
@@ -41,6 +43,8 @@ from .const import (
     DOMAIN,
     SIGNAL_PENDING_DEVICE,
 )
+
+_logger = logging.getLogger(__name__)
 
 # The events the client sends, the ones the integration listens to.
 CLIENT_EVENTS = frozenset(
@@ -161,8 +165,28 @@ def _ask_for_approval(hass: HomeAssistant, data: dict[str, Any], user_id: str) -
             data=pending,
         )
     )
-    # From here on the flow itself, while it waits, is what counts.
-    task.add_done_callback(lambda _: starting.discard(request))
+
+    @callback
+    def _started(done: asyncio.Task[Any]) -> None:
+        # From here on the flow itself, while it waits, is what counts.
+        starting.discard(request)
+        if not done.cancelled() and done.exception() is None:
+            return
+
+        # A first step that failed, or was cancelled, leaves its flow behind: not started,
+        # shown to nobody, and counted among this user's waiting PCs for good.
+        if not done.cancelled():
+            _logger.warning("the approval request for %s could not be started: %s", serial_number, done.exception())
+        for flow in hass.config_entries.flow.async_progress_by_handler(DOMAIN, include_uninitialized=True):
+            context = flow["context"]
+            if (
+                flow.get("step_id") is None
+                and context.get(REQUESTED_BY) == user_id
+                and context.get(REQUESTED_FOR) == serial_number
+            ):
+                hass.config_entries.flow.async_abort(flow["flow_id"])
+
+    task.add_done_callback(_started)
 
 
 @websocket_api.websocket_command(

@@ -110,6 +110,20 @@ async def test_each_version_is_announced_once(hass: HomeAssistant, pc: MockConfi
     assert [event.data["latest_version"] for event in events] == ["10.12.0", "10.13.0"]
 
 
+async def test_a_pc_whose_update_entity_comes_from_mqtt_discovery_is_announced_too(
+    hass: HomeAssistant, pc: MockConfigEntry
+) -> None:
+    # An agent before 10.7.3 has its update entity made by MQTT discovery, and the
+    # integration adds no second one. The event does not depend on whose entity it is.
+    er.async_get(hass).async_get_or_create("update", "mqtt", f"{SERIAL}_hass_agent_net10_update")
+    events = async_capture_events(hass, EVENT_UPDATE_AVAILABLE)
+
+    await _send(hass, UPDATE_TOPIC, _update_state("10.7.0", "10.13.0"))
+
+    assert [event.data["latest_version"] for event in events] == ["10.13.0"]
+    assert er.async_get(hass).async_get_entity_id("update", DOMAIN, f"update_{SERIAL}_app") is None
+
+
 async def test_the_announced_version_outlives_a_restart_of_home_assistant(
     hass: HomeAssistant, mqtt_mock: MqttMockHAClient, hass_storage: dict[str, Any]
 ) -> None:

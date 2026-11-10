@@ -192,6 +192,38 @@ async def test_a_user_made_for_one_pc_cannot_ask_for_another(hass, integration, 
     assert (await _fire(pc, "hass_agent_sensor_update", {"serial_number": SERIAL, "sensors": []}))["success"] is True
 
 
+async def test_a_request_that_cannot_be_started_takes_no_place(hass, integration, hass_ws_client, monkeypatch) -> None:
+    # Home Assistant keeps a flow whose first step raised: not started, shown to nobody.
+    client, _ = await _user_client(hass, hass_ws_client, "pc-user")
+
+    def fail(*args, **kwargs):
+        raise RuntimeError("no first step today")
+
+    with monkeypatch.context() as patched:
+        patched.setattr("custom_components.hass_agent.config_flow._async_report_client_version", fail)
+        for number in range(MAX_PENDING_PER_USER):
+            await _fire(client, "hass_agent_device_update", {**ANNOUNCE, "serial_number": f"{number:032x}"})
+            await hass.async_block_till_done()
+
+    assert hass.config_entries.flow.async_progress_by_handler(DOMAIN, include_uninitialized=True) == []
+
+    # The places are there for the requests that do start.
+    for number in range(MAX_PENDING_PER_USER):
+        await _fire(client, "hass_agent_device_update", {**ANNOUNCE, "serial_number": f"{number:032x}"})
+        await hass.async_block_till_done()
+    assert len(hass.config_entries.flow.async_progress_by_handler(DOMAIN)) == MAX_PENDING_PER_USER
+
+
+async def test_a_version_too_long_to_read_does_not_stop_the_request(hass, integration, hass_ws_client) -> None:
+    client, _ = await _user_client(hass, hass_ws_client, "pc-user")
+
+    await _fire(client, "hass_agent_device_update", {**ANNOUNCE, "device": {**DEVICE, "sw_version": "9" * 5000 + ".0.0"}})
+    await hass.async_block_till_done()
+
+    flows = hass.config_entries.flow.async_progress_by_handler(DOMAIN, include_uninitialized=True)
+    assert [flow["step_id"] is not None for flow in flows] == [True]
+
+
 async def test_an_administrator_is_let_through(hass, integration, hass_ws_client) -> None:
     client, _ = await _user_client(hass, hass_ws_client, "admin", admin=True)
     _entry(hass, None)

@@ -899,6 +899,10 @@ def _apply_update_state_when_free(hass: HomeAssistant, entry: ConfigEntry, state
         _apply_update_state(hass, entry, state)
         return
 
+    # The event does not depend on whose entity shows the update: a PC on an older agent
+    # offers a new version like any other. Announced once, whatever the retries find.
+    _announce_update(hass, entry, state)
+
     if attempt >= 6:
         _logger.debug("update entity %s comes from MQTT discovery (older agent), not adding another", discovered)
         return

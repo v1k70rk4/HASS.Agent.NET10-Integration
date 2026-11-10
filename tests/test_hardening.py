@@ -16,7 +16,7 @@ from homeassistant.helpers.service_info.mqtt import MqttServiceInfo
 from homeassistant.setup import async_setup_component
 from pytest_homeassistant.common import MockConfigEntry
 
-from custom_components.hass_agent.config_flow import valid_serial
+from custom_components.hass_agent.config_flow import _parse_version, valid_serial
 from custom_components.hass_agent.const import CONF_HA_API, DOMAIN, MIGRATION_GUIDE_URL
 from custom_components.hass_agent.event import own_device
 from custom_components.hass_agent.notify import _prepare_image
@@ -85,6 +85,24 @@ async def test_picture_paths_are_signed(hass: HomeAssistant, image: str) -> None
 )
 def test_serial_numbers(serial, valid: bool) -> None:
     assert valid_serial(serial) is valid
+
+
+@pytest.mark.parametrize(
+    ("version", "parsed"),
+    [
+        ("10.9.1", (10, 9, 1)),
+        ("10.9", (10, 9, 0)),
+        ("10.13.0-beta.1", (10, 13, 0)),
+        # Python refuses to read a number of thousands of digits; nothing may raise on one.
+        ("9" * 5000 + ".0.0", None),
+        ("10." + "9" * 5000, None),
+        ("10.9." + "9" * 5000, (10, 9, 0)),
+        ("not a version", None),
+        (None, None),
+    ],
+)
+def test_a_version_is_read_whatever_its_length(version, parsed) -> None:
+    assert _parse_version(version) == parsed
 
 
 # --- discovery over MQTT -------------------------------------------------------------------------
