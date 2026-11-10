@@ -85,11 +85,16 @@ def _parse_version(value: object) -> tuple[int, int, int] | None:
     return int(match.group(1)), int(match.group(2)), int(match.group(3) or 0)
 
 
+# What _client_compatibility says of a version it cannot read.
+_UNREADABLE = "unreadable"
+
+
 def _client_compatibility(device: dict[str, Any]) -> str | None:
     """Classify the Windows client that sent a discovery message.
 
     Returns "legacy" for the original pre-.NET10 HASS.Agent, "outdated" for a
-    HASS.Agent .NET10 older than the supported minimum, and None when it is fine.
+    HASS.Agent .NET10 older than the supported minimum, "unreadable" when the
+    version says nothing, and None when it is fine.
 
     The old client sends a discovery message of the same shape — this integration
     started out as a fork of the original one — so it used to pass validation and
@@ -99,8 +104,11 @@ def _client_compatibility(device: dict[str, Any]) -> str | None:
     """
     version = _parse_version(device.get("sw_version"))
     minimum = _parse_version(MINIMUM_CLIENT_VERSION)
-    if version is None or minimum is None:
+    if minimum is None:
         return None
+
+    if version is None:
+        return _UNREADABLE
 
     # The old client used 2.x, and before that calendar versions such as 2022.14.0 —
     # which would otherwise look newer than any .NET10 release.
@@ -120,6 +128,11 @@ def _async_report_client_version(
     """Raise, or clear, the repair notice about this PC's Windows client."""
     issue_id = f"client_version_{serial_number}"
     status = _client_compatibility(device)
+
+    if status == _UNREADABLE:
+        # It says nothing about the client: no notice is raised for it, and one that is
+        # there stays. A message with a made-up version must not clear what a real one raised.
+        return None
 
     if status is None:
         # Also clears a notice once the client has been updated.

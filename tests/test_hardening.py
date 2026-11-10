@@ -16,7 +16,11 @@ from homeassistant.helpers.service_info.mqtt import MqttServiceInfo
 from homeassistant.setup import async_setup_component
 from pytest_homeassistant.common import MockConfigEntry
 
-from custom_components.hass_agent.config_flow import _parse_version, valid_serial
+from custom_components.hass_agent.config_flow import (
+    _async_report_client_version,
+    _parse_version,
+    valid_serial,
+)
 from custom_components.hass_agent.const import CONF_HA_API, DOMAIN, MIGRATION_GUIDE_URL
 from custom_components.hass_agent.event import own_device
 from custom_components.hass_agent.notify import _prepare_image
@@ -105,6 +109,23 @@ def test_serial_numbers(serial, valid: bool) -> None:
 )
 def test_a_version_is_read_whatever_its_length(version: object, parsed: tuple[int, int, int] | None) -> None:
     assert _parse_version(version) == parsed
+
+
+async def test_a_version_that_cannot_be_read_leaves_the_notice_as_it_is(hass: HomeAssistant) -> None:
+    issues = ir.async_get(hass)
+    issue_id = f"client_version_{SERIAL}"
+    # A client older than the supported minimum: the notice is there.
+    assert _async_report_client_version(hass, SERIAL, "MY-PC", {**DEVICE, "sw_version": "10.1.0"}) == "outdated"
+    assert issues.async_get_issue(DOMAIN, issue_id) is not None
+
+    # A version nobody can read says nothing about the client, and clears nothing.
+    for version in ("9" * 5000 + ".0.0", "10.9." + "9" * 5000, "not a version", None):
+        assert _async_report_client_version(hass, SERIAL, "MY-PC", {**DEVICE, "sw_version": version}) is None
+        assert issues.async_get_issue(DOMAIN, issue_id) is not None
+
+    # A supported one does.
+    assert _async_report_client_version(hass, SERIAL, "MY-PC", {**DEVICE, "sw_version": "10.13.0"}) is None
+    assert issues.async_get_issue(DOMAIN, issue_id) is None
 
 
 # --- discovery over MQTT -------------------------------------------------------------------------
