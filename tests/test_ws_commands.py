@@ -8,7 +8,12 @@ from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.setup import async_setup_component
 from pytest_homeassistant.common import MockConfigEntry, async_capture_events
 
-from custom_components.hass_agent.const import CONF_HA_API, CONF_PROVISIONED_USER_ID, CONF_USER_ID, DOMAIN
+from custom_components.hass_agent.const import (
+    CONF_HA_API,
+    CONF_PROVISIONED_USER_ID,
+    CONF_USER_ID,
+    DOMAIN,
+)
 from custom_components.hass_agent.ws_commands import MAX_PENDING_PER_USER
 
 SERIAL = "0123456789abcdef0123456789abcdef"
