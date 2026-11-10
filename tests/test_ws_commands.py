@@ -7,6 +7,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.setup import async_setup_component
 from pytest_homeassistant.common import MockConfigEntry, async_capture_events
+from pytest_homeassistant.typing import WebSocketGenerator
 
 from custom_components.hass_agent.const import (
     CONF_HA_API,
@@ -124,7 +125,10 @@ async def test_ignoring_the_approval_keeps_the_pc(hass, integration, hass_ws_cli
     assert hass.config_entries.flow.async_progress_by_handler(DOMAIN) == []
 
 
-async def test_a_user_cannot_fill_the_discovered_list(hass, integration, hass_ws_client) -> None:
+@pytest.mark.usefixtures("integration")
+async def test_a_user_cannot_fill_the_discovered_list(
+    hass: HomeAssistant, hass_ws_client: WebSocketGenerator
+) -> None:
     # Anyone with a login can announce a PC under any serial number and name.
     client, _ = await _user_client(hass, hass_ws_client, "pc-user")
 
@@ -143,7 +147,10 @@ async def test_a_user_cannot_fill_the_discovered_list(hass, integration, hass_ws
     assert len(hass.config_entries.flow.async_progress_by_handler(DOMAIN)) == MAX_PENDING_PER_USER
 
 
-async def test_a_pc_announcing_itself_again_takes_no_second_place(hass, integration, hass_ws_client) -> None:
+@pytest.mark.usefixtures("integration")
+async def test_a_pc_announcing_itself_again_takes_no_second_place(
+    hass: HomeAssistant, hass_ws_client: WebSocketGenerator
+) -> None:
     client, _ = await _user_client(hass, hass_ws_client, "pc-user")
 
     for _ in range(MAX_PENDING_PER_USER + 2):
@@ -158,7 +165,10 @@ async def test_a_pc_announcing_itself_again_takes_no_second_place(hass, integrat
     assert len(hass.config_entries.flow.async_progress_by_handler(DOMAIN)) == MAX_PENDING_PER_USER
 
 
-async def test_each_user_has_places_of_their_own(hass, integration, hass_ws_client) -> None:
+@pytest.mark.usefixtures("integration")
+async def test_each_user_has_places_of_their_own(
+    hass: HomeAssistant, hass_ws_client: WebSocketGenerator
+) -> None:
     first, _ = await _user_client(hass, hass_ws_client, "first-user")
     second, _ = await _user_client(hass, hass_ws_client, "second-user")
     for number in range(MAX_PENDING_PER_USER):
@@ -171,7 +181,10 @@ async def test_each_user_has_places_of_their_own(hass, integration, hass_ws_clie
     assert len(hass.config_entries.flow.async_progress_by_handler(DOMAIN)) == MAX_PENDING_PER_USER + 1
 
 
-async def test_a_user_made_for_one_pc_cannot_ask_for_another(hass, integration, hass_ws_client) -> None:
+@pytest.mark.usefixtures("integration")
+async def test_a_user_made_for_one_pc_cannot_ask_for_another(
+    hass: HomeAssistant, hass_ws_client: WebSocketGenerator
+) -> None:
     admin, _ = await _user_client(hass, hass_ws_client, "admin", admin=True)
     own = _entry(hass, None)
     await admin.send_json_auto_id({"type": "hass_agent/provision", "serial_number": SERIAL})
@@ -192,7 +205,10 @@ async def test_a_user_made_for_one_pc_cannot_ask_for_another(hass, integration, 
     assert (await _fire(pc, "hass_agent_sensor_update", {"serial_number": SERIAL, "sensors": []}))["success"] is True
 
 
-async def test_a_request_that_cannot_be_started_takes_no_place(hass, integration, hass_ws_client, monkeypatch) -> None:
+@pytest.mark.usefixtures("integration")
+async def test_a_request_that_cannot_be_started_takes_no_place(
+    hass: HomeAssistant, hass_ws_client: WebSocketGenerator, monkeypatch: pytest.MonkeyPatch
+) -> None:
     # Home Assistant keeps a flow whose first step raised: not started, shown to nobody.
     client, _ = await _user_client(hass, hass_ws_client, "pc-user")
 
@@ -214,7 +230,10 @@ async def test_a_request_that_cannot_be_started_takes_no_place(hass, integration
     assert len(hass.config_entries.flow.async_progress_by_handler(DOMAIN)) == MAX_PENDING_PER_USER
 
 
-async def test_a_version_too_long_to_read_does_not_stop_the_request(hass, integration, hass_ws_client) -> None:
+@pytest.mark.usefixtures("integration")
+async def test_a_version_too_long_to_read_does_not_stop_the_request(
+    hass: HomeAssistant, hass_ws_client: WebSocketGenerator
+) -> None:
     client, _ = await _user_client(hass, hass_ws_client, "pc-user")
 
     await _fire(client, "hass_agent_device_update", {**ANNOUNCE, "device": {**DEVICE, "sw_version": "9" * 5000 + ".0.0"}})

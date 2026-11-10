@@ -96,12 +96,14 @@ def test_serial_numbers(serial, valid: bool) -> None:
         # Python refuses to read a number of thousands of digits; nothing may raise on one.
         ("9" * 5000 + ".0.0", None),
         ("10." + "9" * 5000, None),
-        ("10.9." + "9" * 5000, (10, 9, 0)),
+        ("10.9." + "9" * 5000, None),
+        ("10.13.0.1", (10, 13, 0)),
+        ("2022.14.0", (2022, 14, 0)),
         ("not a version", None),
         (None, None),
     ],
 )
-def test_a_version_is_read_whatever_its_length(version, parsed) -> None:
+def test_a_version_is_read_whatever_its_length(version: object, parsed: tuple[int, int, int] | None) -> None:
     assert _parse_version(version) == parsed
 
 

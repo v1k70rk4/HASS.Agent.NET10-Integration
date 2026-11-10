@@ -58,8 +58,9 @@ _logger = logging.getLogger(__name__)
 
 # Each part at most nine digits: a number of thousands of digits, which whoever sends the
 # message could put there, makes int() raise, and the flow's first step with it. A version
-# with a longer part is not one of ours and reads as no version at all.
-_VERSION_PATTERN = re.compile(r"^\s*(\d{1,9})\.(\d{1,9})(?:\.(\d{1,9}))?(?!\d)")
+# with a longer part, the third one included, is not one of ours and reads as no version
+# at all: a part is never cut short or left out to make the rest fit.
+_VERSION_PATTERN = re.compile(r"^\s*(\d{1,9})\.(\d{1,9})(?:\.(\d{1,9})(?!\d)|(?!\.?\d))")
 
 # What a serial number may look like. The client makes a GUID of it (32 hex digits, the
 # classic client one with dashes). It goes into MQTT topics and unique ids, where '+',
