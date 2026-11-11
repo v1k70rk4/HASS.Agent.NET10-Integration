@@ -76,6 +76,12 @@ BUTTON_DESCRIPTIONS: tuple[ButtonEntityDescription, ...] = (
         translation_key="restart_cancel",
         icon="mdi:cancel",
     ),
+    # The picture it asks for shows in the image entity of the PC (see image.py).
+    ButtonEntityDescription(
+        key="screenshot",
+        translation_key="screenshot",
+        icon="mdi:monitor-screenshot",
+    ),
 )
 
 

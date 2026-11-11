@@ -20,3 +20,7 @@ updates:
       interval: "weekly"
     commit-message:
       prefix: "test"
+    # aiohasupervisor is left out: the tests take the version that the pinned Home Assistant asks
+    # for itself (its hassio manifest), so it moves with pytest-homeassistant, by hand.
+    ignore:
+      - dependency-name: "aiohasupervisor"
