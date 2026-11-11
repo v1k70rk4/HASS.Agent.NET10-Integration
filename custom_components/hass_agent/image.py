@@ -33,17 +33,28 @@ from .entity import HassAgentAvailableEntity, async_get_agent_device
 _LOGGER = logging.getLogger(__name__)
 
 
+# How a whole picture begins and ends: a JPEG from its start-of-image marker to its
+# end-of-image marker, a PNG from its signature to its IEND chunk.
+_JPEG_START = b"\xff\xd8\xff"
+_JPEG_END = b"\xff\xd9"
+_PNG_START = b"\x89PNG\r\n\x1a\n"
+_PNG_END = b"\x00\x00\x00\x00IEND\xaeB`\x82"
+
+
 def screenshot_content_type(image: Any) -> str | None:
     """The type of a picture the PC sent, or None when it is not one that is taken.
 
-    Told from the first bytes, not from what the sender says: JPEG is what the client
-    sends, PNG is taken as well.
+    Told from the bytes, not from what the sender says: JPEG is what the client sends, PNG
+    is taken as well. The picture must be whole, with its end where the bytes end: one
+    that was cut off on the way would otherwise take the place of the last good one. It
+    is not decoded: Home Assistant hands the bytes on as they are, and a decoder would be
+    one more thing for the integration to bring along.
     """
     if not isinstance(image, bytes) or not image or len(image) > MAX_SCREENSHOT_BYTES:
         return None
-    if image[:3] == b"\xff\xd8\xff":
+    if image.startswith(_JPEG_START) and image.endswith(_JPEG_END) and len(image) > len(_JPEG_START) + len(_JPEG_END):
         return "image/jpeg"
-    if image[:8] == b"\x89PNG\r\n\x1a\n":
+    if image.startswith(_PNG_START) and image.endswith(_PNG_END) and len(image) > len(_PNG_START) + len(_PNG_END):
         return "image/png"
     return None
 
@@ -100,7 +111,7 @@ class HassAgentScreenshotImage(HassAgentAvailableEntity, ImageEntity):
         content_type = screenshot_content_type(image)
         if content_type is None:
             _LOGGER.warning(
-                "A screenshot of %s over %s was not taken: it is not a JPEG or PNG picture of at most %s KB",
+                "A screenshot of %s over %s was not taken: it is not a whole JPEG or PNG picture of at most %s KB",
                 self._serial_number,
                 source,
                 MAX_SCREENSHOT_BYTES // 1024,

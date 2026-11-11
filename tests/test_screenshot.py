@@ -30,9 +30,10 @@ OTHER = "ffffffffffffffffffffffffffffffff"
 DEVICE = {"name": "MY-PC", "manufacturer": "v1k70rk4", "model": "HASS.Agent .NET10", "sw_version": "10.14.0"}
 TOPIC = f"hass.agent/screenshot/{SERIAL}/image"
 
-# Enough of each to be told by its first bytes; nothing reads further.
-JPEG = b"\xff\xd8\xff\xe0" + b"a jpeg of the screen"
-PNG = b"\x89PNG\r\n\x1a\n" + b"a png of the screen"
+# Enough of each to be told as a whole picture: how it begins and how it ends. Nothing
+# decodes what is in between.
+JPEG = b"\xff\xd8\xff\xe0" + b"a jpeg of the screen" + b"\xff\xd9"
+PNG = b"\x89PNG\r\n\x1a\n" + b"a png of the screen" + b"\x00\x00\x00\x00IEND\xaeB`\x82"
 
 
 @pytest.fixture
@@ -123,9 +124,21 @@ async def test_a_screenshot_over_mqtt_is_the_picture_of_the_image(hass: HomeAssi
     [
         b"not a picture at all",
         b"<html><script>alert(1)</script></html>",
-        b"\xff\xd8\xff" + b"0" * MAX_SCREENSHOT_BYTES,
+        b"\xff\xd8\xff" + b"0" * MAX_SCREENSHOT_BYTES + b"\xff\xd9",
+        b"\xff\xd8\xff",
+        JPEG[:-2],
+        PNG[:-12],
+        b"\xff\xd8\xff\xd9",
     ],
-    ids=["text", "html", "too large"],
+    ids=[
+        "text",
+        "html",
+        "too large",
+        "only the start of a jpeg",
+        "a jpeg cut off",
+        "a png cut off",
+        "a jpeg with nothing in it",
+    ],
 )
 async def test_what_is_not_a_picture_is_not_taken(hass: HomeAssistant, mqtt_mock, payload: bytes) -> None:
     await _pc(hass, "screenshot")
@@ -143,10 +156,14 @@ async def test_a_bad_picture_leaves_the_last_good_one(hass: HomeAssistant, mqtt_
     async_fire_mqtt_message(hass, TOPIC, JPEG)
     await hass.async_block_till_done()
 
-    async_fire_mqtt_message(hass, TOPIC, b"not a picture at all")
-    await hass.async_block_till_done()
+    taken = hass.states.get(image).state
+    for bad in (b"not a picture at all", b"\xff\xd8\xff", JPEG[:-2]):
+        async_fire_mqtt_message(hass, TOPIC, bad)
+        await hass.async_block_till_done()
 
+    # The picture, and the time it was taken, are those of the last good one.
     assert await _picture(hass, hass_client, image) == (HTTPStatus.OK, "image/jpeg", JPEG)
+    assert hass.states.get(image).state == taken
 
 
 async def _user_client(hass, hass_ws_client, name: str):
