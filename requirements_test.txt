@@ -3,4 +3,4 @@
 pytest-homeassistant==2026.11.1
 # MQTT's config flow imports the Supervisor (hassio) integration; the package brings its client only
 # with the bluetooth extra. Same version as the hassio manifest of this Home Assistant.
-aiohasupervisor==0.8.1
+aiohasupervisor==0.10.0
