@@ -2,6 +2,13 @@
 
 Every release of the HASS.Agent .NET10 integration, newest first. The Windows client has its own [changelog](https://github.com/v1k70rk4/HASS.Agent.NET10/blob/main/CHANGELOG.md).
 
+## 10.13.1-beta.1
+
+> **Beta.** Going with the Windows client [10.13.1-beta.1](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.13.1-beta.1): the PC's screenshot as an image entity, and an update event that carries only what reads as a version. Works with every supported Windows client. In the Marketplace (HACS in Home Assistant before 2026.11): open the integration, choose **Redownload**, turn on **Show beta versions**, then pick **10.13.1-beta.1**. Restart Home Assistant afterwards.
+
+- **The PC's screenshot, as an image entity.** A PC whose tray app has the *Take a screenshot* command ticked (Windows client 10.13.1-beta.1 or newer; it is off by default and can only be turned on at the PC) gets a **Take a screenshot** button and a **Screenshot** image. The PC takes a picture only when the button is pressed, never on its own; for one at regular times, press the button from an automation. The picture is kept in memory only: after a restart of Home Assistant there is none until the next one is asked for. Over the HA API it comes through a command of its own and not as an event, so it is not on Home Assistant's event bus. Unticked on the PC, both entities go. See [Screenshot](https://github.com/v1k70rk4/HASS.Agent.NET10/blob/main/docs/commands/screenshot.md).
+- **The update event carries only what reads as a version.** `hass_agent_update_available` took the version from the PC's update state as it came, so a text of any length went into the event and into the file that keeps what was announced. Now only a version does: two to four numbers, with the `v` of a release's tag before them and a short part after a dash or a plus. The installed version is left out of the event when it is not one. The update entity shows what the PC sends, as before.
+
 ## 10.13.0
 
 Going with the Windows client [10.13.0](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.13.0): an event when a PC offers a new version, an update entity that no longer says "update available" for a moment while the PC comes back, and a limit on approval requests. Works with every supported Windows client. Update in the Marketplace (HACS in Home Assistant before 2026.11) and restart Home Assistant afterwards.

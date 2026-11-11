@@ -1,7 +1,7 @@
 """Image platform for HASS.Agent: the last screenshot the PC sent.
 
 The PC takes a screenshot when it is asked to, with the Screenshot button (client
-10.14.0+, tray app, off until it is ticked on the PC itself), and never by itself. The
+10.13.1+, tray app, off until it is ticked on the PC itself), and never by itself. The
 picture comes over MQTT as it is, or over the HA API through `hass_agent/screenshot`; it
 is kept in memory only, so it is gone after a restart of Home Assistant until the next
 one is asked for.
