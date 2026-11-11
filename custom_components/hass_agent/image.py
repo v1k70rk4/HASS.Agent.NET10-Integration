@@ -10,6 +10,7 @@ one is asked for.
 from __future__ import annotations
 
 import logging
+import zlib
 from typing import Any
 
 from homeassistant.components.image import ImageEntity
@@ -33,28 +34,114 @@ from .entity import HassAgentAvailableEntity, async_get_agent_device
 _LOGGER = logging.getLogger(__name__)
 
 
-# How a whole picture begins and ends: a JPEG from its start-of-image marker to its
-# end-of-image marker, a PNG from its signature to its IEND chunk.
-_JPEG_START = b"\xff\xd8\xff"
+_JPEG_START = b"\xff\xd8"
 _JPEG_END = b"\xff\xd9"
 _PNG_START = b"\x89PNG\r\n\x1a\n"
-_PNG_END = b"\x00\x00\x00\x00IEND\xaeB`\x82"
+
+
+def _is_whole_jpeg(image: bytes) -> bool:
+    """Whether the bytes are laid out as a JPEG picture from its first marker to its last.
+
+    After the start marker come segments, each with its marker and its length; one of
+    them is the frame header, which says how wide and high the picture is; then the scan
+    starts, and the picture's data runs up to the end marker, which must be the last two
+    bytes. The data itself is not decoded.
+    """
+    size = len(image)
+    if not image.startswith(_JPEG_START) or not image.endswith(_JPEG_END):
+        return False
+
+    position = len(_JPEG_START)
+    has_frame = False
+    while position < size:
+        if image[position] != 0xFF:
+            return False
+        # A marker may have fill bytes before it.
+        while position < size and image[position] == 0xFF:
+            position += 1
+        if position >= size:
+            return False
+        marker = image[position]
+        position += 1
+        # No segment these: a stuffed byte, the markers of a scan's own data, a second
+        # start, and the end before any scan.
+        if marker in (0x00, 0x01) or 0xD0 <= marker <= 0xD9:
+            return False
+        if position + 2 > size:
+            return False
+        length = int.from_bytes(image[position : position + 2], "big")
+        if length < 2 or position + length > size - len(_JPEG_END):
+            return False
+        if 0xC0 <= marker <= 0xCF and marker not in (0xC4, 0xC8, 0xCC):
+            # The frame header: precision, height, width, how many components.
+            if length < 8:
+                return False
+            height = int.from_bytes(image[position + 3 : position + 5], "big")
+            width = int.from_bytes(image[position + 5 : position + 7], "big")
+            if width == 0 or height == 0:
+                return False
+            has_frame = True
+        if marker == 0xDA:
+            # The scan: there must be a frame it belongs to, and data after its header.
+            return has_frame and position + length < size - len(_JPEG_END)
+        position += length
+    return False
+
+
+def _is_whole_png(image: bytes) -> bool:
+    """Whether the bytes are laid out as a PNG picture from its signature to its last chunk.
+
+    After the signature come chunks, each with its length, its type, its data and a
+    checksum of the two before: the header first, saying how wide and high the picture
+    is, the picture's data among them, the end chunk last and at the end of the bytes.
+    Every checksum is worked out; the data itself is not unpacked.
+    """
+    size = len(image)
+    if not image.startswith(_PNG_START):
+        return False
+
+    position = len(_PNG_START)
+    first = True
+    has_data = False
+    while position + 12 <= size:
+        length = int.from_bytes(image[position : position + 4], "big")
+        kind = image[position + 4 : position + 8]
+        end = position + 12 + length
+        if end > size:
+            return False
+        if zlib.crc32(image[position + 4 : end - 4]) != int.from_bytes(image[end - 4 : end], "big"):
+            return False
+        if first:
+            if kind != b"IHDR" or length != 13:
+                return False
+            width = int.from_bytes(image[position + 8 : position + 12], "big")
+            height = int.from_bytes(image[position + 12 : position + 16], "big")
+            if width == 0 or height == 0:
+                return False
+            first = False
+        elif kind == b"IDAT":
+            has_data = True
+        elif kind == b"IEND":
+            return has_data and length == 0 and end == size
+        position = end
+    return False
 
 
 def screenshot_content_type(image: Any) -> str | None:
     """The type of a picture the PC sent, or None when it is not one that is taken.
 
     Told from the bytes, not from what the sender says: JPEG is what the client sends, PNG
-    is taken as well. The picture must be whole, with its end where the bytes end: one
-    that was cut off on the way would otherwise take the place of the last good one. It
-    is not decoded: Home Assistant hands the bytes on as they are, and a decoder would be
-    one more thing for the integration to bring along.
+    is taken as well. The picture must be whole and laid out as its kind is, from its
+    first byte to its last: one that was cut off or mixed up on the way would otherwise
+    take the place of the last good one. Its layout is read, its data is not decoded:
+    Home Assistant hands the bytes on as they are, and a decoder would be one more thing
+    for the integration to bring along.
     """
     if not isinstance(image, bytes) or not image or len(image) > MAX_SCREENSHOT_BYTES:
         return None
-    if image.startswith(_JPEG_START) and image.endswith(_JPEG_END) and len(image) > len(_JPEG_START) + len(_JPEG_END):
+    if _is_whole_jpeg(image):
         return "image/jpeg"
-    if image.startswith(_PNG_START) and image.endswith(_PNG_END) and len(image) > len(_PNG_START) + len(_PNG_END):
+    if _is_whole_png(image):
         return "image/png"
     return None
 

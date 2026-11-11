@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import base64
+import struct
+import zlib
 from http import HTTPStatus
 
 import pytest
@@ -30,10 +32,33 @@ OTHER = "ffffffffffffffffffffffffffffffff"
 DEVICE = {"name": "MY-PC", "manufacturer": "v1k70rk4", "model": "HASS.Agent .NET10", "sw_version": "10.14.0"}
 TOPIC = f"hass.agent/screenshot/{SERIAL}/image"
 
-# Enough of each to be told as a whole picture: how it begins and how it ends. Nothing
-# decodes what is in between.
-JPEG = b"\xff\xd8\xff\xe0" + b"a jpeg of the screen" + b"\xff\xd9"
-PNG = b"\x89PNG\r\n\x1a\n" + b"a png of the screen" + b"\x00\x00\x00\x00IEND\xaeB`\x82"
+# A real JPEG, 16 by 16 pixels, as the Windows encoder the client uses writes it.
+JPEG = base64.b64decode(
+    "/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PT"
+    "gyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAAQ"
+    "ABADASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhBy"
+    "JxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKT"
+    "lJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAA"
+    "AAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRom"
+    "JygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExc"
+    "bHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwCzpWjvqhIWZY/nWMZXPJqe48OXESWrRyLILiQxrkYwe3r15/I0"
+    "zRdfuNFDiAMQ7qxAkK5x2OOoqW78Sy3UccTWkBhQAGNs84IIO5cN2Pfua2f9o/2g7fwf+3bfCv8At7e//DHHH6n9T1/ifPv921v+HP/Z"
+)
+
+
+def _chunk(kind: bytes, data: bytes = b"") -> bytes:
+    return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data))
+
+
+def _png(*chunks: bytes) -> bytes:
+    return b"\x89PNG\r\n\x1a\n" + b"".join(chunks)
+
+
+_HEADER = _chunk(b"IHDR", struct.pack(">IIBBBBB", 2, 1, 8, 2, 0, 0, 0))
+_DATA = _chunk(b"IDAT", zlib.compress(b"\x00" + b"\x10\x20\x30" * 2))
+_END = _chunk(b"IEND")
+# A real PNG, 2 by 1 pixels: its header, its data and its end, each with its checksum.
+PNG = _png(_HEADER, _DATA, _END)
 
 
 @pytest.fixture
@@ -124,11 +149,19 @@ async def test_a_screenshot_over_mqtt_is_the_picture_of_the_image(hass: HomeAssi
     [
         b"not a picture at all",
         b"<html><script>alert(1)</script></html>",
-        b"\xff\xd8\xff" + b"0" * MAX_SCREENSHOT_BYTES + b"\xff\xd9",
+        _png(_HEADER, _chunk(b"IDAT", bytes(MAX_SCREENSHOT_BYTES)), _END),
         b"\xff\xd8\xff",
         JPEG[:-2],
-        PNG[:-12],
+        JPEG[: len(JPEG) // 2] + b"\xff\xd9",
         b"\xff\xd8\xff\xd9",
+        b"\xff\xd8\xffX\xff\xd9",
+        b"\xff\xd8\xff\xe0" + b"a jpeg of the screen" + b"\xff\xd9",
+        PNG[:-12],
+        b"\x89PNG\r\n\x1a\n" + b"a png of the screen" + _END,
+        _png(_HEADER, _END),
+        _png(_HEADER, _DATA[:-1] + bytes([_DATA[-1] ^ 1]), _END),
+        _png(_DATA, _END),
+        PNG + b"more after the end",
     ],
     ids=[
         "text",
@@ -136,8 +169,16 @@ async def test_a_screenshot_over_mqtt_is_the_picture_of_the_image(hass: HomeAssi
         "too large",
         "only the start of a jpeg",
         "a jpeg cut off",
-        "a png cut off",
+        "a jpeg cut in the middle, with an end put on",
         "a jpeg with nothing in it",
+        "a jpeg start, a letter, a jpeg end",
+        "text between a jpeg start and end",
+        "a png cut off",
+        "text between a png start and end",
+        "a png without its data",
+        "a png with a wrong checksum",
+        "a png without its header",
+        "a png with more after its end",
     ],
 )
 async def test_what_is_not_a_picture_is_not_taken(hass: HomeAssistant, mqtt_mock, payload: bytes) -> None:
