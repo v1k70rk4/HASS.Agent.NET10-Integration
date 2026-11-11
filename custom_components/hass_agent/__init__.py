@@ -52,6 +52,7 @@ from .const import (
     CONF_TIME,
     DOMAIN,
     EVENT_UPDATE_AVAILABLE,
+    SCREENSHOT_COMMAND,
     SIGNAL_BUTTONS_UPDATED,
     SIGNAL_SENSORS_UPDATED,
     SIGNAL_UPDATE_STATE,
@@ -70,6 +71,7 @@ PLATFORMS: list[Platform] = [
     Platform.LIGHT,
     Platform.SELECT,
     Platform.BUTTON,
+    Platform.IMAGE,
 ]
 # Loaded and unloaded together: the light and the selects exist for sensor keys.
 SENSOR_PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.LIGHT, Platform.SELECT]
@@ -103,7 +105,9 @@ SYSTEM_COMMANDS = {
     "restart",
 }
 SYSTEM_SERVICE_COMMANDS = {"shutdown", "restart", "restart_cancel"}
-BUTTON_ENTITY_COMMANDS = SYSTEM_COMMANDS | {"restart_cancel"}
+# The buttons that go when their command is unticked on the PC. The screenshot is a button
+# only: it is not one of the commands of the system_command action.
+BUTTON_ENTITY_COMMANDS = SYSTEM_COMMANDS | {"restart_cancel", SCREENSHOT_COMMAND}
 
 _logger = logging.getLogger(__name__)
 
@@ -733,6 +737,12 @@ async def _async_apply_apis(
         button_commands = _available_button_commands(apis, service_status)
         custom_commands = _available_custom_commands(apis, service_status)
         buttons = bool(button_commands or custom_commands) and entry.data.get(CONF_URL) is None
+        # The image the Screenshot button fills: there while the tray app offers the command.
+        screenshot = (
+            apis.get("buttons") is True
+            and any(command[0] == SCREENSHOT_COMMAND for command in _normalize_commands(apis.get("commands")))
+            and entry.data.get(CONF_URL) is None
+        )
 
         await _async_update_platform(
             hass,
@@ -785,6 +795,14 @@ async def _async_apply_apis(
             device_name,
             button_commands,
             custom_commands,
+        )
+        await _async_update_platform(
+            hass,
+            entry,
+            Platform.IMAGE,
+            "image",
+            bool(screenshot),
+            device_name,
         )
         async_dispatcher_send(hass, _button_update_signal(entry.entry_id))
 
@@ -1467,6 +1485,9 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         if loaded.get("button", False):
             platforms_to_unload.append(Platform.BUTTON)
+
+        if loaded.get("image", False):
+            platforms_to_unload.append(Platform.IMAGE)
 
         if loaded.get("update", False):
             platforms_to_unload.append(Platform.UPDATE)

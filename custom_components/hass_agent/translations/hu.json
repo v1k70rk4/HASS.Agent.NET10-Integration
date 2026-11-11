@@ -113,6 +113,11 @@
       "update_check": {
         "name": "Frissítés keresése"
       }
+    },
+    "image": {
+      "screenshot": {
+        "name": "Képernyőkép"
+      }
     }
   },
   "issues": {
