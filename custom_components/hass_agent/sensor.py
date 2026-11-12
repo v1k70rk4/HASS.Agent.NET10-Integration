@@ -99,6 +99,14 @@ SENSOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:harddisk",
     ),
+    # Client 10.13.1-beta.2+: how many jobs wait in the print queues of the PC, on whichever
+    # printer; every printer with its own queue and state, and the jobs, are attributes.
+    SensorEntityDescription(
+        key="print_jobs",
+        translation_key="print_jobs",
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:printer",
+    ),
     SensorEntityDescription(
         key="uptime_seconds",
         translation_key="uptime",

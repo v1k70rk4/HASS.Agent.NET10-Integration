@@ -124,6 +124,37 @@ def test_a_device_class_from_the_client_is_applied_when_it_is_one() -> None:
     assert _sensor(unit="°C").device_class is None
 
 
+def test_print_jobs_counts_what_waits_and_carries_every_printer() -> None:
+    description = next(item for item in SENSOR_DESCRIPTIONS if item.key == "print_jobs")
+    assert description.state_class == SensorStateClass.MEASUREMENT
+    assert description.native_unit_of_measurement is None
+
+    sensor = HassAgentSystemSensor("entry", "serial", DEVICE, description, "Print jobs")
+    sensor.async_write_ha_state = MagicMock()
+    queues = {
+        "default_printer": "Brother HL-L2350DW",
+        "default_printer_jobs": 2,
+        "printer_count": 2,
+        "printers": [
+            {"name": "Brother HL-L2350DW", "jobs": 2, "status": "offline", "default": True, "offline": True},
+            {"name": "Microsoft Print to PDF", "jobs": 0, "status": "idle", "default": False, "offline": False},
+        ],
+        "jobs": [
+            {"printer": "Brother HL-L2350DW", "document": "Invoice.pdf", "owner": "viktor", "status": "waiting", "pages": 2}
+        ],
+    }
+    sensor._handle_ws_sensor_data({"print_jobs": 2, "attributes": {"print_jobs": queues}})
+
+    assert sensor.native_value == 2
+    assert sensor.extra_state_attributes["default_printer"] == "Brother HL-L2350DW"
+    assert sensor.extra_state_attributes["printers"][0]["status"] == "offline"
+    assert sensor.extra_state_attributes["jobs"][0]["document"] == "Invoice.pdf"
+
+    # Nothing waits: a number, not "unknown", so a trigger on "above 0" has something to leave.
+    sensor._handle_ws_sensor_data({"print_jobs": 0, "attributes": {"print_jobs": {**queues, "jobs": []}}})
+    assert sensor.native_value == 0
+
+
 def test_drive_space_shows_the_system_drive_and_every_drive_by_its_letter() -> None:
     description = next(item for item in SENSOR_DESCRIPTIONS if item.key == "drive_space")
     assert description.native_unit_of_measurement == PERCENTAGE
