@@ -31,7 +31,7 @@ It is the matching Home Assistant side for the modern **HASS.Agent .NET10** Wind
 >
 > If you want to keep using the old HASS.Agent client, switch to the **[`legacy` branch](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/tree/legacy)** of this integration. The legacy branch works with Home Assistant 2026.6+ and the original pre-.NET10 HASS.Agent, but it is **no longer maintained**.
 
-> **Stable:** [10.13.0](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/releases/latest) &nbsp;·&nbsp; **Beta:** [10.13.1-beta.1](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/releases/tag/v10.13.1-beta.1) &nbsp;·&nbsp; [What changed](#changelog) &nbsp;·&nbsp; [Full changelog](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/blob/main/CHANGELOG.md)
+> **Stable:** [10.13.0](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/releases/latest) &nbsp;·&nbsp; **Beta:** [10.13.1-beta.2](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/releases/tag/v10.13.1-beta.2) &nbsp;·&nbsp; [What changed](#changelog) &nbsp;·&nbsp; [Full changelog](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/blob/main/CHANGELOG.md)
 
 <p align="center"><img src="https://raw.githubusercontent.com/v1k70rk4/HASS.Agent.NET10-Integration/main/images/ha-device.png" width="800" alt="A Windows PC as a device in Home Assistant: media player, audio output select and command buttons"></p>
 
@@ -414,9 +414,15 @@ The first time the integration runs with this, an update a PC already offers is 
 
 ## Changelog
 
-### 10.13.1-beta.1
+### 10.13.1-beta.2
 
-> **Beta.** Going with the Windows client [10.13.1-beta.1](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.13.1-beta.1): the PC's screenshot as an image entity, and an update event that carries only what reads as a version. Works with every supported Windows client. In the Marketplace (HACS in Home Assistant before 2026.11): open the integration, choose **Redownload**, turn on **Show beta versions**, then pick **10.13.1-beta.1**. Restart Home Assistant afterwards.
+> **Beta.** Going with the Windows client [10.13.1-beta.2](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.13.1-beta.2): the entity of the client's new Print jobs sensor. Everything from beta.1 is in it. Works with every supported Windows client. In the Marketplace (HACS in Home Assistant before 2026.11): open the integration, choose **Redownload**, turn on **Show beta versions**, then pick **10.13.1-beta.2**. Restart Home Assistant afterwards.
+
+**New since beta.1**
+
+- **The Print jobs sensor of the client.** A PC with the *Print jobs* sensor switched on (Windows client 10.13.1-beta.2 or newer; it is off by default) gets a sensor with the number of jobs that wait in its print queues, on whichever printer; 0 when nothing waits. A job stays in its queue while the printer is switched off, so an automation can switch the printer's plug on when the number leaves 0. Every printer with its own queue and state, the default printer and the first jobs are in the attributes. See [Built-in sensors](https://github.com/v1k70rk4/HASS.Agent.NET10/blob/main/docs/sensors/index.md).
+
+**From beta.1**
 
 - **The PC's screenshot, as an image entity.** A PC whose tray app has the *Take a screenshot* command ticked (Windows client 10.13.1-beta.1 or newer; it is off by default and can only be turned on at the PC) gets a **Take a screenshot** button and a **Screenshot** image. The PC takes a picture only when the button is pressed, never on its own; for one at regular times, press the button from an automation. The picture is kept in memory only: after a restart of Home Assistant there is none until the next one is asked for. Over the HA API it comes through a command of its own and not as an event, so it is not on Home Assistant's event bus. Unticked on the PC, both entities go. See [Screenshot](https://github.com/v1k70rk4/HASS.Agent.NET10/blob/main/docs/commands/screenshot.md).
 - **The update event carries only what reads as a version.** `hass_agent_update_available` took the version from the PC's update state as it came, so a text of any length went into the event and into the file that keeps what was announced. Now only a version does: two to four numbers, with the `v` of a release's tag before them and a short part after a dash or a plus. The installed version is left out of the event when it is not one. The update entity shows what the PC sends, as before.
