@@ -18,6 +18,7 @@ from homeassistant.components import mqtt
 from homeassistant.components.update import UpdateEntity, UpdateEntityFeature
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
@@ -48,7 +49,6 @@ class HassAgentUpdate(HassAgentAvailableEntity, UpdateEntity):
 
     _attr_has_entity_name = True
     _attr_should_poll = False
-    _attr_supported_features = UpdateEntityFeature.INSTALL
 
     def __init__(self, entry_id: str, unique_id: str, device: dr.DeviceEntry) -> None:
         """Initialize the update entity."""
@@ -68,6 +68,20 @@ class HassAgentUpdate(HassAgentAvailableEntity, UpdateEntity):
     def _state(self) -> dict[str, Any]:
         state = self._entry_data().get(UPDATE_STATE_STORAGE_KEY)
         return state if isinstance(state, dict) else {}
+
+    def _remote_install(self) -> bool:
+        """Whether the PC takes an install asked for from here.
+
+        An agent 10.13.1 or newer says so in its update state: false when its
+        owner set updates to be installed only at the PC (Danger Zone). An older
+        agent sends nothing about it and takes the install.
+        """
+        return self._state().get("remote_install") is not False
+
+    @property
+    def supported_features(self) -> UpdateEntityFeature:
+        """Offer Install, unless the PC installs updates only at the PC itself."""
+        return UpdateEntityFeature.INSTALL if self._remote_install() else UpdateEntityFeature(0)
 
     @property
     def installed_version(self) -> str | None:
@@ -115,6 +129,13 @@ class HassAgentUpdate(HassAgentAvailableEntity, UpdateEntity):
         otherwise (agent 10.7.3+). Over MQTT the request goes to the agent's
         install topic; the event covers the HA API transport.
         """
+        if not self._remote_install():
+            # The PC would refuse it anyway; said here, nothing is sent.
+            raise HomeAssistantError(
+                "This PC installs updates only at the PC itself "
+                "(Danger Zone, Updates only at this PC)"
+            )
+
         if not self.hass.data.get(DOMAIN, {}).get(self._entry_id, {}).get("ha_api_only", False):
             await mqtt.async_publish(
                 self.hass,

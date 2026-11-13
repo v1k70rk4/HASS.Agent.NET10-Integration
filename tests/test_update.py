@@ -6,7 +6,10 @@ import json
 from typing import Any
 
 import pytest
+from homeassistant.components.update import UpdateEntityFeature
+from homeassistant.const import ATTR_ENTITY_ID, ATTR_SUPPORTED_FEATURES
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.setup import async_setup_component
@@ -29,6 +32,7 @@ SERIAL = "0123456789abcdef0123456789abcdef"
 DEVICE = {"name": "MY-PC", "manufacturer": "v1k70rk4", "model": "HASS.Agent .NET10", "sw_version": "10.11.0"}
 AVAILABILITY_TOPIC = f"hass.agent/devices/{SERIAL}/availability"
 UPDATE_TOPIC = f"hass.agent/update/{SERIAL}/state"
+INSTALL_TOPIC = f"hass.agent/update/{SERIAL}/install"
 
 
 @pytest.fixture
@@ -58,13 +62,32 @@ async def _send(hass: HomeAssistant, topic: str, payload: str) -> None:
     await hass.async_block_till_done(wait_background_tasks=True)
 
 
-def _update_state(installed: str, latest: str) -> str:
-    return json.dumps({
+def _update_state(installed: str, latest: str, remote_install: bool | None = None) -> str:
+    state: dict[str, Any] = {
         "installed_version": installed,
         "latest_version": latest,
         "update_available": installed != latest,
         "release_url": f"https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v{latest}",
-    })
+    }
+    # An agent before 10.13.1 sends nothing about it.
+    if remote_install is not None:
+        state["remote_install"] = remote_install
+    return json.dumps(state)
+
+
+def _entity_id(hass: HomeAssistant) -> str:
+    entity_id = er.async_get(hass).async_get_entity_id("update", DOMAIN, f"update_{SERIAL}_app")
+    assert entity_id is not None
+    return entity_id
+
+
+def _may_install(hass: HomeAssistant) -> bool:
+    features = hass.states.get(_entity_id(hass)).attributes[ATTR_SUPPORTED_FEATURES]
+    return bool(features & UpdateEntityFeature.INSTALL)
+
+
+def _install_requests(mqtt_mock: MqttMockHAClient) -> list[Any]:
+    return [call for call in mqtt_mock.async_publish.call_args_list if call.args[0] == INSTALL_TOPIC]
 
 
 def _state(hass: HomeAssistant) -> str:
@@ -227,3 +250,64 @@ async def test_a_pending_update_shows_again_once_the_pc_says_so(hass: HomeAssist
 
     await _send(hass, UPDATE_TOPIC, _update_state("10.11.0", "10.12.0"))
     assert _state(hass) == "on"
+
+
+async def test_the_install_goes_to_the_pc(
+    hass: HomeAssistant, pc: MockConfigEntry, mqtt_mock: MqttMockHAClient
+) -> None:
+    # An agent that says nothing about it (before 10.13.1), and one that says it takes it.
+    commands = async_capture_events(hass, "hass_agent_command")
+
+    for remote_install in (None, True):
+        await _send(hass, UPDATE_TOPIC, _update_state("10.13.0", "10.13.1", remote_install))
+        assert _may_install(hass)
+        await hass.services.async_call("update", "install", {ATTR_ENTITY_ID: _entity_id(hass)}, blocking=True)
+
+    assert len(_install_requests(mqtt_mock)) == 2
+    assert [event.data["command_type"] for event in commands] == ["update_install", "update_install"]
+
+
+async def test_a_pc_that_installs_updates_only_at_the_pc_offers_no_install(
+    hass: HomeAssistant, pc: MockConfigEntry, mqtt_mock: MqttMockHAClient
+) -> None:
+    commands = async_capture_events(hass, "hass_agent_command")
+
+    await _send(hass, UPDATE_TOPIC, _update_state("10.13.1", "10.14.0", remote_install=False))
+
+    # The new version shows; the Install button does not.
+    assert _state(hass) == "on"
+    assert hass.states.get(_entity_id(hass)).attributes["latest_version"] == "10.14.0"
+    assert not _may_install(hass)
+
+    # Asked for all the same (an automation, a script): refused here, nothing goes to the PC.
+    with pytest.raises(HomeAssistantError):
+        await hass.services.async_call("update", "install", {ATTR_ENTITY_ID: _entity_id(hass)}, blocking=True)
+    assert _install_requests(mqtt_mock) == []
+    assert commands == []
+
+
+async def test_the_install_is_back_once_the_pc_takes_it_again(
+    hass: HomeAssistant, pc: MockConfigEntry, mqtt_mock: MqttMockHAClient
+) -> None:
+    await _send(hass, UPDATE_TOPIC, _update_state("10.13.1", "10.14.0", remote_install=False))
+    assert not _may_install(hass)
+
+    # The switch on the PC was turned off again: it sends its state at once.
+    await _send(hass, UPDATE_TOPIC, _update_state("10.13.1", "10.14.0", remote_install=True))
+    assert _may_install(hass)
+
+    await hass.services.async_call("update", "install", {ATTR_ENTITY_ID: _entity_id(hass)}, blocking=True)
+    assert len(_install_requests(mqtt_mock)) == 1
+
+
+async def test_the_entity_itself_refuses_when_the_pc_does_not_take_the_install(
+    hass: HomeAssistant, pc: MockConfigEntry, mqtt_mock: MqttMockHAClient
+) -> None:
+    # Past Home Assistant's own check of the feature: the entity's install says no by itself.
+    await _send(hass, UPDATE_TOPIC, _update_state("10.13.1", "10.14.0", remote_install=False))
+    entity = hass.data["update"].get_entity(_entity_id(hass))
+
+    with pytest.raises(HomeAssistantError, match="only at the PC"):
+        await entity.async_install(None, False)
+    assert _install_requests(mqtt_mock) == []
+
