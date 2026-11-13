@@ -2,6 +2,14 @@
 
 Every release of the HASS.Agent .NET10 integration, newest first. The Windows client has its own [changelog](https://github.com/v1k70rk4/HASS.Agent.NET10/blob/main/CHANGELOG.md).
 
+## 10.13.1-beta.2
+
+> **Beta.** Going with the Windows client [10.13.1-beta.2](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.13.1-beta.2): the entity of the client's new Print jobs sensor. Everything from beta.1 is in it. Works with every supported Windows client. In the Marketplace (HACS in Home Assistant before 2026.11): open the integration, choose **Redownload**, turn on **Show beta versions**, then pick **10.13.1-beta.2**. Restart Home Assistant afterwards.
+
+- **The Print jobs sensor of the client.** A PC with the *Print jobs* sensor switched on (Windows client 10.13.1-beta.2 or newer; it is off by default) gets a sensor with the number of jobs that wait in its print queues, on whichever printer; 0 when nothing waits. A job stays in its queue while the printer is switched off, so an automation can switch the printer's plug on when the number leaves 0. Every printer with its own queue and state, the default printer and the first jobs are in the attributes. See [Built-in sensors](https://github.com/v1k70rk4/HASS.Agent.NET10/blob/main/docs/sensors/index.md).
+
+Beta.1, below, is in it: the PC's screenshot as an image entity, and the update event that carries only what reads as a version.
+
 ## 10.13.1-beta.1
 
 > **Beta.** Going with the Windows client [10.13.1-beta.1](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.13.1-beta.1): the PC's screenshot as an image entity, and an update event that carries only what reads as a version. Works with every supported Windows client. In the Marketplace (HACS in Home Assistant before 2026.11): open the integration, choose **Redownload**, turn on **Show beta versions**, then pick **10.13.1-beta.1**. Restart Home Assistant afterwards.
