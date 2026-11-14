@@ -2,6 +2,12 @@
 
 Every release of the HASS.Agent .NET10 integration, newest first. The Windows client has its own [changelog](https://github.com/v1k70rk4/HASS.Agent.NET10/blob/main/CHANGELOG.md).
 
+## 10.13.1-beta.4
+
+> **Beta.** Going with the Windows client [10.13.1-beta.4](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.13.1-beta.4), which has nothing new in it and is there for trying an update from beta.3. Nothing changed here either. Everything from beta.1 to beta.3 is in it. Works with every supported Windows client. In the Marketplace: open the integration and choose **Include pre-releases** in its menu; 10.13.1-beta.4 is then offered as an update. In HACS (Home Assistant before 2026.11): choose **Redownload**, then **Need a different version?**, and pick **10.13.1-beta.4** under **Release**. Restart Home Assistant afterwards.
+
+Beta.3 and the ones before it, below, are in it.
+
 ## 10.13.1-beta.3
 
 > **Beta.** Going with the Windows client [10.13.1-beta.3](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.13.1-beta.3): no Install button for a PC that installs updates only at the PC. Everything from beta.1 and beta.2 is in it. Works with every supported Windows client. In the Marketplace: open the integration and choose **Include pre-releases** in its menu; 10.13.1-beta.3 is then offered as an update. In HACS (Home Assistant before 2026.11): choose **Redownload**, then **Need a different version?**, and pick **10.13.1-beta.3** under **Release**. Restart Home Assistant afterwards.
