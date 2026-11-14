@@ -21,6 +21,7 @@ from pytest_homeassistant.common import (
 from pytest_homeassistant.typing import MqttMockHAClient
 
 from custom_components.hass_agent.const import (
+    CONF_HA_API,
     DOMAIN,
     EVENT_UPDATE_AVAILABLE,
     UPDATE_ANNOUNCED_DATA,
@@ -310,4 +311,72 @@ async def test_the_entity_itself_refuses_when_the_pc_does_not_take_the_install(
     with pytest.raises(HomeAssistantError, match="only at the PC"):
         await entity.async_install(None, False)
     assert _install_requests(mqtt_mock) == []
+
+
+@pytest.fixture
+async def ha_api_pc(hass: HomeAssistant, mqtt_mock: MqttMockHAClient) -> MockConfigEntry:
+    """A PC on the HA API: its state comes as events, and so do the commands to it."""
+    assert await async_setup_component(hass, "http", {})
+    entry = MockConfigEntry(
+        domain=DOMAIN, unique_id=SERIAL, title="MY-PC", data={CONF_HA_API: True, "device": DEVICE, "apis": {}}
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    dr.async_get(hass).async_get_or_create(
+        config_entry_id=entry.entry_id, identifiers={(DOMAIN, SERIAL)}, name="MY-PC"
+    )
+    return entry
+
+
+async def _send_event(hass: HomeAssistant, state: str) -> None:
+    hass.bus.async_fire("hass_agent_update_state", {"serial_number": SERIAL, "state": json.loads(state)})
+    await hass.async_block_till_done(wait_background_tasks=True)
+
+
+async def test_on_the_ha_api_the_install_goes_out_as_an_event_only(
+    hass: HomeAssistant, ha_api_pc: MockConfigEntry, mqtt_mock: MqttMockHAClient
+) -> None:
+    commands = async_capture_events(hass, "hass_agent_command")
+
+    await _send_event(hass, _update_state("10.13.0", "10.13.1", remote_install=True))
+    assert _may_install(hass)
+    await hass.services.async_call("update", "install", {ATTR_ENTITY_ID: _entity_id(hass)}, blocking=True)
+
+    assert [(event.data["serial_number"], event.data["command_type"]) for event in commands] == [(SERIAL, "update_install")]
+    assert _install_requests(mqtt_mock) == []
+
+
+async def test_on_the_ha_api_a_pc_that_installs_only_at_the_pc_offers_no_install(
+    hass: HomeAssistant, ha_api_pc: MockConfigEntry, mqtt_mock: MqttMockHAClient
+) -> None:
+    commands = async_capture_events(hass, "hass_agent_command")
+
+    await _send_event(hass, _update_state("10.13.1", "10.14.0", remote_install=False))
+
+    assert _state(hass) == "on"
+    assert not _may_install(hass)
+    with pytest.raises(HomeAssistantError):
+        await hass.services.async_call("update", "install", {ATTR_ENTITY_ID: _entity_id(hass)}, blocking=True)
+    assert commands == []
+
+    # Turned off again on the PC: the next state brings Install back.
+    await _send_event(hass, _update_state("10.13.1", "10.14.0", remote_install=True))
+    assert _may_install(hass)
+
+
+async def test_a_state_meant_for_another_pc_changes_nothing_here(
+    hass: HomeAssistant, ha_api_pc: MockConfigEntry
+) -> None:
+    await _send_event(hass, _update_state("10.13.1", "10.14.0", remote_install=True))
+    assert _may_install(hass)
+
+    # Another PC on the same Home Assistant set its own switch.
+    hass.bus.async_fire(
+        "hass_agent_update_state",
+        {"serial_number": "f" * 32, "state": json.loads(_update_state("10.13.1", "10.14.0", remote_install=False))},
+    )
+    await hass.async_block_till_done(wait_background_tasks=True)
+
+    assert _may_install(hass)
 
