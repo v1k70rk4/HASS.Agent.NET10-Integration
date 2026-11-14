@@ -178,7 +178,7 @@ When connected via MQTT or HA API, the integration creates the following entitie
 | `select` | Audio output / input | Chooses the default playback and recording device (client 10.9.0+, the matching *Audio output device* / *Audio input device* sensor enabled) |
 | `light` | Display | Screen brightness where the display can be dimmed; off switches the monitor off, on wakes it (client 10.9.0+, *Display brightness* sensor enabled) |
 | `image` | Screenshot | The last screenshot of the PC, taken when its *Take a screenshot* button is pressed and never on its own (client 10.13.1+, the command ticked on the PC; it is off by default) |
-| `update` | App update | Shows available HASS.Agent .NET10 updates |
+| `update` | App update | Shows available HASS.Agent .NET10 updates and installs them on request; a PC set to *Updates only at this PC* (client 10.13.1+, on its Danger Zone page) shows the new version without the Install button |
 
 Entities are created and removed dynamically as the Windows client changes its configuration.
 
