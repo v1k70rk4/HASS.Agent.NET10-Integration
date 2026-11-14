@@ -416,7 +416,7 @@ The first time the integration runs with this, an update a PC already offers is 
 
 ### 10.13.1-beta.3
 
-> **Beta.** Going with the Windows client [10.13.1-beta.3](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.13.1-beta.3): no Install button for a PC that installs updates only at the PC. Everything from beta.1 and beta.2 is in it. Works with every supported Windows client. In the Marketplace (HACS in Home Assistant before 2026.11): open the integration, choose **Redownload**, turn on **Show beta versions**, then pick **10.13.1-beta.3**. Restart Home Assistant afterwards.
+> **Beta.** Going with the Windows client [10.13.1-beta.3](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.13.1-beta.3): no Install button for a PC that installs updates only at the PC. Everything from beta.1 and beta.2 is in it. Works with every supported Windows client. In the Marketplace: open the integration and choose **Include pre-releases** in its menu; 10.13.1-beta.3 is then offered as an update. In HACS (Home Assistant before 2026.11): choose **Redownload**, then **Need a different version?**, and pick **10.13.1-beta.3** under **Release**. Restart Home Assistant afterwards.
 
 **New since beta.2**
 
