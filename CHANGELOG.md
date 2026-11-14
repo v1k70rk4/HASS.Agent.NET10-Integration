@@ -2,6 +2,14 @@
 
 Every release of the HASS.Agent .NET10 integration, newest first. The Windows client has its own [changelog](https://github.com/v1k70rk4/HASS.Agent.NET10/blob/main/CHANGELOG.md).
 
+## 10.13.1-beta.3
+
+> **Beta.** Going with the Windows client [10.13.1-beta.3](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.13.1-beta.3): no Install button for a PC that installs updates only at the PC. Everything from beta.1 and beta.2 is in it. Works with every supported Windows client. In the Marketplace (HACS in Home Assistant before 2026.11): open the integration, choose **Redownload**, turn on **Show beta versions**, then pick **10.13.1-beta.3**. Restart Home Assistant afterwards.
+
+- **No Install for a PC that installs updates only at the PC.** A PC with *Updates only at this PC* ticked on its Danger Zone page (Windows client 10.13.1-beta.3 or newer; it is off by default) refuses an install asked for from Home Assistant. Its update entity then shows the new version without the Install button, so Home Assistant lists it among the updates to install by hand, and the `update.install` action is refused here with nothing sent to the PC. Unticked on the PC, Install is back at once. A client that says nothing about it is as before. See [Updates only at the PC](https://github.com/v1k70rk4/HASS.Agent.NET10/blob/main/docs/features/updates.md#updates-only-at-the-pc).
+
+Beta.2 and beta.1, below, are in it.
+
 ## 10.13.1-beta.2
 
 > **Beta.** Going with the Windows client [10.13.1-beta.2](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.13.1-beta.2): the entity of the client's new Print jobs sensor. Everything from beta.1 is in it. Works with every supported Windows client. In the Marketplace (HACS in Home Assistant before 2026.11): open the integration, choose **Redownload**, turn on **Show beta versions**, then pick **10.13.1-beta.2**. Restart Home Assistant afterwards.
