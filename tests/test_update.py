@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from datetime import timedelta
 from typing import Any
 
 import pytest
@@ -13,10 +14,12 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.setup import async_setup_component
+from homeassistant.util import dt as dt_util
 from pytest_homeassistant.common import (
     MockConfigEntry,
     async_capture_events,
     async_fire_mqtt_message,
+    async_fire_time_changed,
 )
 from pytest_homeassistant.typing import MqttMockHAClient
 
@@ -438,3 +441,25 @@ async def test_a_state_meant_for_another_pc_leaves_this_device_page_alone(
     await hass.async_block_till_done(wait_background_tasks=True)
 
     assert _device_version(hass) == "10.11.0"
+
+
+async def test_a_retry_with_an_older_state_does_not_come_after_a_newer_one(
+    hass: HomeAssistant, pc: MockConfigEntry
+) -> None:
+    # An older agent's discovered entity is in the way: the state waits in a retry.
+    discovered = er.async_get(hass).async_get_or_create("update", "mqtt", f"{SERIAL}_hass_agent_net10_update")
+    await _send(hass, UPDATE_TOPIC, _update_state("10.11.0", "10.12.0"))
+    assert _device_version(hass) == "10.11.0"
+
+    # The PC was updated: its discovery is gone, and the new state is applied at once.
+    er.async_get(hass).async_remove(discovered.entity_id)
+    await _send(hass, UPDATE_TOPIC, _update_state("10.12.0", "10.12.0"))
+    assert _state(hass) == "off"
+    assert _device_version(hass) == "10.12.0"
+
+    # The time of the retry comes: the older state it waited with is not put back.
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=6))
+    await hass.async_block_till_done(wait_background_tasks=True)
+
+    assert _state(hass) == "off"
+    assert _device_version(hass) == "10.12.0"
