@@ -894,10 +894,52 @@ def _announce_update(hass: HomeAssistant, entry: ConfigEntry, state: dict) -> No
 
 
 @callback
+def _sync_device_version(hass: HomeAssistant, entry: ConfigEntry, state: dict) -> None:
+    """Show the installed version of the update state on the device page as well.
+
+    The device data, which carries the version, comes from the tray app only. On a PC
+    where only the service runs, as with nobody logged in, the device page kept the
+    version the app had sent before the last update. The service sends the update state
+    too, and the version in it is the program's, the same for the app and the service.
+    """
+    installed = _offered_version(state.get("installed_version"))
+    if installed is None:
+        return
+
+    installed = installed.removeprefix("v").removeprefix("V")
+    device = async_get_agent_device(hass, entry)
+    if device is not None and device.sw_version != installed:
+        dr.async_get(hass).async_update_device(device.id, sw_version=installed)
+
+
+# The retry of an update state that waits for an older agent's discovered entity to go.
+UPDATE_STATE_RETRY_KEY = "update_state_retry"
+
+
+@callback
+def _drop_update_state_retry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Drop the retry that waits with an older update state, when there is one.
+
+    A retry carries the state it was started with. With a newer state here, applied or
+    waiting in a retry of its own, the older one must not come after it: it would put
+    the older version back on the update entity and on the device page.
+    """
+    entry_data = hass.data.get(DOMAIN, {}).get(entry.entry_id)
+    if entry_data is None:
+        return
+
+    cancel = entry_data.pop(UPDATE_STATE_RETRY_KEY, None)
+    if cancel is not None:
+        cancel()
+
+
+@callback
 def _apply_update_state(hass: HomeAssistant, entry: ConfigEntry, state: dict) -> None:
     """Store the agent's update state and create or refresh the update entity."""
+    _drop_update_state_retry(hass, entry)
     entry_data = hass.data[DOMAIN][entry.entry_id]
     entry_data[UPDATE_STATE_STORAGE_KEY] = state
+    _sync_device_version(hass, entry, state)
     _announce_update(hass, entry, state)
 
     if not entry_data["loaded"].get("update", False):
@@ -929,24 +971,40 @@ def _apply_update_state_when_free(hass: HomeAssistant, entry: ConfigEntry, state
     Assistant removes the discovered entity a moment later, so a few short retries
     let the integration's entity take over on the same connect.
     """
+    if attempt == 0:
+        # A state that just arrived: the one an earlier retry still waits with is older.
+        _drop_update_state_retry(hass, entry)
+
     discovered = _discovered_update_entity_id(hass, entry)
     if discovered is None:
         _apply_update_state(hass, entry, state)
         return
 
     # The event does not depend on whose entity shows the update: a PC on an older agent
-    # offers a new version like any other. Announced once, whatever the retries find.
+    # offers a new version like any other. Announced once, whatever the retries find; the
+    # device page shows the version the same way.
+    _sync_device_version(hass, entry, state)
     _announce_update(hass, entry, state)
 
     if attempt >= 6:
         _logger.debug("update entity %s comes from MQTT discovery (older agent), not adding another", discovered)
         return
 
+    entry_data = hass.data.get(DOMAIN, {}).get(entry.entry_id)
+    if entry_data is None:
+        return
+
     @callback
     def _retry(_now) -> None:
+        # Unloaded meanwhile, or a newer state took this retry's place: nothing to do.
+        current = hass.data.get(DOMAIN, {}).get(entry.entry_id)
+        if current is None or current.get(UPDATE_STATE_RETRY_KEY) is not cancel:
+            return
+        current.pop(UPDATE_STATE_RETRY_KEY)
         _apply_update_state_when_free(hass, entry, state, attempt + 1)
 
-    async_call_later(hass, 5, _retry)
+    cancel = async_call_later(hass, 5, _retry)
+    entry_data[UPDATE_STATE_RETRY_KEY] = cancel
 
 
 async def _async_publish_integration_info(hass: HomeAssistant, entry: ConfigEntry) -> None:
@@ -1482,6 +1540,9 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if cancel_availability is not None:
         cancel_availability()
         entry_data["availability_timeout"] = None
+
+    # And an update state that still waits for its retry.
+    _drop_update_state_retry(hass, entry)
 
     loaded = entry_data.get("loaded", None)
 
