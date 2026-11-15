@@ -894,10 +894,30 @@ def _announce_update(hass: HomeAssistant, entry: ConfigEntry, state: dict) -> No
 
 
 @callback
+def _sync_device_version(hass: HomeAssistant, entry: ConfigEntry, state: dict) -> None:
+    """Show the installed version of the update state on the device page as well.
+
+    The device data, which carries the version, comes from the tray app only. On a PC
+    where only the service runs, as with nobody logged in, the device page kept the
+    version the app had sent before the last update. The service sends the update state
+    too, and the version in it is the program's, the same for the app and the service.
+    """
+    installed = _offered_version(state.get("installed_version"))
+    if installed is None:
+        return
+
+    installed = installed.removeprefix("v").removeprefix("V")
+    device = async_get_agent_device(hass, entry)
+    if device is not None and device.sw_version != installed:
+        dr.async_get(hass).async_update_device(device.id, sw_version=installed)
+
+
+@callback
 def _apply_update_state(hass: HomeAssistant, entry: ConfigEntry, state: dict) -> None:
     """Store the agent's update state and create or refresh the update entity."""
     entry_data = hass.data[DOMAIN][entry.entry_id]
     entry_data[UPDATE_STATE_STORAGE_KEY] = state
+    _sync_device_version(hass, entry, state)
     _announce_update(hass, entry, state)
 
     if not entry_data["loaded"].get("update", False):
@@ -935,7 +955,9 @@ def _apply_update_state_when_free(hass: HomeAssistant, entry: ConfigEntry, state
         return
 
     # The event does not depend on whose entity shows the update: a PC on an older agent
-    # offers a new version like any other. Announced once, whatever the retries find.
+    # offers a new version like any other. Announced once, whatever the retries find; the
+    # device page shows the version the same way.
+    _sync_device_version(hass, entry, state)
     _announce_update(hass, entry, state)
 
     if attempt >= 6:

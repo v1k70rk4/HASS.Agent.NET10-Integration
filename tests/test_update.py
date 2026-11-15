@@ -380,3 +380,61 @@ async def test_a_state_meant_for_another_pc_changes_nothing_here(
 
     assert _may_install(hass)
 
+
+
+def _device_version(hass: HomeAssistant) -> str | None:
+    entry_id = hass.config_entries.async_entries(DOMAIN)[0].entry_id
+    device = dr.async_get(hass).async_get_device_by_identifier((DOMAIN, SERIAL), entry_id)
+    assert device is not None
+    return device.sw_version
+
+
+async def test_the_device_page_shows_the_version_the_update_state_names(hass: HomeAssistant, pc: MockConfigEntry) -> None:
+    # The tray app sent its device data before the update; only the service runs since.
+    dr.async_get(hass).async_get_or_create(
+        config_entry_id=pc.entry_id, identifiers={(DOMAIN, SERIAL)}, name="MY-PC", sw_version="10.11.0"
+    )
+
+    await _send(hass, UPDATE_TOPIC, _update_state("10.12.0", "10.12.0"))
+
+    assert _device_version(hass) == "10.12.0"
+
+
+async def test_on_the_ha_api_the_device_page_follows_the_update_state(hass: HomeAssistant, ha_api_pc: MockConfigEntry) -> None:
+    await _send_event(hass, _update_state("10.13.1-beta.4", "10.13.1-beta.4"))
+
+    assert _device_version(hass) == "10.13.1-beta.4"
+
+
+async def test_a_tag_on_the_device_page_is_shown_as_a_version(hass: HomeAssistant, pc: MockConfigEntry) -> None:
+    await _send(hass, UPDATE_TOPIC, _update_state("v10.12.0", "v10.12.0"))
+
+    assert _device_version(hass) == "10.12.0"
+
+
+async def test_an_installed_version_that_is_not_one_leaves_the_device_page_alone(
+    hass: HomeAssistant, pc: MockConfigEntry
+) -> None:
+    dr.async_get(hass).async_get_or_create(
+        config_entry_id=pc.entry_id, identifiers={(DOMAIN, SERIAL)}, name="MY-PC", sw_version="10.11.0"
+    )
+
+    await _send(hass, UPDATE_TOPIC, _update_state("not a version " * 20, "10.12.0"))
+
+    assert _device_version(hass) == "10.11.0"
+
+
+async def test_a_state_meant_for_another_pc_leaves_this_device_page_alone(
+    hass: HomeAssistant, ha_api_pc: MockConfigEntry
+) -> None:
+    dr.async_get(hass).async_get_or_create(
+        config_entry_id=ha_api_pc.entry_id, identifiers={(DOMAIN, SERIAL)}, name="MY-PC", sw_version="10.11.0"
+    )
+
+    hass.bus.async_fire(
+        "hass_agent_update_state",
+        {"serial_number": "f" * 32, "state": json.loads(_update_state("10.14.0", "10.14.0"))},
+    )
+    await hass.async_block_till_done(wait_background_tasks=True)
+
+    assert _device_version(hass) == "10.11.0"
