@@ -2,28 +2,44 @@
 
 Every release of the HASS.Agent .NET10 integration, newest first. The Windows client has its own [changelog](https://github.com/v1k70rk4/HASS.Agent.NET10/blob/main/CHANGELOG.md).
 
-## 10.13.1-beta.3
+## 10.13.1
 
-> **Beta.** Going with the Windows client [10.13.1-beta.3](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.13.1-beta.3): no Install button for a PC that installs updates only at the PC. Everything from beta.1 and beta.2 is in it. Works with every supported Windows client. In the Marketplace: open the integration and choose **Include pre-releases** in its menu; 10.13.1-beta.3 is then offered as an update. In HACS (Home Assistant before 2026.11): choose **Redownload**, then **Need a different version?**, and pick **10.13.1-beta.3** under **Release**. Restart Home Assistant afterwards.
+Going with the Windows client [10.13.1](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.13.1): the PC's screenshot as an image entity, the entity of the client's Print jobs sensor, no Install button for a PC that installs updates only at the PC, and the installed version on the device page of a PC where only the service runs. Works with every supported Windows client. Update in the Marketplace (HACS in Home Assistant before 2026.11) and restart Home Assistant.
+
+- **The PC's screenshot, as an image entity.** A PC whose tray app has the *Take a screenshot* command ticked (Windows client 10.13.1 or newer; it is off by default and can only be turned on at the PC) gets a **Take a screenshot** button and a **Screenshot** image. The PC takes a picture only when the button is pressed, never on its own; for one at regular times, press the button from an automation. The picture is kept in memory only: after a restart of Home Assistant there is none until the next one is asked for. Over the HA API it comes through a command of its own and not as an event, so it is not on Home Assistant's event bus. Unticked on the PC, both entities go. See [Screenshot](https://github.com/v1k70rk4/HASS.Agent.NET10/blob/main/docs/commands/screenshot.md).
+- **The Print jobs sensor of the client.** A PC with the *Print jobs* sensor switched on (Windows client 10.13.1 or newer; it is off by default) gets a sensor with the number of jobs that wait in its print queues, on whichever printer; 0 when nothing waits. A job stays in its queue while the printer is switched off, so an automation can switch the printer's plug on when the number leaves 0. Every printer with its own queue and state, the default printer and the first jobs are in the attributes. See [Built-in sensors](https://github.com/v1k70rk4/HASS.Agent.NET10/blob/main/docs/sensors/index.md).
+- **No Install for a PC that installs updates only at the PC.** A PC with *Updates only at this PC* ticked on its Danger Zone page (Windows client 10.13.1 or newer; it is off by default) refuses an install asked for from Home Assistant. Its update entity then shows the new version without the Install button, so Home Assistant lists it among the updates to install by hand, and the `update.install` action is refused here with nothing sent to the PC. Unticked on the PC, Install is back at once. A client that says nothing about it is as before. See [Updates only at the PC](https://github.com/v1k70rk4/HASS.Agent.NET10/blob/main/docs/features/updates.md#updates-only-at-the-pc).
+- **The device page shows the installed version on a PC where only the service runs.** The version there came from the tray app alone, so a PC with nobody logged in kept the one from before its last update, while the update entity next to it showed the new one. The update state, which the service sends too, sets it now.
+- **Fixed: on a PC with a client before 10.7.3, an older update state could come back after a newer one.** Such a PC's update entity comes from MQTT discovery, and a state that waited for it to go was applied after a newer one that came meanwhile. A newer state drops the one that waits.
+- **The update event carries only what reads as a version.** `hass_agent_update_available` took the version from the PC's update state as it came, so a text of any length went into the event and into the file that keeps what was announced. Now only a version does: two to four numbers, with the `v` of a release's tag before them and a short part after a dash or a plus. The installed version is left out of the event when it is not one. The update entity shows what the PC sends, as before.
+
+**The betas before it**, with their notes as they were:
+
+<details markdown="1">
+<summary><b>10.13.1-beta.3</b>: no Install for a PC that installs updates only at the PC</summary>
 
 - **No Install for a PC that installs updates only at the PC.** A PC with *Updates only at this PC* ticked on its Danger Zone page (Windows client 10.13.1-beta.3 or newer; it is off by default) refuses an install asked for from Home Assistant. Its update entity then shows the new version without the Install button, so Home Assistant lists it among the updates to install by hand, and the `update.install` action is refused here with nothing sent to the PC. Unticked on the PC, Install is back at once. A client that says nothing about it is as before. See [Updates only at the PC](https://github.com/v1k70rk4/HASS.Agent.NET10/blob/main/docs/features/updates.md#updates-only-at-the-pc).
 
 Beta.2 and beta.1, below, are in it.
 
-## 10.13.1-beta.2
+</details>
 
-> **Beta.** Going with the Windows client [10.13.1-beta.2](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.13.1-beta.2): the entity of the client's new Print jobs sensor. Everything from beta.1 is in it. Works with every supported Windows client. In the Marketplace (HACS in Home Assistant before 2026.11): open the integration, choose **Redownload**, turn on **Show beta versions**, then pick **10.13.1-beta.2**. Restart Home Assistant afterwards.
+<details markdown="1">
+<summary><b>10.13.1-beta.2</b>: the client's Print jobs sensor</summary>
 
 - **The Print jobs sensor of the client.** A PC with the *Print jobs* sensor switched on (Windows client 10.13.1-beta.2 or newer; it is off by default) gets a sensor with the number of jobs that wait in its print queues, on whichever printer; 0 when nothing waits. A job stays in its queue while the printer is switched off, so an automation can switch the printer's plug on when the number leaves 0. Every printer with its own queue and state, the default printer and the first jobs are in the attributes. See [Built-in sensors](https://github.com/v1k70rk4/HASS.Agent.NET10/blob/main/docs/sensors/index.md).
 
 Beta.1, below, is in it: the PC's screenshot as an image entity, and the update event that carries only what reads as a version.
 
-## 10.13.1-beta.1
+</details>
 
-> **Beta.** Going with the Windows client [10.13.1-beta.1](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.13.1-beta.1): the PC's screenshot as an image entity, and an update event that carries only what reads as a version. Works with every supported Windows client. In the Marketplace (HACS in Home Assistant before 2026.11): open the integration, choose **Redownload**, turn on **Show beta versions**, then pick **10.13.1-beta.1**. Restart Home Assistant afterwards.
+<details markdown="1">
+<summary><b>10.13.1-beta.1</b>: the PC's screenshot as an image entity, the update event that carries only a version</summary>
 
 - **The PC's screenshot, as an image entity.** A PC whose tray app has the *Take a screenshot* command ticked (Windows client 10.13.1-beta.1 or newer; it is off by default and can only be turned on at the PC) gets a **Take a screenshot** button and a **Screenshot** image. The PC takes a picture only when the button is pressed, never on its own; for one at regular times, press the button from an automation. The picture is kept in memory only: after a restart of Home Assistant there is none until the next one is asked for. Over the HA API it comes through a command of its own and not as an event, so it is not on Home Assistant's event bus. Unticked on the PC, both entities go. See [Screenshot](https://github.com/v1k70rk4/HASS.Agent.NET10/blob/main/docs/commands/screenshot.md).
 - **The update event carries only what reads as a version.** `hass_agent_update_available` took the version from the PC's update state as it came, so a text of any length went into the event and into the file that keeps what was announced. Now only a version does: two to four numbers, with the `v` of a release's tag before them and a short part after a dash or a plus. The installed version is left out of the event when it is not one. The update entity shows what the PC sends, as before.
+
+</details>
 
 ## 10.13.0
 
