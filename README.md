@@ -45,7 +45,7 @@ It is the matching Home Assistant side for the modern **HASS.Agent .NET10** Wind
 |-----------|----------------|
 | Home Assistant | 2026.6.0 |
 | HASS.Agent .NET10 (Windows client) | 10.2.0 (10.9.1+ recommended) |
-| MQTT broker (recommended) | Mosquitto or any MQTT 3.1.1+ broker |
+| MQTT broker (for MQTT) | Mosquitto or any MQTT 3.1.1+ broker |
 
 This integration is in the **Marketplace** (HACS in Home Assistant before 2026.11), so no custom repository needs to be added. On Home Assistant 2026.6 to 2026.10 install [HACS](https://hacs.xyz) first; from 2026.11 the Marketplace is built in and HACS is not needed.
 
@@ -55,7 +55,7 @@ The Windows client installs with winget, or with the signed installer from its [
 winget install v1k70rk4.HASSAgentNET10
 ```
 
-MQTT is recommended for full functionality. Alternatively, HA API (WebSocket) provides nearly the same features without requiring an MQTT broker. The Local HTTP API setup supports notifications only.
+MQTT and the HA API (WebSocket) are equals: both carry every feature, the HA API without a broker and also from away. [Connection Modes](#connection-modes) says which suits what. The Local HTTP API setup supports notifications only.
 
 ### Install from the Marketplace
 
@@ -106,7 +106,7 @@ Every PC is a device of the integration. **Add device** is for the two ways that
 
 ## Connection Modes
 
-### MQTT (recommended)
+### MQTT
 
 Enable MQTT in the HASS.Agent .NET10 Windows client. The device is discovered automatically in Home Assistant. All features work:
 
@@ -116,25 +116,29 @@ Enable MQTT in the HASS.Agent .NET10 Windows client. The device is discovered au
 - Command buttons (lock, shutdown, restart, etc.)
 - Update entity
 - Windows service integration
-- Retained state on restart
+- Last values kept through a Home Assistant restart while the PC is off (retained messages)
 - Last Will (automatic offline detection)
+
+Encryption is TLS on the broker, which needs a certificate there. Whoever has a broker login that may write the PC's topics can send it commands; a login of its own for HASS.Agent keeps it off other devices, but only the broker's ACLs limit who may write those topics ([Keep the broker login to yourself](https://github.com/v1k70rk4/HASS.Agent.NET10/blob/main/docs/connection/mqtt.md#keep-the-broker-login-to-yourself)).
 
 ### HA API (WebSocket)
 
 The Windows client connects directly to Home Assistant's WebSocket API using a long-lived access token. Works remotely (e.g. via Nabu Casa) without an MQTT broker. Can be used standalone or as automatic failover when the MQTT broker is unreachable.
 
-From 10.9.1 (integration and client) the token does not have to be an administrator's: the client offers to create a Home Assistant user of the PC's own, who is not an administrator and has no password, and the integration only lets that user speak for its own PC. See [A Home Assistant user for the PC](https://github.com/v1k70rk4/HASS.Agent.NET10/blob/main/docs/connection.md#a-home-assistant-user-for-the-pc).
+From 10.9.1 (integration and client) the token does not have to be an administrator's: the client offers to create a Home Assistant user of the PC's own, who is not an administrator and has no password, and the integration only lets that user speak for its own PC. See [A Home Assistant user for the PC](https://github.com/v1k70rk4/HASS.Agent.NET10/blob/main/docs/connection/index.md#a-home-assistant-user-for-the-pc).
 
 The first PC that uses the HA API is added by hand: choose **Add integration → HASS.Agent** (or **Add device** on the integration's page) **→ HA API (WebSocket)**, and follow the dialog. It waits for the client's announcement, which the client sends when it connects and when you press **Republish discovery** in its Danger Zone. Once the integration has a device, further PCs on the HA API turn up under **Discovered** on their own.
 
 <p align="center"><img src="https://raw.githubusercontent.com/v1k70rk4/HASS.Agent.NET10-Integration/main/images/ha-add-device-ha-api.png" width="460" alt="The Connect over the HA API dialog"></p>
 
-Nearly all features work — notifications, media player, sensors, commands — with some trade-offs compared to MQTT:
+Every feature works — notifications, media player, sensors, commands, the update entity. How it differs from MQTT:
 
-- No retained state (sensor values are lost until the agent reconnects after a restart)
-- No Last Will (no automatic offline detection)
-- Media thumbnails are ~33% larger (base64 encoding)
-- HTTPS is required for remote access
+- Offline detection by heartbeat: without one for 90 seconds the client is shown offline.
+- No broker keeps the last values: after a Home Assistant restart the integration asks each client to send them again, and a client 10.9.0 or newer answers at once (an older one only when it next connects); a PC that is off meanwhile is unavailable until it is back.
+- Media thumbnails are ~33% larger (base64 encoding).
+- From away it goes over HTTPS, with a certificate Windows trusts (Nabu Casa gives one, as does your own domain with Let's Encrypt; a self-signed one is refused unless its CA is in the Windows certificate store). With it, the token and everything after it travel encrypted to a server the PC has checked. At home plain HTTP works too, but the token then crosses the network unencrypted.
+
+**Which one?** MQTT, if a broker runs anyway or the PCs' last values should stay through a Home Assistant restart while they are off. The HA API, if there is no broker, a laptop leaves home, or each PC should have a Home Assistant user of its own with nothing else to set up. Both, to have the HA API take over when the broker drops.
 
 The Windows service takes part on this transport too (client 10.6.5+): it announces itself on its own event, and command buttons are routed to the app or the service exactly as they are over MQTT.
 
