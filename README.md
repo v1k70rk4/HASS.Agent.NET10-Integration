@@ -119,7 +119,7 @@ Enable MQTT in the HASS.Agent .NET10 Windows client. The device is discovered au
 - Last values kept through a Home Assistant restart while the PC is off (retained messages)
 - Last Will (automatic offline detection)
 
-Encryption is TLS on the broker, which needs a certificate there. Whoever has a broker login that may write the PC's topics can send it commands, so give the PCs logins of their own.
+Encryption is TLS on the broker, which needs a certificate there. Whoever has a broker login that may write the PC's topics can send it commands; a login of its own for HASS.Agent keeps it off other devices, but only the broker's ACLs limit who may write those topics ([Keep the broker login to yourself](https://github.com/v1k70rk4/HASS.Agent.NET10/blob/main/docs/connection/mqtt.md#keep-the-broker-login-to-yourself)).
 
 ### HA API (WebSocket)
 
