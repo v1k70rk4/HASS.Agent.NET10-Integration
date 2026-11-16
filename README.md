@@ -134,7 +134,7 @@ The first PC that uses the HA API is added by hand: choose **Add integration →
 Every feature works — notifications, media player, sensors, commands, the update entity. How it differs from MQTT:
 
 - Offline detection by heartbeat: without one for 90 seconds the client is shown offline.
-- No broker keeps the last values: after a Home Assistant restart they come back when the client has reconnected, which it does on its own; a PC that is off meanwhile is unavailable until it is back.
+- No broker keeps the last values: after a Home Assistant restart the integration asks each client to send them again, and a client 10.9.0 or newer answers at once (an older one only when it next connects); a PC that is off meanwhile is unavailable until it is back.
 - Media thumbnails are ~33% larger (base64 encoding).
 - From away it goes over HTTPS, with a certificate Windows trusts (Nabu Casa gives one, as does your own domain with Let's Encrypt; a self-signed one is refused unless its CA is in the Windows certificate store). With it, the token and everything after it travel encrypted to a server the PC has checked. At home plain HTTP works too, but the token then crosses the network unencrypted.
 
