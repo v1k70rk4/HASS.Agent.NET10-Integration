@@ -31,7 +31,7 @@ It is the matching Home Assistant side for the modern **HASS.Agent .NET10** Wind
 >
 > If you want to keep using the old HASS.Agent client, switch to the **[`legacy` branch](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/tree/legacy)** of this integration. The legacy branch works with Home Assistant 2026.6+ and the original pre-.NET10 HASS.Agent, but it is **no longer maintained**.
 
-> **Stable:** [10.13.1](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/releases/latest) &nbsp;·&nbsp; [What changed](#changelog) &nbsp;·&nbsp; [Full changelog](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/blob/main/CHANGELOG.md)
+> **Stable:** [10.13.1](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/releases/latest) &nbsp;·&nbsp; **Beta:** [10.14.0-beta.1](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/releases/tag/v10.14.0-beta.1) &nbsp;·&nbsp; [What changed](#changelog) &nbsp;·&nbsp; [Full changelog](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/blob/main/CHANGELOG.md)
 
 <p align="center"><img src="https://raw.githubusercontent.com/v1k70rk4/HASS.Agent.NET10-Integration/main/images/ha-device.png" width="800" alt="A Windows PC as a device in Home Assistant: media player, audio output select and command buttons"></p>
 
@@ -182,7 +182,7 @@ When connected via MQTT or HA API, the integration creates the following entitie
 | `select` | Audio output / input | Chooses the default playback and recording device (client 10.9.0+, the matching *Audio output device* / *Audio input device* sensor enabled) |
 | `light` | Display | Screen brightness where the display can be dimmed; off switches the monitor off, on wakes it (client 10.9.0+, *Display brightness* sensor enabled) |
 | `image` | Screenshot | The last screenshot of the PC, taken when its *Take a screenshot* button is pressed and never on its own (client 10.13.1+, the command ticked on the PC; it is off by default) |
-| `update` | App update | Shows available HASS.Agent .NET10 updates and installs them on request; a PC set to *Updates only at this PC* (client 10.13.1+, on its Danger Zone page) shows the new version without the Install button |
+| `update` | App update | Shows available HASS.Agent .NET10 updates and installs them on request; a PC set to *Updates only at this PC* (client 10.13.1+, set in the Windows app) shows the new version without the Install button |
 
 Entities are created and removed dynamically as the Windows client changes its configuration.
 
@@ -417,6 +417,13 @@ The first time the integration runs with this, an update a PC already offers is 
 ---
 
 ## Changelog
+
+### 10.14.0-beta.1
+
+> **Beta.** Going with the Windows client [10.14.0-beta.1](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.14.0-beta.1): the documentation link points at the website, and the texts no longer send you to the client's Danger Zone for *Updates only at this PC*. Works with every supported Windows client. In the Marketplace: open the integration and choose **Include pre-releases** in its menu, then install 10.14.0-beta.1 when it is offered as an update. In HACS (Home Assistant before 2026.11): choose **Redownload**, then **Need a different version?**, and pick **10.14.0-beta.1** under **Release**. Restart Home Assistant afterwards.
+
+- **The documentation link opens the website.** The integration's *Documentation* link in Home Assistant opens [hass-agent.com/integration](https://hass-agent.com/integration/), the integration's pages on the new website, instead of this repository.
+- **Updates only at this PC is where the client has it.** The Windows client 10.14.0-beta.1 moves the switch from its Danger Zone to **About → Update settings**. The error that `update.install` gives for such a PC, and the README, now say only that it is set in the Windows app, which holds for every client version.
 
 ### 10.13.1
 
