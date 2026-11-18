@@ -15,11 +15,11 @@
     "mqtt",
     "websocket_api"
   ],
-  "documentation": "https://github.com/v1k70rk4/HASS.Agent.NET10-Integration",
+  "documentation": "https://hass-agent.com/integration/",
   "integration_type": "device",
   "iot_class": "local_push",
   "issue_tracker": "https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/issues",
   "loggers": ["custom_components.hass_agent"],
   "mqtt": ["hass.agent/devices/#"],
-  "version": "10.13.1"
+  "version": "10.14.0-beta.1"
 }

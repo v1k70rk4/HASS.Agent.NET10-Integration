@@ -2,6 +2,13 @@
 
 Every release of the HASS.Agent .NET10 integration, newest first. The Windows client has its own [changelog](https://github.com/v1k70rk4/HASS.Agent.NET10/blob/main/CHANGELOG.md).
 
+## 10.14.0-beta.1
+
+> **Beta.** Going with the Windows client [10.14.0-beta.1](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.14.0-beta.1): the documentation link points at the website, and the texts no longer send you to the client's Danger Zone for *Updates only at this PC*. Works with every supported Windows client. In the Marketplace: open the integration and choose **Include pre-releases** in its menu; 10.14.0-beta.1 is then offered as an update. In HACS (Home Assistant before 2026.11): choose **Redownload**, then **Need a different version?**, and pick **10.14.0-beta.1** under **Release**. Restart Home Assistant afterwards.
+
+- **The documentation link opens the website.** The integration's *Documentation* link in Home Assistant opens [hass-agent.com/integration](https://hass-agent.com/integration/), the integration's pages on the new website, instead of this repository.
+- **Updates only at this PC is where the client has it.** The Windows client 10.14.0-beta.1 moves the switch from its Danger Zone to **About → Update settings**. The error that `update.install` gives for such a PC, and the README, now say only that it is set in the Windows app, which holds for every client version.
+
 ## 10.13.1
 
 Going with the Windows client [10.13.1](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.13.1): the PC's screenshot as an image entity, the entity of the client's Print jobs sensor, no Install button for a PC that installs updates only at the PC, and the installed version on the device page of a PC where only the service runs. Works with every supported Windows client. Update in the Marketplace (HACS in Home Assistant before 2026.11) and restart Home Assistant.

@@ -73,7 +73,7 @@ class HassAgentUpdate(HassAgentAvailableEntity, UpdateEntity):
         """Whether the PC takes an install asked for from here.
 
         An agent 10.13.1 or newer says so in its update state: false when its
-        owner set updates to be installed only at the PC (Danger Zone). An older
+        owner set updates to be installed only at the PC (in the Windows app). An older
         agent sends nothing about it and takes the install.
         """
         return self._state().get("remote_install") is not False
@@ -133,7 +133,7 @@ class HassAgentUpdate(HassAgentAvailableEntity, UpdateEntity):
             # The PC would refuse it anyway; said here, nothing is sent.
             raise HomeAssistantError(
                 "This PC installs updates only at the PC itself "
-                "(Danger Zone, Updates only at this PC)"
+                "(Updates only at this PC, set in the Windows app)"
             )
 
         if not self.hass.data.get(DOMAIN, {}).get(self._entry_id, {}).get("ha_api_only", False):
