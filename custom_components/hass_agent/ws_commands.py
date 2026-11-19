@@ -335,6 +335,17 @@ async def ws_provision(hass: HomeAssistant, connection: websocket_api.ActiveConn
     its user said yes. The user has no password, so nobody can log in with it; it is
     approved for the PC at once. A PC that has such a user already gets a new token for
     the same one.
+
+    Why it exists: a PC set up with a token a person made in their profile usually holds
+    an administrator's token. This command lets it swap that for a token of a user that is
+    not one, so a PC that gets lost or taken over can do less in Home Assistant.
+
+    Who decides: the yes is asked for on the PC, in the Windows app, before it sends this
+    command; nothing here can check it. What guards the command is require_admin: only a
+    caller that holds an administrator's token reaches it, and such a caller could make
+    users and tokens through Home Assistant's own commands anyway. This command makes
+    nothing an administrator could not, and less: never an administrator, never a user
+    who can log in.
     """
     serial_number = msg["serial_number"]
     entry = _entry_for(hass, serial_number) if valid_serial(serial_number) else None
@@ -357,6 +368,10 @@ async def ws_provision(hass: HomeAssistant, connection: websocket_api.ActiveConn
         ):
             user = None
     if user is None:
+        # Home Assistant's built-in "Users" group: what any user who is not an administrator
+        # may do (states, services, events), none of the administrators' commands (users,
+        # tokens, integrations, the configuration). Home Assistant defines the group; it is
+        # the same one a person made under Settings > People without "Administrator" ticked.
         user = await hass.auth.async_create_user(f"HASS.Agent {entry.title}", group_ids=[GROUP_ID_USER])
 
     # The user is the PC's alone: every earlier token of it goes, whatever name the PC had
