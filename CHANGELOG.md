@@ -2,6 +2,14 @@
 
 Every release of the HASS.Agent .NET10 integration, newest first. The Windows client has its own [changelog](https://github.com/v1k70rk4/HASS.Agent.NET10/blob/main/CHANGELOG.md).
 
+## 10.14.0-beta.2
+
+> **Beta.** Going with the Windows client [10.14.0-beta.2](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.14.0-beta.2), which needs nothing new from the integration: what it does is the same as in beta.1, only the code says more about why. Works with every supported Windows client. In the Marketplace: open the integration and choose **Include pre-releases** in its menu, then install 10.14.0-beta.2 when it is offered as an update. In HACS (Home Assistant before 2026.11): choose **Redownload**, then **Need a different version?**, and pick **10.14.0-beta.2** under **Release**. Restart Home Assistant afterwards.
+
+- **The code says why each PC gets a user of its own.** The command that makes a PC's own Home Assistant user and token now says in the code why it is there, that only an administrator's token reaches it, and what that user may do: it is never an administrator and cannot log in, and it may make tokens for itself but never for anyone else. Nothing in how it works changed.
+
+Beta.1, below, is in it: the documentation link that opens the website, and *Updates only at this PC* said to be set in the Windows app.
+
 ## 10.14.0-beta.1
 
 > **Beta.** Going with the Windows client [10.14.0-beta.1](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.14.0-beta.1): the documentation link points at the website, and the texts no longer send you to the client's Danger Zone for *Updates only at this PC*. Works with every supported Windows client. In the Marketplace: open the integration and choose **Include pre-releases** in its menu, then install 10.14.0-beta.1 when it is offered as an update. In HACS (Home Assistant before 2026.11): choose **Redownload**, then **Need a different version?**, and pick **10.14.0-beta.1** under **Release**. Restart Home Assistant afterwards.
