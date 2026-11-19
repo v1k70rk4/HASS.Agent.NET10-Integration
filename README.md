@@ -31,7 +31,7 @@ It is the matching Home Assistant side for the modern **HASS.Agent .NET10** Wind
 >
 > If you want to keep using the old HASS.Agent client, switch to the **[`legacy` branch](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/tree/legacy)** of this integration. The legacy branch works with Home Assistant 2026.6+ and the original pre-.NET10 HASS.Agent, but it is **no longer maintained**.
 
-> **Stable:** [10.13.1](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/releases/latest) &nbsp;·&nbsp; **Beta:** [10.14.0-beta.1](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/releases/tag/v10.14.0-beta.1) &nbsp;·&nbsp; [What changed](#changelog) &nbsp;·&nbsp; [Full changelog](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/blob/main/CHANGELOG.md)
+> **Stable:** [10.13.1](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/releases/latest) &nbsp;·&nbsp; **Beta:** [10.14.0-beta.2](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/releases/tag/v10.14.0-beta.2) &nbsp;·&nbsp; [What changed](#changelog) &nbsp;·&nbsp; [Full changelog](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/blob/main/CHANGELOG.md)
 
 <p align="center"><img src="https://raw.githubusercontent.com/v1k70rk4/HASS.Agent.NET10-Integration/main/images/ha-device.png" width="800" alt="A Windows PC as a device in Home Assistant: media player, audio output select and command buttons"></p>
 
@@ -418,9 +418,15 @@ The first time the integration runs with this, an update a PC already offers is 
 
 ## Changelog
 
-### 10.14.0-beta.1
+### 10.14.0-beta.2
 
-> **Beta.** Going with the Windows client [10.14.0-beta.1](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.14.0-beta.1): the documentation link points at the website, and the texts no longer send you to the client's Danger Zone for *Updates only at this PC*. Works with every supported Windows client. In the Marketplace: open the integration and choose **Include pre-releases** in its menu, then install 10.14.0-beta.1 when it is offered as an update. In HACS (Home Assistant before 2026.11): choose **Redownload**, then **Need a different version?**, and pick **10.14.0-beta.1** under **Release**. Restart Home Assistant afterwards.
+> **Beta.** Going with the Windows client [10.14.0-beta.2](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.14.0-beta.2), which needs nothing new from the integration: what it does is the same as in beta.1, only the code says more about why. Works with every supported Windows client. In the Marketplace: open the integration and choose **Include pre-releases** in its menu, then install 10.14.0-beta.2 when it is offered as an update. In HACS (Home Assistant before 2026.11): choose **Redownload**, then **Need a different version?**, and pick **10.14.0-beta.2** under **Release**. Restart Home Assistant afterwards.
+
+**New since beta.1**
+
+- **The code says why each PC gets a user of its own.** The command that makes a PC's own Home Assistant user and token now says in the code why it is there, that only an administrator's token reaches it, and what that user may do: it is never an administrator and cannot log in, and it may make tokens for itself but never for anyone else. Nothing in how it works changed.
+
+**From beta.1**
 
 - **The documentation link opens the website.** The integration's *Documentation* link in Home Assistant opens [hass-agent.com/integration](https://hass-agent.com/integration/), the integration's pages on the new website, instead of this repository.
 - **Updates only at this PC is where the client has it.** The Windows client 10.14.0-beta.1 moves the switch from its Danger Zone to **About → Update settings**. The error that `update.install` gives for such a PC, and the README, now say only that it is set in the Windows app, which holds for every client version.
