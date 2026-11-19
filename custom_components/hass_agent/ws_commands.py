@@ -369,9 +369,11 @@ async def ws_provision(hass: HomeAssistant, connection: websocket_api.ActiveConn
             user = None
     if user is None:
         # Home Assistant's built-in "Users" group: what any user who is not an administrator
-        # may do (states, services, events), none of the administrators' commands (users,
-        # tokens, integrations, the configuration). Home Assistant defines the group; it is
-        # the same one a person made under Settings > People without "Administrator" ticked.
+        # may do (states, services, events), none of the administrators' commands (other
+        # users, integrations, the configuration). Like any user it may make tokens for
+        # itself, never for anyone else; asking here again removes them all. Home Assistant
+        # defines the group; it is the same one a person made under Settings > People
+        # without "Administrator" ticked.
         user = await hass.auth.async_create_user(f"HASS.Agent {entry.title}", group_ids=[GROUP_ID_USER])
 
     # The user is the PC's alone: every earlier token of it goes, whatever name the PC had
