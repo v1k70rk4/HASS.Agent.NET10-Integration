@@ -2,20 +2,32 @@
 
 Every release of the HASS.Agent .NET10 integration, newest first. The Windows client has its own [changelog](https://github.com/v1k70rk4/HASS.Agent.NET10/blob/main/CHANGELOG.md).
 
-## 10.14.0-beta.2
+## 10.14.0
 
-> **Beta.** Going with the Windows client [10.14.0-beta.2](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.14.0-beta.2), which needs nothing new from the integration: what it does is the same as in beta.1, only the code says more about why. Works with every supported Windows client. In the Marketplace: open the integration and choose **Include pre-releases** in its menu, then install 10.14.0-beta.2 when it is offered as an update. In HACS (Home Assistant before 2026.11): choose **Redownload**, then **Need a different version?**, and pick **10.14.0-beta.2** under **Release**. Restart Home Assistant afterwards.
+Going with the Windows client [10.14.0](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.14.0): the documentation link opens the website, and *Updates only at this PC* is said to be set in the Windows app, where the client 10.14.0 has it under **About → Update settings**. Works with every supported Windows client. Update in the Marketplace (HACS in Home Assistant before 2026.11) and restart Home Assistant.
+
+- **The documentation link opens the website.** The integration's *Documentation* link in Home Assistant opens [hass-agent.com/integration](https://hass-agent.com/integration/), the integration's pages on the new website, instead of this repository.
+- **Updates only at this PC is where the client has it.** The Windows client 10.14.0 moves the switch from its Danger Zone to **About → Update settings**. The error that `update.install` gives for such a PC, and the README, now say only that it is set in the Windows app, which holds for every client version.
+- **The code says why each PC gets a user of its own.** The command that makes a PC's own Home Assistant user and token now says in the code why it is there, that only an administrator's token reaches it, and what that user may do: it is never an administrator and cannot log in, and it may make tokens for itself but never for anyone else. Nothing in how it works changed.
+
+**The betas before it**, with their notes as they were:
+
+<details markdown="1">
+<summary><b>10.14.0-beta.2</b>: the code says why each PC gets a user of its own</summary>
 
 - **The code says why each PC gets a user of its own.** The command that makes a PC's own Home Assistant user and token now says in the code why it is there, that only an administrator's token reaches it, and what that user may do: it is never an administrator and cannot log in, and it may make tokens for itself but never for anyone else. Nothing in how it works changed.
 
 Beta.1, below, is in it: the documentation link that opens the website, and *Updates only at this PC* said to be set in the Windows app.
 
-## 10.14.0-beta.1
+</details>
 
-> **Beta.** Going with the Windows client [10.14.0-beta.1](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.14.0-beta.1): the documentation link points at the website, and the texts no longer send you to the client's Danger Zone for *Updates only at this PC*. Works with every supported Windows client. In the Marketplace: open the integration and choose **Include pre-releases** in its menu, then install 10.14.0-beta.1 when it is offered as an update. In HACS (Home Assistant before 2026.11): choose **Redownload**, then **Need a different version?**, and pick **10.14.0-beta.1** under **Release**. Restart Home Assistant afterwards.
+<details markdown="1">
+<summary><b>10.14.0-beta.1</b>: the documentation link opens the website, Updates only at this PC set in the Windows app</summary>
 
 - **The documentation link opens the website.** The integration's *Documentation* link in Home Assistant opens [hass-agent.com/integration](https://hass-agent.com/integration/), the integration's pages on the new website, instead of this repository.
 - **Updates only at this PC is where the client has it.** The Windows client 10.14.0-beta.1 moves the switch from its Danger Zone to **About → Update settings**. The error that `update.install` gives for such a PC, and the README, now say only that it is set in the Windows app, which holds for every client version.
+
+</details>
 
 ## 10.13.1
 
