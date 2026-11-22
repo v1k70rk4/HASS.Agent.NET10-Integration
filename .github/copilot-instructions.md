@@ -21,7 +21,6 @@ This repository is a custom integration for Home Assistant, `custom_components/h
 ## Pull Requests
 
 - One change per pull request, against `main`. Say what it changes and why; for a bug, how to reproduce it.
-- Leave the version numbers and the changelog alone; they are updated when a release is made.
 
 ## Development Commands
 

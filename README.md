@@ -31,7 +31,7 @@ It is the matching Home Assistant side for the modern **HASS.Agent .NET10** Wind
 >
 > If you want to keep using the old HASS.Agent client, switch to the **[`legacy` branch](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/tree/legacy)** of this integration. The legacy branch works with Home Assistant 2026.6+ and the original pre-.NET10 HASS.Agent, but it is **no longer maintained**.
 
-> **Stable:** [10.13.1](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/releases/latest) &nbsp;·&nbsp; **Beta:** [10.14.0-beta.2](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/releases/tag/v10.14.0-beta.2) &nbsp;·&nbsp; [What changed](#changelog) &nbsp;·&nbsp; [Full changelog](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/blob/main/CHANGELOG.md)
+> **Stable:** [10.14.0](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/releases/latest) &nbsp;·&nbsp; [What changed](#changelog) &nbsp;·&nbsp; [Full changelog](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/blob/main/CHANGELOG.md)
 
 <p align="center"><img src="https://raw.githubusercontent.com/v1k70rk4/HASS.Agent.NET10-Integration/main/images/ha-device.png" width="800" alt="A Windows PC as a device in Home Assistant: media player, audio output select and command buttons"></p>
 
@@ -418,20 +418,16 @@ The first time the integration runs with this, an update a PC already offers is 
 
 ## Changelog
 
-### 10.14.0-beta.2
+### 10.14.0
 
-> **Beta.** Going with the Windows client [10.14.0-beta.2](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.14.0-beta.2), which needs nothing new from the integration: what it does is the same as in beta.1, only the code says more about why. Works with every supported Windows client. In the Marketplace: open the integration and choose **Include pre-releases** in its menu, then install 10.14.0-beta.2 when it is offered as an update. In HACS (Home Assistant before 2026.11): choose **Redownload**, then **Need a different version?**, and pick **10.14.0-beta.2** under **Release**. Restart Home Assistant afterwards.
-
-**New since beta.1**
-
-- **The code says why each PC gets a user of its own.** The command that makes a PC's own Home Assistant user and token now says in the code why it is there, that only an administrator's token reaches it, and what that user may do: it is never an administrator and cannot log in, and it may make tokens for itself but never for anyone else. Nothing in how it works changed.
-
-**From beta.1**
+Going with the Windows client [10.14.0](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.14.0): the documentation link opens the website, and *Updates only at this PC* is said to be set in the Windows app, where the client 10.14.0 has it under **About → Update settings**. Works with every supported Windows client. Update in the Marketplace (HACS in Home Assistant before 2026.11) and restart Home Assistant.
 
 - **The documentation link opens the website.** The integration's *Documentation* link in Home Assistant opens [hass-agent.com/integration](https://hass-agent.com/integration/), the integration's pages on the new website, instead of this repository.
-- **Updates only at this PC is where the client has it.** The Windows client 10.14.0-beta.1 moves the switch from its Danger Zone to **About → Update settings**. The error that `update.install` gives for such a PC, and the README, now say only that it is set in the Windows app, which holds for every client version.
+- **Updates only at this PC is where the client has it.** The Windows client 10.14.0 moves the switch from its Danger Zone to **About → Update settings**. The error that `update.install` gives for such a PC, and the README, now say only that it is set in the Windows app, which holds for every client version.
+- **The code says why each PC gets a user of its own.** The command that makes a PC's own Home Assistant user and token now says in the code why it is there, that only an administrator's token reaches it, and what that user may do: it is never an administrator and cannot log in, and it may make tokens for itself but never for anyone else. Nothing in how it works changed.
 
-### 10.13.1
+<details>
+<summary><b>10.13.1</b></summary>
 
 Going with the Windows client [10.13.1](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.13.1): the PC's screenshot as an image entity, the entity of the client's Print jobs sensor, no Install button for a PC that installs updates only at the PC, and the installed version on the device page of a PC where only the service runs. Works with every supported Windows client. Update in the Marketplace (HACS in Home Assistant before 2026.11) and restart Home Assistant.
 
@@ -441,16 +437,6 @@ Going with the Windows client [10.13.1](https://github.com/v1k70rk4/HASS.Agent.N
 - **The device page shows the installed version on a PC where only the service runs.** The version there came from the tray app alone, so a PC with nobody logged in kept the one from before its last update, while the update entity next to it showed the new one. The update state, which the service sends too, sets it now.
 - **Fixed: on a PC with a client before 10.7.3, an older update state could come back after a newer one.** Such a PC's update entity comes from MQTT discovery, and a state that waited for it to go was applied after a newer one that came meanwhile. A newer state drops the one that waits.
 - **The update event carries only what reads as a version.** `hass_agent_update_available` took the version from the PC's update state as it came, so a text of any length went into the event and into the file that keeps what was announced. Now only a version does: two to four numbers, with the `v` of a release's tag before them and a short part after a dash or a plus. The installed version is left out of the event when it is not one. The update entity shows what the PC sends, as before.
-
-<details>
-<summary><b>10.13.0</b></summary>
-
-Going with the Windows client [10.13.0](https://github.com/v1k70rk4/HASS.Agent.NET10/releases/tag/v10.13.0): an event when a PC offers a new version, an update entity that no longer says "update available" for a moment while the PC comes back, and a limit on approval requests. Works with every supported Windows client. Update in the Marketplace (HACS in Home Assistant before 2026.11) and restart Home Assistant afterwards.
-
-- **An event when a PC offers a new HASS.Agent version.** `hass_agent_update_available` fires once for that version, with `device_name`, `serial_number`, `installed_version`, `latest_version` and `release_url`; the device trigger *A new HASS.Agent version is available* is the same event for one PC. The integration remembers which version it announced, across restarts of Home Assistant and of the PC: the same update is not announced twice, and one that came out while the PC was off is announced when the PC is back. The first time it runs, an update a PC already offers is announced once. See [Home Assistant Events](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration#home-assistant-events).
-- **Fixed: the update entity said "update available" for a moment while the PC came back.** During an update of the app, or after the PC was off, the entity went from unavailable to the state it had before, *on*, and only then to *off*, which set off automations that wait for *on*. The state from before is dropped when neither the tray app nor the service answers, so the entity comes back as unknown until the PC reports. Reported in [#77](https://github.com/v1k70rk4/HASS.Agent.NET10-Integration/issues/77).
-- **Approval requests on the HA API have a limit.** A Home Assistant user can have three PCs waiting for an administrator's approval at a time; a fourth is not shown until one of them is dealt with, and a PC that announces itself again takes no second place. The user the integration made for one PC cannot ask for another PC. From a security review of the integration.
-- **The tests run against Home Assistant 2026.11.1.**
 
 </details>
 
