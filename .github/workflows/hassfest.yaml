@@ -18,6 +18,6 @@ jobs:
         with:
           persist-credentials: false
       # Home Assistant publishes hassfest on its master branch only (its one release, 1.0.0, is
-      # years old), so this is pinned to a master commit; Dependabot cannot follow a branch,
-      # move it by hand now and then.
-      - uses: home-assistant/actions/hassfest@9e9565e68f5a70d874202871f4c4064d23814235 # master 2026-09-27
+      # years old), so this is pinned to a master commit. Dependabot moves the commit, but not
+      # the date after it: write the new commit's date there when it does.
+      - uses: home-assistant/actions/hassfest@9e9565e68f5a70d874202871f4c4064d23814235 # master 2026-11-23
